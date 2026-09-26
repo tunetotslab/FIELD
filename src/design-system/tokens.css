@@ -1,0 +1,36 @@
+:root {
+  --color-paper: #fffaf7;
+  --color-paper-strong: #fffdfb;
+  --color-ink: #111111;
+  --color-pink: #f531a4;
+  --color-pink-dark: #dd198c;
+  --color-pink-soft: #ffd6ee;
+  --color-pink-wash: rgba(245, 49, 164, .12);
+  --color-grey: #8d8a89;
+  --color-line: rgba(17, 17, 17, .12);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+  --shadow-card: 0 12px 35px rgba(44, 20, 34, .09);
+  --shadow-float: 0 8px 20px rgba(245, 49, 164, .2);
+  --font-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-editorial: "Fraunces Variable", Georgia, serif;
+  --font-hand: "Caveat Variable", cursive;
+  --font-gothic: "UnifrakturCook", serif;
+  --z-decor: 0;
+  --z-content: 10;
+  --z-nav: 20;
+  --z-modal: 30;
+  --safe-top: max(12px, env(safe-area-inset-top));
+  --safe-bottom: max(12px, env(safe-area-inset-bottom));
+  --motion-fast: 160ms;
+  --motion-slow: 650ms;
+}

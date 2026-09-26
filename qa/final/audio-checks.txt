@@ -1,0 +1,11 @@
+PASS CLEAN · 1.600s · peak 0.379 · dry bypass exact
+PASS WARM · 1.600s · peak 0.437 · dry bypass exact
+PASS TAPE · 1.600s · peak 0.496 · dry bypass exact
+PASS LOFI · 1.600s · peak 0.479 · dry bypass exact
+PASS GLITCH · 1.600s · peak 0.379 · dry bypass exact
+PASS REVERSE · 1.600s · peak 0.379 · dry bypass exact
+PASS PITCH · 1.600s · peak 0.322 · dry bypass exact
+PASS SPACE · 4.400s · peak 0.130 · dry bypass exact
+PASS DESTROY · 1.600s · peak 0.842 · dry bypass exact
+PASS isolated IndexedDB · save / reopen / rename / favorite / delete
+COMPLETE — 80 assertions passed
