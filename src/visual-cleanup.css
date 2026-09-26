@@ -12,8 +12,9 @@
 .brand-logo { mix-blend-mode: normal; }
 .shell-home .screen-content { gap: var(--space-3); padding-bottom: var(--space-4); }
 .shell-home .field-wordmark {
-  width: min(100%, 340px); height: auto; aspect-ratio: 960 / 639;
-  margin: 0 auto; object-fit: contain; mix-blend-mode: normal; filter: none;
+  width: min(100%, 350px); height: auto;
+  margin: 8px auto 2px; object-fit: contain; mix-blend-mode: normal;
+  filter: drop-shadow(0 9px 12px rgba(28,73,17,.18));
 }
 .home-illustration { display: grid; justify-items: center; gap: var(--space-2); }
 .home-illustration .miley-record {
@@ -60,7 +61,7 @@
   .shell-fx .screen-title { margin-bottom: var(--space-2); }
   .shell-fx .eyebrow { margin: 0 0 var(--space-1); }
   .shell-fx .parameter-control { margin: 0; }
-  .shell-home .field-wordmark { width: min(82%, 264px); }
+  .shell-home .field-wordmark { width: min(90%, 300px); }
   .home-illustration .miley-record { width: min(57%, 195px); }
   .shell-home .screen-content { gap: var(--space-2); }
   .home-record-zone { padding-top: var(--space-2); }

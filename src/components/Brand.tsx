@@ -1,5 +1,5 @@
 import tuneTotsLogo from '../assets/brand/tune-tots-transparent.png';
-import fieldWordmark from '../assets/brand/field-wordmark-transparent.png';
+import fieldWordmark from '../assets/brand/field-wordmark-grass.png';
 import mileyRecord from '../assets/mascot/miley-record-v2.png';
 import mileyWorld from '../assets/mascot/miley-world-v2.png';
 
