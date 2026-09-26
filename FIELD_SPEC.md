@@ -1,0 +1,1660 @@
+# FIELD — PRODUCT & TECHNICAL SPECIFICATION
+
+**Document:** `FIELD_SPEC.md`
+**Product:** FIELD
+**Studio:** Tune Tots Lab
+**Status:** Active Development
+**Document role:** Single Source of Truth
+
+---
+
+# 1. PRODUCT DEFINITION
+
+## 1.1 What is FIELD?
+
+FIELD is a mobile-first field-recording application for capturing, transforming, organizing and sharing sounds from the real world.
+
+The central interaction is intentionally simple:
+
+**Hear something → Record it → Transform it → Describe it → Keep it or place it in the world.**
+
+FIELD combines:
+
+* field recording;
+* playful audio processing;
+* visual sound exploration;
+* emoji-based metadata;
+* daily recording prompts;
+* a personal sound library;
+* a shared global sound map;
+* music education;
+* experimental sound practice.
+
+FIELD is not intended to feel like a conventional professional audio editor.
+
+It should feel like a **digital field notebook for sound**.
+
+---
+
+# 2. PRODUCT PHILOSOPHY
+
+FIELD should make recording sound feel playful and immediate.
+
+The user should not need to understand:
+
+* DAWs;
+* EQ;
+* signal processing;
+* file formats;
+* audio engineering terminology.
+
+Instead of technical interfaces, FIELD presents audio processing as playful transformations.
+
+The product should encourage:
+
+**Record. Explore. Listen. Collect. Share.**
+
+The app should be understandable to:
+
+* children;
+* musicians;
+* artists;
+* educators;
+* casual users;
+* people interested in their acoustic environment.
+
+---
+
+# 3. CORE USER LOOP
+
+The primary workflow is:
+
+```text
+HOME
+  ↓
+RECORD
+  ↓
+RECORDING
+  ↓
+PLAYBACK
+  ↓
+EDIT
+  ↓
+FX
+  ↓
+CHOOSE 3 EMOJI
+  ↓
+ADD TITLE
+  ↓
+SHARE
+  ↓
+PRIVATE / FIELD WORLD
+```
+
+This flow is the highest-priority interaction in the entire application.
+
+It must remain:
+
+* fast;
+* obvious;
+* stable;
+* visually clean;
+* usable on mobile.
+
+The user should be able to create a finished sound entry in approximately 30–60 seconds.
+
+---
+
+# 4. MAIN NAVIGATION
+
+Primary bottom navigation:
+
+```text
+LIBRARY
+
+DAILY
+
+MAP
+```
+
+Global access:
+
+```text
+SETTINGS
+```
+
+Settings must remain accessible from all major application screens.
+
+---
+
+# 5. HOME
+
+## Purpose
+
+The Home screen is the main recording entry point.
+
+It should immediately communicate:
+
+> FIELD is about capturing sounds around you.
+
+## Elements
+
+Home contains:
+
+* `Sounds are everywhere ♡`
+* Tune Tots logo
+* FIELD logo
+* FIELD mascot
+* supporting editorial text
+* main Record button
+* `TAP TO RECORD`
+* bottom navigation
+* `Made by Tune Tots Lab`
+
+The composition should have significant empty space.
+
+Do not fill every area with text or decoration.
+
+---
+
+# 6. FIELD LOGO
+
+The main FIELD logo is a three-dimensional organic typography object.
+
+Text:
+
+```text
+FIELD
+```
+
+Visual reference:
+
+> 3D typography art, the logo "FIELD" in big, puffy, rounded, fluffy letters.
+>
+> The letters are completely covered in a dense, short-cut green grass lawn texture, creating a soft and plush effect. Tiny, delicate white flowers, similar to baby's breath, are scattered across the surface of the letters.
+>
+> Style: Hyperrealistic, highly detailed, photorealistic.
+>
+> Lighting: Bright but soft studio lighting, emphasizing the volume of the letters and individual grass blades.
+>
+> Quality: cinematic, highly detailed 3D rendering.
+
+### Asset requirements
+
+The production asset MUST have:
+
+* transparent background;
+* clean alpha;
+* no rectangular background;
+* no visible bounding box;
+* preserved individual grass blades around the silhouette;
+* preserved flowers;
+* no artificial white halo.
+
+The asset should visually be cut around the actual shape of the typography.
+
+Never display a gray or white rectangular image background behind FIELD.
+
+---
+
+# 7. MASCOT
+
+Use the official Tune Tots / FIELD mascot asset.
+
+Do not redraw or reinterpret the mascot unless explicitly requested.
+
+Rules:
+
+* preserve original proportions;
+* use transparent asset;
+* never stretch;
+* never crop head;
+* never crop feet;
+* never place inside a visible rectangular image background;
+* use `object-fit: contain`;
+* avoid `overflow: hidden` where it clips the illustration.
+
+The mascot should behave visually like an illustration/sticker placed in the composition.
+
+---
+
+# 8. HOME LAYOUT
+
+Approximate hierarchy:
+
+```text
+Sounds are everywhere ♡
+
+Tune Tots
+
+FIELD
+
+Mascot / Hero Illustration
+
+
+        breathing space
+
+
+        RECORD
+
+     TAP TO RECORD
+
+
+Made by Tune Tots Lab
+
+────────────────────────
+LIBRARY    DAILY    MAP
+```
+
+FIELD should be visually prominent.
+
+The mascot should never collide with FIELD.
+
+---
+
+# 9. RECORDING
+
+Pressing the central Record button opens the recording experience.
+
+The browser requests microphone permission if required.
+
+Use the real microphone stream.
+
+Primary technology:
+
+```text
+getUserMedia()
+MediaRecorder
+Web Audio API
+AnalyserNode
+```
+
+---
+
+# 10. LIVE AUDIO VISUALIZATION
+
+While recording, FIELD must visualize the actual incoming microphone signal.
+
+This must NOT be a predefined animation.
+
+Pipeline:
+
+```text
+Microphone
+    ↓
+MediaStream
+    ↓
+AudioContext
+    ↓
+AnalyserNode
+    ↓
+Visualization
+```
+
+The visualization must respond to real amplitude.
+
+Loud sound:
+
+```text
+██████████
+```
+
+Quiet sound:
+
+```text
+▁▂▁▁▂
+```
+
+Silence:
+
+```text
+──────────
+```
+
+The visualization should feel smooth rather than excessively nervous.
+
+---
+
+# 11. RECORDING STATE
+
+During recording display:
+
+* elapsed recording time;
+* live waveform / amplitude visualization;
+* Stop;
+* clear recording state.
+
+Recording must continue reliably when UI components update.
+
+UI rendering must not interfere with audio capture.
+
+---
+
+# 12. RECORDING PLAYBACK
+
+After recording stops, the captured audio must immediately be playable.
+
+Required controls:
+
+```text
+PLAY
+PAUSE
+RESTART
+```
+
+Pipeline:
+
+```text
+MediaRecorder chunks
+      ↓
+Blob
+      ↓
+Audio source
+      ↓
+Playback
+```
+
+Playback must use the actual captured recording.
+
+Never simulate playback through UI state alone.
+
+---
+
+# 13. EDIT
+
+After confirming the recording, the user enters Edit.
+
+Edit displays the waveform of the actual recording.
+
+The waveform must be calculated from decoded audio data.
+
+Pipeline:
+
+```text
+Recorded Blob
+      ↓
+ArrayBuffer
+      ↓
+decodeAudioData()
+      ↓
+AudioBuffer
+      ↓
+Waveform data
+      ↓
+Canvas / visualization
+```
+
+The waveform must:
+
+* represent the actual recording;
+* remain visible after navigation;
+* scale correctly;
+* work with quiet recordings;
+* never become an empty white rectangle.
+
+---
+
+# 14. AUDIO EFFECTS
+
+Effects are playful transformations of the recorded sound.
+
+They must be understandable without audio-engineering knowledge.
+
+Every effect must actually modify audio.
+
+Selecting an effect must never merely change the UI.
+
+---
+
+# 15. ORIGINAL
+
+`ORIGINAL`
+
+The unprocessed recording.
+
+No DSP.
+
+It serves as the reference for comparison with effects.
+
+---
+
+# 16. ECHO
+
+Replaces the previous `CLEAN` effect.
+
+Suggested processing:
+
+```text
+Delay
++
+Feedback
++
+Wet/Dry
+```
+
+Target character:
+
+* obvious;
+* musical;
+* playful;
+* not overwhelming.
+
+Starting values may approximately be:
+
+```text
+delay: 250–400ms
+feedback: 25–40%
+```
+
+Exact values should be tuned by ear.
+
+---
+
+# 17. RESONATOR
+
+Replaces the previous `WARM` effect.
+
+The effect should introduce strong tonal resonances into the recording.
+
+Possible implementation:
+
+```text
+Input
+ ↓
+Multiple tuned resonant filters
+ ↓
+Wet/Dry
+```
+
+or short tuned feedback delays.
+
+It should transform:
+
+```text
+environmental sound
+```
+
+into something more:
+
+```text
+tonal / metallic / musical
+```
+
+The result must be clearly distinguishable from Original.
+
+---
+
+# 18. TAPE STOP
+
+Replaces the old generic `TAPE`.
+
+Behaviour:
+
+```text
+normal playback
+      ↓
+gradual slowdown
+      ↓
+pitch drops together with speed
+      ↓
+stop
+```
+
+The effect should evoke:
+
+* tape machine stopping;
+* turntable slowdown;
+* physical media losing speed.
+
+It must not simply be a low-pass filter.
+
+---
+
+# 19. OTHER EFFECTS
+
+All existing effects must undergo an audio-quality pass.
+
+For every effect verify:
+
+* actual DSP is active;
+* audible difference;
+* stable playback;
+* sensible wet/dry;
+* no uncontrolled feedback;
+* no accidental clipping;
+* no major loudness jump;
+* switching effects does not break playback.
+
+FX quality is more important than having a large number of weak effects.
+
+---
+
+# 20. EFFECT UI
+
+Effects should not look like generic SaaS buttons.
+
+Visual language should connect to FIELD artwork.
+
+Possible forms:
+
+* inflated typography;
+* glossy objects;
+* tactile objects;
+* bubblegum forms;
+* translucent material;
+* chrome;
+* organic objects.
+
+The UI should feel closer to an interactive art object than an audio plugin.
+
+However:
+
+**visual experimentation must never reduce usability.**
+
+Selected FX must always be obvious.
+
+---
+
+# 21. CHOOSE 3 EMOJI
+
+Every sound can be described using exactly three emoji slots.
+
+Example:
+
+```text
+🌲  💧  🐦
+```
+
+Emoji function as playful metadata.
+
+Each slot is independent.
+
+Therefore this is valid:
+
+```text
+🌲 🌲 🌲
+```
+
+Do NOT enforce uniqueness.
+
+---
+
+# 22. EMOJI PICKER
+
+The picker should behave similarly to a modern phone emoji keyboard.
+
+Categories:
+
+```text
+Smileys & People
+Animals & Nature
+Food & Drink
+Activities
+Travel & Places
+Objects
+Symbols
+Flags
+```
+
+The user can:
+
+* scroll through the full catalogue;
+* switch categories;
+* search.
+
+Use standard Unicode emoji.
+
+---
+
+# 23. EMOJI SEARCH
+
+Emoji search must support keywords.
+
+Examples:
+
+```text
+dog
+→ 🐶 🐕
+```
+
+```text
+music
+→ 🎵 🎶 🎧 🎸 🎹
+```
+
+```text
+forest
+→ 🌲 🌳 🍄
+```
+
+```text
+rain
+→ 🌧️ ☔ 💧
+```
+
+```text
+Armenia
+→ 🇦🇲
+```
+
+The architecture should allow translated search keywords in the future.
+
+---
+
+# 24. TITLE
+
+Users can assign a title to the recording.
+
+Example:
+
+```text
+Rain behind the school
+```
+
+or:
+
+```text
+Metal thing near the bus stop
+```
+
+Title input requirements:
+
+* no text clipping;
+* correct line height;
+* visible cursor;
+* responsive width;
+* sensible maximum length;
+* long titles should not break layouts.
+
+---
+
+# 25. SHARE
+
+After metadata is complete:
+
+```text
+SHARE TO
+```
+
+offers:
+
+```text
+PRIVATE
+```
+
+or:
+
+```text
+FIELD WORLD
+```
+
+---
+
+# 26. PRIVATE
+
+PRIVATE means:
+
+> This recording belongs to the user's personal library and is not publicly visible.
+
+Use a lock icon.
+
+---
+
+# 27. FIELD WORLD
+
+FIELD WORLD is the shared global sound archive.
+
+Publishing stores the sound together with:
+
+```text
+audio
+title
+emoji[3]
+city
+country
+createdAt
+```
+
+Optional internal metadata:
+
+```text
+effect
+duration
+audio format
+```
+
+---
+
+# 28. LOCATION PRIVACY
+
+FIELD WORLD must NOT expose exact user GPS coordinates.
+
+Public location granularity:
+
+```text
+CITY LEVEL
+```
+
+Example:
+
+```text
+Dilijan, Armenia
+```
+
+not:
+
+```text
+40.741234, 44.862384
+```
+
+The public globe marker uses approximate city coordinates.
+
+---
+
+# 29. MAP / FIELD WORLD
+
+The Map screen contains a real interactive globe.
+
+The globe must accurately represent Earth.
+
+Continents must not be invented or distorted beyond recognition.
+
+Visual treatment may be FIELD-like:
+
+* pink;
+* translucent;
+* glossy;
+* bubblegum;
+* soft light;
+* blur.
+
+But the underlying geography must remain correct.
+
+---
+
+# 30. GLOBE INTERACTION
+
+Users can:
+
+* drag globe horizontally;
+* drag vertically;
+* swipe on touch devices;
+* rotate in any direction;
+* select markers.
+
+Desktop:
+
+```text
+mouse drag
+```
+
+Mobile:
+
+```text
+touch drag
+```
+
+---
+
+# 31. SOUND MARKERS
+
+Published FIELD WORLD recordings appear on the globe.
+
+Marker data:
+
+```text
+city
+country
+soundCount
+```
+
+Selecting a location can display:
+
+```text
+DILIJAN
+7 SOUNDS
+```
+
+Opening it reveals available recordings.
+
+A recording card may show:
+
+```text
+emoji
+title
+city
+country
+play
+```
+
+---
+
+# 32. LOCATION CLUSTERING
+
+If multiple recordings exist in the same city, do not place dozens of overlapping markers.
+
+Group them.
+
+Example:
+
+```text
+DILIJAN
+27 SOUNDS
+```
+
+The user can open the location to explore recordings.
+
+---
+
+# 33. DAILY
+
+DAILY encourages users to actively listen to their environment.
+
+Each day presents a recording challenge.
+
+Examples:
+
+```text
+SOMETHING METALLIC
+
+SOMETHING SOFT
+
+A SOUND FROM FAR AWAY
+
+SOMETHING RHYTHMIC
+
+A SOUND YOU NEVER NOTICED
+
+SOMETHING GREEN
+
+A SOUND THAT MOVES
+```
+
+Daily challenges should encourage listening rather than competition.
+
+---
+
+# 34. DAILY VISUAL ART
+
+Each challenge can have its own photographic or graphical artwork.
+
+For:
+
+```text
+SOMETHING METALLIC
+```
+
+use the provided photograph of metal beverage-can tabs as the current visual reference / artwork.
+
+The image should be intentionally integrated into the composition.
+
+Do not place it as an arbitrary raw rectangle.
+
+Crop and frame it deliberately.
+
+---
+
+# 35. LIBRARY
+
+Library is the user's personal sound archive.
+
+The Library icon must visually communicate:
+
+```text
+collection / archive / library
+```
+
+not a generic square.
+
+Library contains saved recordings.
+
+Each recording should retain:
+
+```text
+audio
+title
+emoji
+effect
+date
+location if available
+sharing state
+```
+
+---
+
+# 36. LIBRARY ACTIONS
+
+At minimum the user should eventually be able to:
+
+```text
+Play
+Rename
+Edit metadata
+Change sharing state
+Delete
+```
+
+Future:
+
+```text
+Download
+Export
+Collections
+Tags
+Favorites
+```
+
+Do not implement future features unless they are currently required, but avoid architecture that prevents them.
+
+---
+
+# 37. SETTINGS
+
+Settings must always be reachable from major application screens.
+
+Use one consistent gear icon.
+
+Settings include at minimum:
+
+```text
+Language
+Privacy
+Microphone
+About FIELD
+```
+
+Additional settings can be added later.
+
+---
+
+# 38. LANGUAGES
+
+Initial supported interface languages:
+
+```text
+English
+Русский
+Հայերեն
+繁體中文
+```
+
+Use proper i18n architecture.
+
+Never hardcode translations throughout JSX.
+
+Suggested conceptual structure:
+
+```text
+locales/
+
+en
+ru
+hy
+zh-TW
+```
+
+Every user-facing interface string must use translation keys.
+
+---
+
+# 39. LOCALIZATION QUALITY
+
+Translations must preserve meaning rather than mechanically translating individual English words.
+
+Test layout with every language.
+
+Russian and Armenian strings may be longer than English.
+
+Traditional Chinese may require different line breaking.
+
+No language may cause:
+
+* clipping;
+* overlap;
+* broken buttons;
+* inaccessible controls.
+
+---
+
+# 40. TUNE TOTS LAB
+
+FIELD is a Tune Tots Lab project.
+
+Main Tune Tots branding appears near the top.
+
+Do NOT unnecessarily repeat the logo at the bottom.
+
+Footer:
+
+```text
+Made by Tune Tots Lab
+```
+
+Centered.
+
+Clicking it should open the official Tune Tots Lab Instagram account.
+
+Store external URLs in configuration/constants rather than scattering them through components.
+
+---
+
+# 41. VISUAL IDENTITY
+
+FIELD combines two worlds:
+
+### Clean digital interface
+
+* warm white;
+* black typography;
+* lots of negative space;
+* simple navigation.
+
+### Physical / tactile visual objects
+
+* grass;
+* chrome;
+* plastic;
+* bubblegum;
+* photography;
+* translucent materials;
+* soft blur;
+* hyperrealistic 3D objects.
+
+The contrast is intentional.
+
+---
+
+# 42. VISUAL PRINCIPLE
+
+FIELD should NOT look like:
+
+* generic SaaS;
+* corporate dashboard;
+* Bootstrap application;
+* children's educational software;
+* generic pastel app;
+* Barbie-style interface.
+
+It should feel:
+
+* contemporary;
+* playful;
+* editorial;
+* experimental;
+* tactile;
+* art-directed;
+* slightly strange;
+* culturally current.
+
+---
+
+# 43. GRAPHIC ASSETS
+
+Whenever official assets exist:
+
+USE THEM.
+
+Do not regenerate:
+
+* Tune Tots logo;
+* mascot;
+* existing approved artwork.
+
+For transparent assets:
+
+* preserve alpha;
+* preserve proportions;
+* avoid white halos;
+* avoid rectangular backgrounds.
+
+Never redraw an approved logo merely to change its placement.
+
+---
+
+# 44. RESPONSIVE TARGET
+
+FIELD is mobile-first.
+
+Primary widths:
+
+```text
+375px
+390px
+430px
+```
+
+Also support desktop browser preview.
+
+Desktop should display the mobile experience elegantly rather than stretching every component across the entire screen.
+
+---
+
+# 45. AUDIO ARCHITECTURE
+
+Audio functionality should use browser-native audio technologies where practical.
+
+Core:
+
+```text
+MediaDevices
+MediaRecorder
+Web Audio API
+AudioContext
+AudioBuffer
+AnalyserNode
+GainNode
+BiquadFilterNode
+DelayNode
+ConvolverNode
+```
+
+Use AudioWorklet only when processing requires it.
+
+Do not add heavy audio dependencies merely to implement basic functionality already supported by Web Audio API.
+
+---
+
+# 46. AUDIO STATE
+
+A recording must have one canonical source.
+
+Conceptually:
+
+```text
+Recording
+├── originalBlob
+├── decodedBuffer
+├── duration
+├── waveformData
+├── selectedEffect
+├── title
+├── emoji
+├── location
+└── visibility
+```
+
+Do not create unrelated copies of the recording for every screen.
+
+Recording → Edit → FX → Share must operate on the same logical recording.
+
+---
+
+# 47. NON-DESTRUCTIVE FX
+
+Effects should preferably be non-destructive.
+
+Keep:
+
+```text
+ORIGINAL AUDIO
+```
+
+and store:
+
+```text
+selectedEffect
+effectParameters
+```
+
+This allows the user to return to Original.
+
+Do not permanently overwrite the source recording merely because the user previews an effect.
+
+---
+
+# 48. DATA MODEL
+
+Conceptual recording model:
+
+```typescript
+interface FieldRecording {
+  id: string
+
+  title: string
+  emoji: [string, string, string]
+
+  audioAssetId: string
+  durationMs: number
+
+  selectedEffect: string
+  effectParams?: Record<string, number>
+
+  visibility: 'private' | 'field-world'
+
+  location?: {
+    city: string
+    country: string
+    countryCode: string
+    approximateLat: number
+    approximateLng: number
+  }
+
+  dailyChallengeId?: string
+
+  createdAt: string
+  updatedAt: string
+}
+```
+
+Exact implementation may differ, but preserve the conceptual separation.
+
+---
+
+# 49. STORAGE
+
+Separate:
+
+```text
+AUDIO FILES
+```
+
+from:
+
+```text
+METADATA
+```
+
+Audio storage can use object storage.
+
+Metadata belongs in the database.
+
+Do not store large audio blobs directly inside normal metadata rows.
+
+---
+
+# 50. OFFLINE BEHAVIOUR
+
+FIELD should progressively move toward offline-first behavior.
+
+Recording must never depend on an active network connection.
+
+At minimum:
+
+```text
+record
+play
+edit
+effects
+metadata
+```
+
+should work locally.
+
+If publishing to FIELD WORLD is unavailable because the device is offline, preserve the recording locally and allow publishing later.
+
+Never discard a recording because a network request failed.
+
+---
+
+# 51. PERMISSIONS
+
+Microphone permissions should be requested only when needed.
+
+If permission is denied:
+
+show a clear friendly explanation.
+
+Do not leave the user staring at a broken Record button.
+
+Location permissions should never be mandatory for recording.
+
+---
+
+# 52. ERROR HANDLING
+
+Handle at minimum:
+
+```text
+microphone denied
+microphone unavailable
+recording failure
+audio decode failure
+playback failure
+upload failure
+offline state
+location unavailable
+unsupported browser
+```
+
+Error states should be human-readable.
+
+Avoid raw technical exceptions in the UI.
+
+---
+
+# 53. ACCESSIBILITY
+
+FIELD is visually experimental, but core interactions must remain accessible.
+
+Requirements:
+
+* sufficient touch targets;
+* meaningful button labels;
+* keyboard accessibility where applicable;
+* visible selected states;
+* do not communicate important state through color alone.
+
+---
+
+# 54. PERFORMANCE
+
+Avoid unnecessary React updates during audio activity.
+
+Real-time visualization should not push high-frequency audio data through global React state.
+
+Prefer:
+
+```text
+AnalyserNode
+→ requestAnimationFrame
+→ Canvas
+```
+
+instead of:
+
+```text
+AnalyserNode
+→ React setState 60 times/sec
+```
+
+Audio functionality must remain independent from expensive UI rendering.
+
+---
+
+# 55. DEVELOPMENT PRINCIPLE
+
+Do not rewrite working architecture simply because another implementation is theoretically cleaner.
+
+For bugs:
+
+```text
+REPRODUCE
+↓
+IDENTIFY ROOT CAUSE
+↓
+FIX
+↓
+TEST
+↓
+VISUALLY VERIFY
+```
+
+Do not fix symptoms with arbitrary CSS offsets when the underlying layout is incorrect.
+
+---
+
+# 56. NO FAKE FUNCTIONALITY
+
+The following rule is absolute.
+
+If FIELD visually claims that something happened, it must actually have happened.
+
+Therefore:
+
+`REC` → actual audio capture.
+
+`waveform` → actual recorded waveform.
+
+`PLAY` → actual recorded audio.
+
+`FX` → actual DSP.
+
+`emoji search` → actual search.
+
+`FIELD WORLD` → actual published recordings.
+
+`globe marker` → actual sound location.
+
+`language switch` → actual localization.
+
+Never create fake functionality merely to make a screenshot look complete.
+
+---
+
+# 57. QA — CORE FLOW
+
+Before considering a release successful, manually test:
+
+```text
+HOME
+↓
+RECORD
+↓
+STOP
+↓
+PLAY
+↓
+EDIT
+↓
+FX
+↓
+EMOJI
+↓
+TITLE
+↓
+SHARE
+↓
+LIBRARY / FIELD WORLD
+```
+
+Every step must work.
+
+---
+
+# 58. AUDIO QA
+
+Test recordings containing:
+
+```text
+speech
+clapping
+quiet ambience
+music
+short transient sounds
+continuous noise
+```
+
+For each recording verify:
+
+* waveform;
+* playback;
+* duration;
+* Original;
+* Echo;
+* Resonator;
+* Tape Stop;
+* every other available FX.
+
+---
+
+# 59. VISUAL QA
+
+Check every major screen at:
+
+```text
+375px
+390px
+430px
+desktop preview
+```
+
+Look specifically for:
+
+* clipping;
+* text overflow;
+* rectangular image backgrounds;
+* mascot cropping;
+* incorrect alpha;
+* overlapping elements;
+* inconsistent spacing;
+* misaligned icons;
+* wrong selected states.
+
+---
+
+# 60. FIELD WORLD QA
+
+Test:
+
+```text
+Create recording
+↓
+Choose FIELD WORLD
+↓
+Publish
+↓
+Open Map
+↓
+Locate city
+↓
+Open marker
+↓
+Find recording
+↓
+Play recording
+```
+
+The complete loop must work.
+
+---
+
+# 61. DAILY QA
+
+Test:
+
+```text
+Open Daily
+↓
+View challenge
+↓
+Start recording
+↓
+Complete normal recording flow
+↓
+Save recording
+```
+
+The resulting recording must retain its `dailyChallengeId`.
+
+---
+
+# 62. DEFINITION OF DONE
+
+A feature is NOT finished when:
+
+```text
+the code compiles
+```
+
+or:
+
+```text
+the component renders
+```
+
+or:
+
+```text
+the button changes color
+```
+
+A feature is finished when:
+
+1. it works functionally;
+2. it survives the intended user flow;
+3. it is visually verified;
+4. it produces no relevant console/runtime errors;
+5. it behaves correctly on target mobile sizes;
+6. it does not break previously working functionality.
+
+---
+
+# 63. CURRENT PRIORITY ORDER
+
+Development priority:
+
+### P0 — Core functionality
+
+1. Reliable recording
+2. Live audio visualization
+3. Playback
+4. Real waveform
+5. Functional effects
+6. Save recording
+
+### P1 — Metadata / sharing
+
+7. Full emoji picker
+8. Emoji search
+9. Title
+10. Private / FIELD World
+11. Library
+
+### P1 — FIELD World
+
+12. Real globe
+13. Published recordings
+14. City markers
+15. Playback from globe
+
+### P2 — Engagement
+
+16. Daily challenges
+17. Daily artwork
+18. Localization
+
+### P2 — Polish
+
+19. FIELD grass logo
+20. Mascot/layout cleanup
+21. Navigation icons
+22. Animation
+23. Final responsive pass
+
+Functionality must not be sacrificed for visual polish.
+
+---
+
+# 64. CURRENT PRODUCT VISION
+
+FIELD should ultimately feel like a combination of:
+
+**field recorder**
+
+*
+
+**sound diary**
+
+*
+
+**playful audio instrument**
+
+*
+
+**global archive of everyday sounds**
+
+*
+
+**sound-education tool**
+
+*
+
+**digital art object**
+
+The product is successful when it makes someone notice and record a sound they would normally have ignored.
+
+---
+
+# 65. RULE FOR FUTURE DEVELOPMENT
+
+Before implementing a new feature, ask:
+
+> Does this make listening, recording, transforming or exploring sound more interesting?
+
+If not, it probably does not belong in FIELD.
+
+Keep the product focused.
+
+---
+
+**END OF FIELD_SPEC.md**
