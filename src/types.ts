@@ -1,7 +1,41 @@
-export type RecorderState = 'idle' | 'requesting-permission' | 'recording' | 'paused' | 'processing' | 'ready' | 'error';
-export type EffectId = 'clean' | 'warm' | 'tape' | 'lofi' | 'glitch' | 'reverse' | 'pitch' | 'space' | 'destroy';
-export type Visibility = 'private' | 'group' | 'world';
-export type Screen = 'home' | 'record' | 'edit' | 'fx' | 'emoji' | 'title' | 'style' | 'location' | 'visibility' | 'ready' | 'library' | 'daily' | 'map' | 'settings' | 'links';
+export type RecorderState =
+  | "idle"
+  | "requesting-permission"
+  | "recording"
+  | "paused"
+  | "processing"
+  | "ready"
+  | "error";
+export type EffectId =
+  | "original"
+  | "echo"
+  | "resonator"
+  | "tapeStop"
+  | "chorus"
+  | "flanger"
+  | "lofi"
+  | "glitch"
+  | "reverse"
+  | "pitch"
+  | "space"
+  | "destroy";
+export type Visibility = "private" | "group" | "world";
+export type Screen =
+  | "home"
+  | "record"
+  | "edit"
+  | "fx"
+  | "emoji"
+  | "title"
+  | "style"
+  | "location"
+  | "visibility"
+  | "ready"
+  | "library"
+  | "daily"
+  | "map"
+  | "settings"
+  | "links";
 
 export interface SoundDraft {
   id: string;
@@ -39,4 +73,6 @@ export interface SoundRecord {
   visibility: Visibility;
   audioBlob: Blob;
   waveform: number[];
+  effect?: EffectId;
+  effectMix?: number;
 }

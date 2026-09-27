@@ -14,5 +14,5 @@ export function makeFixture(): SoundDraft {
       samples[i]=(tone*envelope+noise)*Math.min(1,t/.005)*Math.min(1,(2-t)/.01);
     }
   }
-  return {id:'field-qa-fixture',originalBlob:audioBufferToWav(buffer),duration:2,trimStart:.1,trimEnd:1.7,effect:'clean',effectMix:70,pitchSemitones:7,emojis:['🌱','🚋','✨'],title:'QA — percussion',visibility:'private',createdAt:Date.now(),waveform:peaksFromBuffer(buffer),fadeIn:false,fadeOut:false,loop:false};
+  return {id:'field-qa-fixture',originalBlob:audioBufferToWav(buffer),duration:2,trimStart:.1,trimEnd:1.7,effect:'original',effectMix:70,pitchSemitones:7,emojis:['🌱','🚋','✨'],title:'QA — percussion',visibility:'private',createdAt:Date.now(),waveform:peaksFromBuffer(buffer),fadeIn:false,fadeOut:false,loop:false};
 }

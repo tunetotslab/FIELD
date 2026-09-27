@@ -26,6 +26,26 @@ export function degrade(input: Float32Array, sampleRate: number, extreme = false
   return output;
 }
 
+/** Varispeed tape-stop: playback speed and pitch fall together to zero. */
+export function tapeStop(input: Float32Array, sampleRate: number) {
+  const output = new Float32Array(input.length);
+  const stopStart = Math.max(0, Math.floor(input.length * .38));
+  let position = 0;
+  for (let i = 0; i < output.length; i++) {
+    const progress = i <= stopStart ? 0 : (i - stopStart) / Math.max(1, output.length - stopStart);
+    const speed = progress === 0 ? 1 : Math.max(0, (1 - progress) ** 2.2);
+    const base = Math.floor(position), fraction = position - base;
+    const a = input[Math.min(base, input.length - 1)] || 0;
+    const b = input[Math.min(base + 1, input.length - 1)] || 0;
+    const fade = progress > .82 ? (1 - progress) / .18 : 1;
+    output[i] = (a + (b - a) * fraction) * Math.max(0, fade);
+    position = Math.min(input.length - 1, position + speed);
+  }
+  const clickGuard = Math.min(Math.round(sampleRate * .012), output.length);
+  for (let i = 0; i < clickGuard; i++) output[output.length - 1 - i] *= i / Math.max(1, clickGuard);
+  return output;
+}
+
 export function finishSamples(channels: Float32Array[], sampleRate: number, fadeIn: boolean, fadeOut: boolean, hasTail: boolean) {
   const length = channels[0]?.length || 0;
   const entrance = fadeIn ? Math.min(Math.round(sampleRate * .6), Math.floor(length / 3)) : 0;
