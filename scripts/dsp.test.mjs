@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { degrade, stutter, finishSamples, tapeStop } from '../src/audio/dsp.ts';
+import { degrade, finishSamples, loFi, stutter, tapeStop } from '../src/audio/dsp.ts';
 import { spectralPitch as pitchShift } from '../src/audio/spectral.ts';
 const rate=48000, input=Float32Array.from({length:rate},(_,i)=>.3*Math.sin(2*Math.PI*440*i/rate));
 const rms=a=>Math.sqrt(a.reduce((sum,v)=>sum+v*v,0)/a.length);
@@ -24,6 +24,9 @@ for(const [semitones,expected] of [[12,880],[-12,220],[7,659]]){
   console.log(`PASS pitch ${semitones}: ${peak}Hz, duration retained`);
 }
 assert.notDeepEqual(degrade(input,rate),input);
+const loFiOutput=loFi(input,rate);
+assert.notDeepEqual(loFiOutput,input);
+assert.ok(rms(loFiOutput)>.03);
 assert.notDeepEqual(stutter(input,rate),input);
 const stopped=tapeStop(input,rate);
 assert.equal(stopped.length,input.length);assert.ok(rms(stopped.slice(-2400))<rms(stopped.slice(0,2400))*.2);

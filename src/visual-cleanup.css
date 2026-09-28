@@ -242,7 +242,7 @@
   font-style: normal;
 }
 .shell-fx {
-  padding-bottom: var(--space-5);
+  padding-bottom: calc(84px + var(--safe-bottom));
 }
 .shell-fx .screen-content {
   gap: var(--space-3);

@@ -102,24 +102,31 @@ export async function runAudioChecks(
       effect === "original" || difference > 0.001,
       `${effect}: indistinguishable from original`,
     );
-    if (effect === "chorus") {
+    if (effect === "chorus" || effect === "flanger") {
       const right = decoded.getChannelData(1);
       let stereoDifference = 0;
       for (let index = 0; index < data.length; index++)
         stereoDifference += (data[index] - right[index]) ** 2;
-      assert(stereoDifference > 0.001, "Chorus stereo width missing");
+      assert(stereoDifference > 0.001, `${effect}: stereo motion missing`);
     }
     const tail =
       effect === "space"
         ? 2.8
         : effect === "echo"
           ? Math.min(3.2, Math.max(0.8, (fixture.echoDelayMs / 1000) * 4))
+          : effect === "resonator"
+            ? 0.9
           : 0;
     assert(
       Math.abs(rendered.duration - (clean.duration + tail)) <
         2 / decoded.sampleRate,
       `${effect}: unexpected duration`,
     );
+    if (effect === "resonator")
+      assert(
+        data.slice(dry.length).some((x) => Math.abs(x) > 0.0001),
+        "Resonator decay tail missing",
+      );
     if (effect === "space") {
       assert(
         data.slice(dry.length).some((x) => Math.abs(x) > 0.0001),

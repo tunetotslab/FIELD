@@ -126,7 +126,7 @@ button:disabled {
   height: calc(70px + var(--safe-bottom));
   padding: 8px 22px var(--safe-bottom);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   background: rgba(255, 250, 247, 0.92);
   backdrop-filter: blur(18px);
   border-top: 1px solid var(--color-line);
@@ -148,6 +148,10 @@ button:disabled {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.bottom-nav .nav-record-dot {
+  fill: currentColor;
+  stroke: none;
 }
 .bottom-nav button.active {
   color: var(--color-pink-dark);
@@ -320,7 +324,7 @@ button:disabled {
   min-height: 54px;
   border-radius: var(--radius-pill);
   color: white;
-  background: #111;
+  background: var(--color-pink);
   font-weight: 850;
   letter-spacing: 0.03em;
   margin-top: auto;

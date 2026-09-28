@@ -110,12 +110,19 @@ export function BottomNav({
   go,
   active,
 }: {
-  go: (screen: "library" | "daily" | "map") => void;
+  go: (screen: "home" | "library" | "daily" | "map") => void;
   active?: string;
 }) {
   const { t } = useI18n();
   return (
     <nav className="bottom-nav" aria-label="Main navigation">
+      <button
+        className={active === "home" ? "active" : ""}
+        onClick={() => go("home")}
+      >
+        <NavIcon type="record" />
+        {t("navRecord")}
+      </button>
       <button
         className={active === "library" ? "active" : ""}
         onClick={() => go("library")}
@@ -141,7 +148,18 @@ export function BottomNav({
   );
 }
 
-function NavIcon({ type }: { type: "library" | "daily" | "globe" }) {
+function NavIcon({
+  type,
+}: {
+  type: "record" | "library" | "daily" | "globe";
+}) {
+  if (type === "record")
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" />
+        <circle className="nav-record-dot" cx="12" cy="12" r="4.25" />
+      </svg>
+    );
   if (type === "library")
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">

@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import { useState } from "react";
 import App, { EmojiScreen, FxScreen } from "../App";
+import { AppNavigationProvider } from "../components/Shell";
 import { makeFixture } from "./fixture";
 import { runAudioChecks } from "./diagnostics";
 import "@fontsource-variable/caveat";
@@ -19,13 +20,20 @@ function QA() {
   if (mode === "fx")
     return (
       <div className="viewport">
-        <FxScreen
-          draft={draft}
-          update={(patch) => setDraft((d) => ({ ...d, ...patch }))}
-          back={() => setMode("menu")}
-          next={() => setMode("menu")}
-          setPlaying={() => {}}
-        />
+        <AppNavigationProvider
+          screen="fx"
+          go={(screen) => {
+            if (screen === "home") setMode("app");
+          }}
+        >
+          <FxScreen
+            draft={draft}
+            update={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+            back={() => setMode("menu")}
+            next={() => setMode("menu")}
+            setPlaying={() => {}}
+          />
+        </AppNavigationProvider>
       </div>
     );
   if (mode === "emoji")

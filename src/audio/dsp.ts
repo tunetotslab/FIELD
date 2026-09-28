@@ -1,17 +1,58 @@
 /** Deterministic, sample-domain audio processors, independent of React. */
 export function stutter(input: Float32Array, sampleRate: number) {
-  const output = input.slice(), beat = Math.max(1, Math.round(sampleRate * .24)), slice = Math.max(1, Math.round(beat / 4)), crossfade = Math.max(1, Math.round(sampleRate * .004));
+  const output = input.slice(), beat = Math.max(1, Math.round(sampleRate * .24)), slice = Math.max(1, Math.round(beat / 6)), gate = Math.max(1, Math.round(sampleRate * .012)), crossfade = Math.max(1, Math.round(sampleRate * .004));
   for (let i = 0; i < output.length; i++) {
     const block = Math.floor(i / beat), local = i % beat;
-    if (block % 4 === 0) continue;
-    const repeat = local % slice, source = Math.min(block * beat + repeat, input.length - 1);
-    let value = input[source];
-    if (repeat < crossfade && local >= slice) {
-      const previous = Math.min(block * beat + slice + repeat, input.length - 1), blend = .5 - .5 * Math.cos(Math.PI * repeat / crossfade);
-      value = input[previous] * (1 - blend) + value * blend;
+    const mode = block % 6;
+    if (mode === 0) continue;
+    const repeat = local % slice;
+    let source = block * beat + repeat;
+    let value = input[Math.min(source, input.length - 1)];
+    if (mode === 2) {
+      source = block * beat + Math.max(0, beat - 1 - local);
+      value = input[Math.min(source, input.length - 1)];
+    } else if (mode === 3) {
+      const micro = Math.max(1, Math.round(slice / 2));
+      source = block * beat + (local % micro);
+      value = input[Math.min(source, input.length - 1)];
+      if (Math.floor(local / gate) % 2) value *= 0.06;
+    } else if (mode === 4) {
+      const micro = Math.max(1, Math.round(slice / 3));
+      source = block * beat + (local % micro);
+      value = Math.round(input[Math.min(source, input.length - 1)] * 63) / 63;
+    } else if (mode === 5) {
+      source = Math.max(0, block * beat - beat + repeat);
+      value = input[Math.min(source, input.length - 1)];
     }
-    const edge = Math.min(local / crossfade, (beat - local) / crossfade, 1);
-    output[i] = input[i] * (1 - edge) + value * edge;
+    const sliceEdge = Math.min(repeat / crossfade, (slice - repeat) / crossfade, 1);
+    const blockEdge = Math.min(local / crossfade, (beat - local) / crossfade, 1);
+    const blend = Math.max(0, Math.min(1, sliceEdge, blockEdge));
+    output[i] = input[i] * (1 - blend) + value * blend;
+  }
+  return output;
+}
+
+/** Warm sampler-style reduction with deterministic flutter and dither. */
+export function loFi(input: Float32Array, sampleRate: number, channel = 0) {
+  const output = new Float32Array(input.length);
+  const hold = Math.max(1, Math.round(sampleRate / 11025));
+  const levels = 511;
+  let held = 0;
+  let seed = 0x9e3779b9 ^ (channel * 0x85ebca6b);
+  for (let i = 0; i < input.length; i++) {
+    if (i % hold === 0) {
+      const time = i / sampleRate;
+      const flutter =
+        Math.sin(2 * Math.PI * 0.43 * time) * 2.4 +
+        Math.sin(2 * Math.PI * 3.1 * time) * 0.55;
+      const position = Math.max(0, Math.min(input.length - 2, i + flutter));
+      const base = Math.floor(position), fraction = position - base;
+      const sample = input[base] + (input[base + 1] - input[base]) * fraction;
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const dither = (seed / 0xffffffff - 0.5) * 0.0018;
+      held = Math.round((sample + dither) * levels) / levels;
+    }
+    output[i] = held;
   }
   return output;
 }

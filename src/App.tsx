@@ -859,7 +859,7 @@ export function FxScreen({
           <span>
             <strong>{t("echoRate")}</strong>
             <small>
-              {t("slower")} ↔ {t("faster")}
+              {t("faster")} ↔ {t("slower")}
             </small>
           </span>
           <input

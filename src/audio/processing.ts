@@ -1,6 +1,6 @@
 import type { EffectId, SoundDraft } from "../types";
 import { audioBufferToWav, decodeBlob, peaksFromBuffer } from "./utils";
-import { degrade, finishSamples, stutter, tapeStop } from "./dsp";
+import { degrade, finishSamples, loFi, stutter, tapeStop } from "./dsp";
 import { renderPitch } from "./pitch";
 
 function saturation(drive: number) {
@@ -38,6 +38,41 @@ function roomImpulse(context: BaseAudioContext) {
   return impulse;
 }
 
+function resonatorImpulse(context: BaseAudioContext) {
+  const duration = 0.9;
+  const impulse = context.createBuffer(
+    2,
+    Math.ceil(context.sampleRate * duration),
+    context.sampleRate,
+  );
+  const modes = [
+    [146.83, 0.72, 1, 0],
+    [220, 0.62, 0.78, -0.68],
+    [293.66, 0.56, 0.7, 0.68],
+    [440, 0.46, 0.56, -0.38],
+    [587.33, 0.39, 0.46, 0.38],
+  ] as const;
+  for (let channel = 0; channel < 2; channel++) {
+    const data = impulse.getChannelData(channel);
+    for (const [frequency, decay, level, pan] of modes) {
+      const damping = Math.exp(-1 / (decay * context.sampleRate));
+      const channelLevel =
+        channel === 0
+          ? Math.cos(((pan + 1) * Math.PI) / 4)
+          : Math.sin(((pan + 1) * Math.PI) / 4);
+      for (let i = 0; i < data.length; i++)
+        data[i] +=
+          2 *
+          (1 - damping) *
+          level *
+          channelLevel *
+          Math.sin((2 * Math.PI * frequency * i) / context.sampleRate) *
+          damping ** i;
+    }
+  }
+  return impulse;
+}
+
 export async function analyze(blob: Blob) {
   const buffer = await decodeBlob(blob);
   return { duration: buffer.duration, waveform: peaksFromBuffer(buffer) };
@@ -67,7 +102,9 @@ export async function renderDraft(
                 3.2,
                 Math.max(0.8, ((draft.echoDelayMs || 340) / 1000) * 4),
               )
-            : 0
+            : effect === "resonator"
+              ? 0.9
+              : 0
         : 0,
     frameCount = end - start;
   const outputChannels =
@@ -110,8 +147,10 @@ export async function renderDraft(
               ? tapeStop(samples, sampleRate)
               : effect === "glitch"
                 ? stutter(samples, sampleRate)
-                : effect === "lofi" || effect === "destroy"
-                  ? degrade(samples, sampleRate, effect === "destroy")
+                : effect === "lofi"
+                  ? loFi(samples, sampleRate, channel)
+                  : effect === "destroy"
+                    ? degrade(samples, sampleRate, true)
                   : samples;
     wetBuffer.getChannelData(channel).set(wetSamples);
   }
@@ -120,9 +159,9 @@ export async function renderDraft(
   const wetSource = context.createBufferSource();
   wetSource.buffer = wetBuffer;
   const dryGain = context.createGain();
-  dryGain.gain.value = 1 - mix;
+  dryGain.gain.value = Math.cos((mix * Math.PI) / 2);
   const wetGain = context.createGain();
-  wetGain.gain.value = mix;
+  wetGain.gain.value = Math.sin((mix * Math.PI) / 2);
   drySource.connect(dryGain).connect(context.destination);
   wetGain.connect(context.destination);
   let node: AudioNode = wetSource;
@@ -166,31 +205,27 @@ export async function renderDraft(
     delay.connect(wetGain);
     wetConnected = true;
   } else if (effect === "resonator") {
-    const sum = context.createGain();
-    sum.gain.value = 2.4;
-    for (const [frequency, q, gain] of [
-      [196, 18, 0.75],
-      [293.66, 22, 0.66],
-      [440, 26, 0.55],
-      [659.25, 30, 0.42],
-    ] as const) {
-      const resonator = context.createBiquadFilter();
-      resonator.type = "bandpass";
-      resonator.frequency.value = frequency;
-      resonator.Q.value = q;
-      const level = context.createGain();
-      level.gain.value = gain;
-      node.connect(resonator).connect(level).connect(sum);
-    }
-    sum.connect(wetGain);
+    const inputFilter = context.createBiquadFilter();
+    inputFilter.type = "highpass";
+    inputFilter.frequency.value = 105;
+    const body = context.createConvolver();
+    body.normalize = false;
+    body.buffer = resonatorImpulse(context);
+    const bodyGain = context.createGain();
+    bodyGain.gain.value = 13;
+    node.connect(inputFilter).connect(body).connect(bodyGain).connect(wetGain);
     wetConnected = true;
   } else if (effect === "chorus") {
     const chorusBus = context.createGain();
-    chorusBus.gain.value = 0.58;
+    chorusBus.gain.value = 1.08;
+    const center = context.createGain();
+    center.gain.value = 0.24;
+    node.connect(center).connect(chorusBus);
     const voices: Array<[number, number, number, number]> = [
-      [0.016, 0.0038, 0.29, -0.72],
-      [0.023, -0.0046, 0.41, 0],
-      [0.031, 0.0032, 0.53, 0.72],
+      [0.012, 0.0024, 0.31, -0.82],
+      [0.017, -0.0031, 0.37, 0.82],
+      [0.024, 0.0038, 0.23, -0.38],
+      [0.029, -0.0042, 0.27, 0.38],
     ];
     for (const [delaySeconds, depth, rate, pan] of voices) {
       const delay = context.createDelay(0.06);
@@ -201,40 +236,59 @@ export async function renderDraft(
       modulation.gain.value = depth;
       const position = context.createStereoPanner();
       position.pan.value = pan;
+      const voiceLevel = context.createGain();
+      voiceLevel.gain.value = 0.29;
       lfo.connect(modulation).connect(delay.delayTime);
-      node.connect(delay).connect(position).connect(chorusBus);
+      node.connect(delay).connect(voiceLevel).connect(position).connect(chorusBus);
       lfo.start(0);
     }
     const air = context.createBiquadFilter();
     air.type = "highshelf";
-    air.frequency.value = 3200;
-    air.gain.value = -1.5;
+    air.frequency.value = 5200;
+    air.gain.value = -1.2;
     chorusBus.connect(air).connect(wetGain);
     wetConnected = true;
   } else if (effect === "flanger") {
-    const delay = context.createDelay(0.02);
-    delay.delayTime.value = 0.0032;
-    const lfo = context.createOscillator();
-    lfo.frequency.value = 0.24;
-    const modulation = context.createGain();
-    modulation.gain.value = 0.0026;
-    const feedback = context.createGain();
-    feedback.gain.value = 0.42;
-    const damp = context.createBiquadFilter();
-    damp.type = "lowpass";
-    damp.frequency.value = 7200;
-    const level = context.createGain();
-    level.gain.value = 0.78;
-    lfo.connect(modulation).connect(delay.delayTime);
-    node.connect(delay);
-    delay.connect(damp).connect(feedback).connect(delay);
-    delay.connect(level).connect(wetGain);
-    lfo.start(0);
+    const flangerBus = context.createGain();
+    flangerBus.gain.value = 1.04;
+    const direct = context.createGain();
+    direct.gain.value = 0.62;
+    node.connect(direct).connect(flangerBus);
+    for (const [rate, depth, pan, polarity] of [
+      [0.17, 0.0036, -0.74, 1],
+      [0.23, -0.0032, 0.74, -1],
+    ] as const) {
+      const delay = context.createDelay(0.012);
+      delay.delayTime.value = 0.0046;
+      const lfo = context.createOscillator();
+      lfo.frequency.value = rate;
+      const modulation = context.createGain();
+      modulation.gain.value = depth;
+      const feedback = context.createGain();
+      feedback.gain.value = 0.58 * polarity;
+      const safeBass = context.createBiquadFilter();
+      safeBass.type = "highpass";
+      safeBass.frequency.value = 150;
+      const damp = context.createBiquadFilter();
+      damp.type = "lowpass";
+      damp.frequency.value = 8200;
+      const level = context.createGain();
+      level.gain.value = 0.48;
+      const position = context.createStereoPanner();
+      position.pan.value = pan;
+      lfo.connect(modulation).connect(delay.delayTime);
+      node.connect(delay);
+      delay.connect(safeBass).connect(damp).connect(feedback).connect(delay);
+      delay.connect(level).connect(position).connect(flangerBus);
+      lfo.start(0);
+    }
+    flangerBus.connect(wetGain);
     wetConnected = true;
   } else if (effect === "lofi") {
-    filter("highpass", 220);
-    filter("lowpass", 4200, 0, 0.9);
-    shape(1.5, 0.85);
+    filter("highpass", 145, 0, 0.65);
+    filter("peaking", 1100, 2.2, 0.8);
+    filter("lowpass", 5600, 0, 0.75);
+    shape(1.8, 0.88);
   } else if (effect === "destroy") {
     filter("highpass", 75);
     shape(12, 0.46);
