@@ -7,14 +7,14 @@
 }
 .shell-home,
 .shell-world {
-  padding-bottom: 0;
+  padding-bottom: calc(84px + var(--safe-bottom));
 }
 .shell-home .bottom-nav,
 .shell-world .bottom-nav {
-  position: relative;
+  position: absolute;
   flex-shrink: 0;
-  margin: 0 calc(-1 * var(--space-4));
-  height: auto;
+  margin: 0;
+  height: calc(70px + var(--safe-bottom));
   min-height: calc(62px + var(--safe-bottom));
   padding-top: var(--space-2);
   border-top-color: rgba(17, 17, 17, 0.06);

@@ -59,7 +59,16 @@ export async function renderDraft(
         ? 0
         : Math.max(0, Math.min(1, draft.effectMix / 100));
   const tailSeconds =
-      mix > 0 ? (effect === "space" ? 2.8 : effect === "echo" ? 1.35 : 0) : 0,
+      mix > 0
+        ? effect === "space"
+          ? 2.8
+          : effect === "echo"
+            ? Math.min(
+                3.2,
+                Math.max(0.8, ((draft.echoDelayMs || 340) / 1000) * 4),
+              )
+            : 0
+        : 0,
     frameCount = end - start;
   const outputChannels =
     tailSeconds > 0 || effect === "chorus" || effect === "flanger"
@@ -143,7 +152,10 @@ export async function renderDraft(
   let wetConnected = false;
   if (effect === "echo") {
     const delay = context.createDelay(1);
-    delay.delayTime.value = 0.34;
+    delay.delayTime.value = Math.max(
+      0.08,
+      Math.min(1, (draft.echoDelayMs || 340) / 1000),
+    );
     const feedback = context.createGain();
     feedback.gain.value = 0.34;
     const damp = context.createBiquadFilter();

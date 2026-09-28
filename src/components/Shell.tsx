@@ -42,16 +42,20 @@ export function Shell({
 }) {
   const { t } = useI18n();
   const navigation = useContext(NavigationContext);
-  const primaryScreen =
-    navigation &&
-    ["home", "library", "daily", "map"].includes(navigation.screen);
+  const showBottomNavigation = navigation && navigation.screen !== "record";
   const showSettings =
-    navigation && !["settings", "links"].includes(navigation.screen);
+    navigation &&
+    ![
+      "record",
+      "settings",
+      "links",
+      "privacy",
+      "microphone",
+      "about",
+      "help",
+    ].includes(navigation.screen);
   return (
     <main className={`app-shell${variant ? ` shell-${variant}` : ""}`}>
-      <div className="blob blob-a" />
-      <div className="blob blob-b" />
-      <div className="blob blob-c" />
       <header className="app-header">
         <div className="header-side">
           {back && (
@@ -81,7 +85,7 @@ export function Shell({
       {title && <h1 className="screen-title">{title}</h1>}
       <section className="screen-content">{children}</section>
       {nav ??
-        (primaryScreen ? (
+        (showBottomNavigation ? (
           <BottomNav go={navigation.go} active={navigation.screen} />
         ) : null)}
     </main>

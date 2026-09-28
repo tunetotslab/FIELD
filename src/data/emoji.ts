@@ -109,11 +109,13 @@ export function searchEmoji(query: string, locale: Locale = "en") {
     if (!result.includes(emoji)) result.push(emoji);
   };
 
-  const supplemental = supplementalKeywords[locale];
-  if (supplemental) {
+  for (const [dictionaryLocale, supplemental] of Object.entries(
+    supplementalKeywords,
+  )) {
+    if (!supplemental) continue;
     for (const word of words) {
       for (const [keyword, emojis] of Object.entries(supplemental)) {
-        const normalizedKeyword = normalize(keyword, locale);
+        const normalizedKeyword = normalize(keyword, dictionaryLocale);
         if (
           normalizedKeyword.includes(word) ||
           word.includes(normalizedKeyword)
@@ -122,20 +124,17 @@ export function searchEmoji(query: string, locale: Locale = "en") {
       }
     }
   }
-
-  const localeIndex =
-    locale === "ru"
-      ? localized.ru
-      : locale === "zh-TW"
-        ? localized["zh-TW"]
-        : localized.en;
   for (const entry of englishEntries) {
-    const translated = localeIndex.get(entry.hexcode);
+    const translations = Object.values(localized).map((index) =>
+      index.get(entry.hexcode),
+    );
     const searchable = [
-      translated?.label,
-      ...(translated?.tags ?? []),
       entry.label,
       ...(entry.tags ?? []),
+      ...translations.flatMap((translated) => [
+        translated?.label,
+        ...(translated?.tags ?? []),
+      ]),
     ]
       .filter(Boolean)
       .map((value) => normalize(String(value), locale));

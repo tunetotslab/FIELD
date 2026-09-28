@@ -4,6 +4,7 @@ import type {
   RecorderState,
   Screen,
   SoundDraft,
+  SoundLocation,
   SoundRecord,
   Visibility,
 } from "./types";
@@ -21,7 +22,9 @@ import { FieldGlobe, FxArtwork } from "./components/FieldArtwork";
 import dailyMetallic from "./assets/daily-metallic.jpg";
 import { emojiCategories, searchEmoji, type EmojiCategory } from "./data/emoji";
 import { useI18n, type Locale } from "./i18n";
-import { EXTERNAL_LINKS } from "./config";
+import { COMMUNITY_PUBLISHING_AVAILABLE, EXTERNAL_LINKS } from "./config";
+import { countries, searchCities, type CountryOption } from "./data/geo";
+import { settingsContent, type SettingsArticle } from "./data/settingsContent";
 
 const STYLES = [
   { id: "grotesk", label: "FIELD GROTESK" },
@@ -64,6 +67,7 @@ function newDraft(
     effect: "original",
     effectMix: 70,
     pitchSemitones: 7,
+    echoDelayMs: 340,
     emojis: [],
     visibility: "private",
     createdAt: Date.now(),
@@ -80,6 +84,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [playingId, setPlayingId] = useState<string>();
   const settingsReturn = useRef<Screen>("home");
+  const workflowReturn = useRef<Screen | undefined>(undefined);
+  const pendingChallenge = useRef<string | undefined>(undefined);
 
   const loadLibrary = useCallback(async () => {
     try {
@@ -101,8 +107,38 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [screen]);
   const go = (next: Screen) => {
-    if (next === "settings" && !["settings", "links"].includes(screen))
+    if (
+      next === "settings" &&
+      !["settings", "links", "privacy", "microphone", "about", "help"].includes(
+        screen,
+      )
+    )
       settingsReturn.current = screen;
+    if (["library", "daily", "map"].includes(next)) {
+      const processScreens: Screen[] = [
+        "edit",
+        "fx",
+        "emoji",
+        "title",
+        "style",
+        "location",
+        "visibility",
+        "ready",
+      ];
+      if (processScreens.includes(screen)) workflowReturn.current = screen;
+      else if (
+        [
+          "settings",
+          "links",
+          "privacy",
+          "microphone",
+          "about",
+          "help",
+        ].includes(screen) &&
+        processScreens.includes(settingsReturn.current)
+      )
+        workflowReturn.current = settingsReturn.current;
+    }
     player.stop();
     setPlayingId(undefined);
     setNotice("");
@@ -136,9 +172,13 @@ export default function App() {
         createdAt: draft.createdAt,
         favorite: false,
         location: draft.location,
-        visibility: draft.visibility,
+        visibility: COMMUNITY_PUBLISHING_AVAILABLE
+          ? draft.visibility
+          : "private",
         effect: draft.effect,
         effectMix: draft.effectMix,
+        echoDelayMs: draft.echoDelayMs,
+        dailyChallenge: draft.dailyChallenge,
         audioBlob: rendered.blob,
         waveform: rendered.waveform,
       };
@@ -152,7 +192,11 @@ export default function App() {
         processedDuration: rendered.duration,
       });
       setNotice(
-        draft.visibility === "world" ? t("savedWorld") : t("savedPrivate"),
+        draft.visibility === "world" && !COMMUNITY_PUBLISHING_AVAILABLE
+          ? t("savedLocalOnly")
+          : draft.visibility === "world"
+            ? t("savedWorld")
+            : t("savedPrivate"),
       );
     } catch {
       setNotice(
@@ -186,7 +230,8 @@ export default function App() {
         return (
           <RecordScreen
             onDone={(value) => {
-              setDraft(value);
+              setDraft({ ...value, dailyChallenge: pendingChallenge.current });
+              pendingChallenge.current = undefined;
               go("edit");
             }}
             onCancel={() => go("home")}
@@ -301,10 +346,32 @@ export default function App() {
             setPlayingId={setPlayingId}
             setNotice={setNotice}
             notice={notice}
+            back={() =>
+              go(
+                draft && workflowReturn.current
+                  ? workflowReturn.current
+                  : "home",
+              )
+            }
           />
         );
       case "daily":
-        return <Daily go={go} />;
+        return (
+          <Daily
+            go={(next) => {
+              if (next === "record")
+                pendingChallenge.current = "something-metallic";
+              go(next);
+            }}
+            back={() =>
+              go(
+                draft && workflowReturn.current
+                  ? workflowReturn.current
+                  : "home",
+              )
+            }
+          />
+        );
       case "map":
         return (
           <WorldMap
@@ -312,12 +379,25 @@ export default function App() {
             go={go}
             playingId={playingId}
             setPlayingId={setPlayingId}
+            back={() =>
+              go(
+                draft && workflowReturn.current
+                  ? workflowReturn.current
+                  : "home",
+              )
+            }
           />
         );
       case "settings":
         return <Settings go={go} back={() => go(settingsReturn.current)} />;
       case "links":
         return <Links go={go} />;
+      case "privacy":
+      case "about":
+      case "help":
+        return <InformationScreen kind={screen} go={go} />;
+      case "microphone":
+        return <MicrophoneScreen go={go} />;
       default:
         return null;
     }
@@ -541,6 +621,11 @@ function EditScreen({
   const { t } = useI18n();
   const startPct = (draft.trimStart / draft.duration) * 100,
     endPct = (draft.trimEnd / draft.duration) * 100;
+  const changeTrim = (patch: Partial<SoundDraft>) => {
+    player.stop();
+    setPlaying(false);
+    update(patch);
+  };
   const preview = async () => {
     if (playing) {
       player.pause();
@@ -566,7 +651,7 @@ function EditScreen({
           max="100"
           value={startPct}
           onChange={(e) =>
-            update({
+            changeTrim({
               trimStart: Math.min(
                 (Number(e.target.value) / 100) * draft.duration,
                 draft.trimEnd - 0.1,
@@ -582,7 +667,7 @@ function EditScreen({
           max="100"
           value={endPct}
           onChange={(e) =>
-            update({
+            changeTrim({
               trimEnd: Math.max(
                 (Number(e.target.value) / 100) * draft.duration,
                 draft.trimStart + 0.1,
@@ -595,13 +680,24 @@ function EditScreen({
         <span>{formatTime(draft.trimStart)}</span>
         <span>{formatTime(draft.trimEnd)}</span>
       </div>
-      <button
-        className="play-main"
-        onClick={() => void preview()}
-        aria-label="Preview selection"
-      >
-        {playing ? "Ⅱ" : "▶"}
-      </button>
+      <div className="trim-playback">
+        <button
+          onClick={() => {
+            player.restart();
+            setPlaying(true);
+          }}
+          aria-label={t("restart")}
+        >
+          ↺
+        </button>
+        <button
+          className="play-main"
+          onClick={() => void preview()}
+          aria-label="Preview selection"
+        >
+          {playing ? "Ⅱ" : "▶"}
+        </button>
+      </div>
       <div className="edit-tools">
         <button className="selected">
           ✂<span>TRIM</span>
@@ -745,17 +841,42 @@ export function FxScreen({
                 processedBlob: undefined,
               })
             }
-            onKeyUp={() =>
-              void preview({ pitchSemitones: draft.pitchSemitones })
+            onKeyUp={(e) =>
+              void preview({ pitchSemitones: Number(e.currentTarget.value) })
             }
-            onPointerUp={() =>
-              void preview({ pitchSemitones: draft.pitchSemitones })
+            onPointerUp={(e) =>
+              void preview({ pitchSemitones: Number(e.currentTarget.value) })
             }
           />
           <output>
             {draft.pitchSemitones > 0 ? "+" : ""}
             {draft.pitchSemitones} ST
           </output>
+        </label>
+      )}
+      {draft.effect === "echo" && (
+        <label className="parameter-control echo-control">
+          <span>
+            <strong>{t("echoRate")}</strong>
+            <small>
+              {t("slower")} ↔ {t("faster")}
+            </small>
+          </span>
+          <input
+            type="range"
+            min="80"
+            max="1000"
+            step="10"
+            value={draft.echoDelayMs}
+            onChange={(e) => update({ echoDelayMs: Number(e.target.value) })}
+            onKeyUp={(e) =>
+              void preview({ echoDelayMs: Number(e.currentTarget.value) })
+            }
+            onPointerUp={(e) =>
+              void preview({ echoDelayMs: Number(e.currentTarget.value) })
+            }
+          />
+          <output>{draft.echoDelayMs} MS</output>
         </label>
       )}
       <label className="mix-control">
@@ -772,8 +893,12 @@ export function FxScreen({
               processedBlob: undefined,
             })
           }
-          onKeyUp={() => void preview({ effectMix: draft.effectMix })}
-          onPointerUp={() => void preview({ effectMix: draft.effectMix })}
+          onKeyUp={(e) =>
+            void preview({ effectMix: Number(e.currentTarget.value) })
+          }
+          onPointerUp={(e) =>
+            void preview({ effectMix: Number(e.currentTarget.value) })
+          }
         />
         <output>
           {draft.effect === "original" ? "DRY" : `${draft.effectMix}%`}
@@ -962,85 +1087,172 @@ function StyleScreen({ draft, update, next, back }: StepProps) {
   );
 }
 function LocationScreen({ draft, update, next, back }: StepProps) {
-  const { t } = useI18n();
-  const options = [
-    { country: "Armenia" },
-    { country: "Armenia", city: "Yerevan" },
-    { country: "Armenia", city: "Dilijan" },
-  ];
-  const [custom, setCustom] = useState(false);
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
-  const selected = (o: { country?: string; city?: string }) =>
-    draft.location?.country === o.country && draft.location?.city === o.city;
+  const { t, locale } = useI18n();
+  const allCountries = useMemo(() => countries(locale), [locale]);
+  const [countryQuery, setCountryQuery] = useState(
+    draft.location?.country || "",
+  );
+  const [selectedCountry, setSelectedCountry] = useState<
+    CountryOption | undefined
+  >(() => {
+    if (!draft.location) return undefined;
+    return {
+      code: draft.location.countryCode,
+      name: draft.location.country,
+      searchNames: [draft.location.country],
+    };
+  });
+  const [cityQuery, setCityQuery] = useState(draft.location?.city || "");
+  const [results, setResults] = useState<SoundLocation[]>([]);
+  const [placeState, setPlaceState] = useState<
+    "idle" | "loading" | "empty" | "error"
+  >("idle");
+  const countryResults =
+    countryQuery.trim().length && countryQuery !== selectedCountry?.name
+      ? allCountries
+          .filter((item) =>
+            item.searchNames.some((name) =>
+              name
+                .toLocaleLowerCase()
+                .includes(countryQuery.trim().toLocaleLowerCase()),
+            ),
+          )
+          .slice(0, 10)
+      : [];
+  useEffect(() => {
+    if (
+      !selectedCountry ||
+      cityQuery.trim().length < 2 ||
+      cityQuery === draft.location?.city
+    ) {
+      setResults([]);
+      setPlaceState("idle");
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setPlaceState("loading");
+      try {
+        const found = await searchCities(
+          cityQuery.trim(),
+          selectedCountry,
+          locale,
+          controller.signal,
+        );
+        setResults(found);
+        setPlaceState(found.length ? "idle" : "empty");
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError"))
+          setPlaceState("error");
+      }
+    }, 1100);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [cityQuery, selectedCountry, locale, draft.location?.city]);
   return (
     <Shell title={t("chooseLocation")} back={back}>
       <p className="eyebrow">{t("optionalApprox")}</p>
-      <div className="option-list">
-        {options.map((o) => (
-          <button
-            key={o.city || o.country}
-            className={selected(o) ? "selected" : ""}
-            onClick={() => {
-              setCustom(false);
-              update({ location: o });
-            }}
-          >
-            <span>
-              <strong>{o.city || o.country}</strong>
-              {o.city && <small>{o.country}</small>}
-            </span>
-            <i />
-          </button>
-        ))}
-        <button
-          className={custom ? "selected" : ""}
-          onClick={() => setCustom(true)}
-        >
-          <span>
-            <strong>{t("other")}</strong>
-          </span>
-          <i />
-        </button>
-        {custom && (
-          <div className="custom-location">
-            <input
-              className="text-input"
-              maxLength={40}
-              placeholder={t("country")}
-              value={country}
-              onChange={(e) => {
-                setCountry(e.target.value);
-                update({
-                  location: {
-                    country: e.target.value || undefined,
-                    city: city || undefined,
-                  },
-                });
-              }}
-            />
-            <input
-              className="text-input"
-              maxLength={40}
-              placeholder={t("city")}
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
-                update({
-                  location: {
-                    country: country || undefined,
-                    city: e.target.value || undefined,
-                  },
-                });
-              }}
-            />
+      <div className="location-search">
+        <label>
+          <span>{t("country")}</span>
+          <input
+            className="text-input"
+            value={countryQuery}
+            placeholder={t("countrySearch")}
+            onChange={(event) => setCountryQuery(event.target.value)}
+          />
+        </label>
+        {countryResults.length > 0 && (
+          <div className="search-results">
+            {countryResults.map((item) => (
+              <button
+                key={item.code}
+                onClick={() => {
+                  setSelectedCountry(item);
+                  setCountryQuery(item.name);
+                  setCityQuery("");
+                  setResults([]);
+                  update({ location: undefined });
+                }}
+              >
+                {item.name}
+                <small>{item.code}</small>
+              </button>
+            ))}
           </div>
         )}
+        <label>
+          <span>{t("city")}</span>
+          <input
+            className="text-input"
+            value={cityQuery}
+            disabled={!selectedCountry}
+            placeholder={
+              selectedCountry ? t("citySearch") : t("chooseCountryFirst")
+            }
+            onChange={(event) => setCityQuery(event.target.value)}
+          />
+        </label>
+        {placeState === "loading" && (
+          <p className="search-status">{t("searchingPlaces")}</p>
+        )}
+        {placeState === "empty" && (
+          <p className="search-status">{t("placeNotFound")}</p>
+        )}
+        {placeState === "error" && (
+          <p className="search-status" role="alert">
+            {t("placeSearchError")}
+          </p>
+        )}
+        {results.length > 0 && (
+          <div className="search-results">
+            {results.map(
+              (place) =>
+                place && (
+                  <button
+                    key={place.placeId}
+                    onClick={() => {
+                      update({ location: place });
+                      setCityQuery(place.city);
+                      setResults([]);
+                    }}
+                  >
+                    {place.city}
+                    <small>
+                      {[place.region, place.country].filter(Boolean).join(", ")}
+                    </small>
+                  </button>
+                ),
+            )}
+          </div>
+        )}
+        {draft.location && (
+          <div className="selected-place">
+            <strong>✓ {draft.location.city}</strong>
+            <small>
+              {[draft.location.region, draft.location.country]
+                .filter(Boolean)
+                .join(", ")}
+            </small>
+          </div>
+        )}
+        <a
+          className="geo-attribution"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t("geoAttribution")}
+        </a>
+      </div>
+      <div className="option-list location-none">
         <button
           className={!draft.location ? "selected" : ""}
           onClick={() => {
-            setCustom(false);
             update({ location: undefined });
+            setCityQuery("");
           }}
         >
           <span>
@@ -1062,8 +1274,11 @@ function VisibilityScreen({ draft, update, next, back }: StepProps) {
     [
       "world",
       t("world"),
-      t("worldCopy"),
-      Boolean(draft.location?.city && draft.location?.country),
+      COMMUNITY_PUBLISHING_AVAILABLE
+        ? t("worldCopy")
+        : t("publicationUnavailable"),
+      COMMUNITY_PUBLISHING_AVAILABLE &&
+        Boolean(draft.location?.city && draft.location?.country),
     ],
     ["group", t("group"), t("backendRequired"), false],
   ];
@@ -1083,13 +1298,19 @@ function VisibilityScreen({ draft, update, next, back }: StepProps) {
                 {id === "private" ? "🔒" : id === "group" ? "♧" : "🌍"} {label}
               </strong>
               <small>
-                {id === "world" && !enabled ? t("cityRequired") : copy}
+                {id === "world" && !enabled && COMMUNITY_PUBLISHING_AVAILABLE
+                  ? t("cityRequired")
+                  : copy}
               </small>
             </span>
             {enabled ? (
               <i />
             ) : (
-              <em>{id === "world" ? t("cityRequired") : t("soon")}</em>
+              <em>
+                {id === "world" && COMMUNITY_PUBLISHING_AVAILABLE
+                  ? t("cityRequired")
+                  : t("soon")}
+              </em>
             )}
           </button>
         ))}
@@ -1144,7 +1365,13 @@ function ReadyScreen({
     draft.processedDuration ??
     draft.trimEnd -
       draft.trimStart +
-      (draft.effect === "space" && draft.effectMix > 0 ? 2.8 : 0);
+      (draft.effectMix > 0
+        ? draft.effect === "space"
+          ? 2.8
+          : draft.effect === "echo"
+            ? Math.min(3.2, Math.max(0.8, (draft.echoDelayMs / 1000) * 4))
+            : 0
+        : 0);
   return (
     <Shell title={t("yourSoundTitle")} back={back}>
       <article className="sound-card">
@@ -1183,8 +1410,15 @@ function ReadyScreen({
         </p>
       )}
       <div className="ready-actions">
-        <button disabled={busy} onClick={() => void save()}>
-          ▣<span>SAVE</span>
+        <button
+          disabled={busy}
+          onClick={() => void save()}
+          aria-label={t("save")}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m5 12 4.2 4.2L19 6.8" />
+          </svg>
+          <span>{busy ? "…" : t("save")}</span>
         </button>
         <button disabled={busy} onClick={() => void exportSound()}>
           ⇧<span>EXPORT WAV</span>
@@ -1214,6 +1448,7 @@ function Library({
   setPlayingId,
   setNotice,
   notice,
+  back,
 }: {
   records: SoundRecord[];
   reload: () => Promise<void>;
@@ -1222,6 +1457,7 @@ function Library({
   setPlayingId: (v?: string) => void;
   setNotice: (v: string) => void;
   notice: string;
+  back: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "favorites" | "recents">("all");
   const [renaming, setRenaming] = useState<SoundRecord>();
@@ -1276,7 +1512,7 @@ function Library({
     }
   };
   return (
-    <Shell title="LIBRARY" back={() => go("home")}>
+    <Shell title="LIBRARY" back={back}>
       <div className="tabs">
         {(["all", "favorites", "recents"] as const).map((v) => (
           <button
@@ -1379,11 +1615,11 @@ function Library({
   );
 }
 
-function Daily({ go }: { go: (s: Screen) => void }) {
+function Daily({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   const { t } = useI18n();
   const [first, ...rest] = t("metallic").split("\n");
   return (
-    <Shell title={t("dailySound")} back={() => go("home")}>
+    <Shell title={t("dailySound")} back={back}>
       <article className="daily-card">
         <p className="daily-date">{t("todayMetal")}</p>
         <h2 className="hand">
@@ -1402,28 +1638,28 @@ function Daily({ go }: { go: (s: Screen) => void }) {
     </Shell>
   );
 }
-const CITY_COORDINATES: Record<string, [number, number]> = {
-  "yerevan, armenia": [40.1872, 44.5152],
-  "dilijan, armenia": [40.7408, 44.8636],
-};
 function WorldMap({
   records,
   go,
   playingId,
   setPlayingId,
+  back,
 }: {
   records: SoundRecord[];
   go: (s: Screen) => void;
   playingId?: string;
   setPlayingId: (id?: string) => void;
+  back: () => void;
 }) {
   const { t } = useI18n();
-  const publicRecords = records.filter(
-    (record) =>
-      record.visibility === "world" &&
-      record.location?.city &&
-      record.location?.country,
-  );
+  const publicRecords = COMMUNITY_PUBLISHING_AVAILABLE
+    ? records.filter(
+        (record) =>
+          record.visibility === "world" &&
+          record.location?.city &&
+          record.location?.country,
+      )
+    : [];
   const groups = useMemo(() => {
     const result = new Map<string, SoundRecord[]>();
     for (const record of publicRecords) {
@@ -1436,15 +1672,16 @@ function WorldMap({
   const markers = useMemo(
     () =>
       [...groups.entries()].flatMap(([key, sounds]) => {
-        const coordinates = CITY_COORDINATES[key];
-        if (!coordinates) return [];
+        const location = sounds[0].location!;
+        if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng))
+          return [];
         return [
           {
             id: key,
             city: sounds[0].location!.city!,
             country: sounds[0].location!.country!,
-            lat: coordinates[0],
-            lng: coordinates[1],
+            lat: location.lat,
+            lng: location.lng,
             count: sounds.length,
           },
         ];
@@ -1454,7 +1691,7 @@ function WorldMap({
   const [selected, setSelected] = useState<string>();
   const sounds = selected ? groups.get(selected) || [] : [];
   return (
-    <Shell variant="world" title={t("fieldWorld")} back={() => go("home")}>
+    <Shell variant="world" title={t("fieldWorld")} back={back}>
       <div className="world-composition">
         <FieldGlobe
           markers={markers}
@@ -1466,7 +1703,11 @@ function WorldMap({
       {markers.length === 0 ? (
         <div className="world-empty">
           <strong>{t("noPublic")}</strong>
-          <p>{t("publishFirst")}</p>
+          <p>
+            {COMMUNITY_PUBLISHING_AVAILABLE
+              ? t("publishFirst")
+              : t("publicationUnavailable")}
+          </p>
         </div>
       ) : (
         sounds.length > 0 && (
@@ -1506,8 +1747,6 @@ function WorldMap({
 }
 function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   const { t, locale, setLocale } = useI18n();
-  const [normalize, setNormalize] = useState(true);
-  const [autoSave, setAutoSave] = useState(true);
   const languages: [Locale, string][] = [
     ["en", "English"],
     ["ru", "Русский"],
@@ -1517,18 +1756,10 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   return (
     <Shell title={t("settings")} back={back}>
       <div className="settings-list">
-        <button>
+        <div>
           <span>{t("audioQuality")}</span>
-          <strong>WAV ›</strong>
-        </button>
-        <button onClick={() => setNormalize((v) => !v)}>
-          <span>{t("autoNormalize")}</span>
-          <i className={normalize ? "switch on" : "switch"} />
-        </button>
-        <button onClick={() => setAutoSave((v) => !v)}>
-          <span>{t("saveLibrary")}</span>
-          <i className={autoSave ? "switch on" : "switch"} />
-        </button>
+          <strong>WAV</strong>
+        </div>
         <fieldset className="language-picker">
           <legend>{t("language")}</legend>
           {languages.map(([id, label]) => (
@@ -1542,19 +1773,19 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
             </button>
           ))}
         </fieldset>
-        <button>
+        <button onClick={() => go("privacy")}>
           <span>{t("privacy")}</span>
           <strong>›</strong>
         </button>
-        <button>
+        <button onClick={() => go("microphone")}>
           <span>{t("microphone")}</span>
           <strong>›</strong>
         </button>
-        <button>
+        <button onClick={() => go("about")}>
           <span>{t("about")}</span>
           <strong>›</strong>
         </button>
-        <button>
+        <button onClick={() => go("help")}>
           <span>{t("help")}</span>
           <strong>›</strong>
         </button>
@@ -1578,9 +1809,154 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
     </Shell>
   );
 }
-function Links({ go }: { go: (s: Screen) => void }) {
+function ArticleBody({ article }: { article: SettingsArticle }) {
   return (
-    <Shell title="LINKS" back={() => go("settings")}>
+    <article className="information-article">
+      {article.intro && <p className="article-intro">{article.intro}</p>}
+      {article.sections.map((section, index) => (
+        <section key={`${section.heading || "section"}-${index}`}>
+          {section.heading && <h2>{section.heading}</h2>}
+          {section.paragraphs.map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
+        </section>
+      ))}
+    </article>
+  );
+}
+
+function ContactLinks() {
+  const { t } = useI18n();
+  const links = [
+    ["Tune Tots Lab · Instagram", EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM],
+    ["Tune Tots Lab · Website", EXTERNAL_LINKS.TUNE_TOTS_WEBSITE],
+    ["Tune Tots · Telegram", EXTERNAL_LINKS.TUNE_TOTS_TELEGRAM],
+    ["Nikola Chen · Instagram", EXTERNAL_LINKS.NIKOLA_INSTAGRAM],
+    ["Nikola Chen · Telegram", EXTERNAL_LINKS.NIKOLA_TELEGRAM],
+    ["Nikola Chen · Portfolio", EXTERNAL_LINKS.NIKOLA_PORTFOLIO],
+  ] as const;
+  return (
+    <section className="article-links">
+      <h2>{t("contacts")}</h2>
+      {links.map(([label, href]) => (
+        <a key={href} href={href} target="_blank" rel="noopener noreferrer">
+          {label}
+          <span>↗</span>
+        </a>
+      ))}
+      <a href={EXTERNAL_LINKS.SUPPORT_EMAIL}>
+        {t("emailUs")}
+        <small>tunetotslab@gmail.com</small>
+      </a>
+    </section>
+  );
+}
+
+function InformationScreen({
+  kind,
+  go,
+}: {
+  kind: "privacy" | "about" | "help";
+  go: (screen: Screen) => void;
+}) {
+  const { locale } = useI18n();
+  const article = settingsContent(locale)[kind];
+  return (
+    <Shell title={article.title} back={() => go("settings")}>
+      <ArticleBody article={article} />
+      {(kind === "about" || kind === "help") && <ContactLinks />}
+    </Shell>
+  );
+}
+
+type MicPermissionState =
+  | "unknown"
+  | "prompt"
+  | "granted"
+  | "denied"
+  | "unavailable"
+  | "unsupported"
+  | "checking";
+function MicrophoneScreen({ go }: { go: (screen: Screen) => void }) {
+  const { locale, t } = useI18n();
+  const article = settingsContent(locale).microphone;
+  const [status, setStatus] = useState<MicPermissionState>("unknown");
+  useEffect(() => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus("unsupported");
+      return;
+    }
+    let permission: PermissionStatus | undefined;
+    const updateStatus = () =>
+      permission &&
+      setStatus(permission.state as "prompt" | "granted" | "denied");
+    void navigator.permissions
+      ?.query({ name: "microphone" as PermissionName })
+      .then((value) => {
+        permission = value;
+        updateStatus();
+        value.addEventListener("change", updateStatus);
+      })
+      .catch(() => setStatus("unknown"));
+    return () => permission?.removeEventListener("change", updateStatus);
+  }, []);
+  const check = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus("unsupported");
+      return;
+    }
+    setStatus("checking");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setStatus("granted");
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "NotAllowedError" || error.name === "SecurityError")
+      )
+        setStatus("denied");
+      else if (
+        error instanceof DOMException &&
+        (error.name === "NotFoundError" ||
+          error.name === "DevicesNotFoundError")
+      )
+        setStatus("unavailable");
+      else setStatus("unsupported");
+    }
+  };
+  const statusKey = (
+    {
+      unknown: "micUnknown",
+      prompt: "micPrompt",
+      granted: "micGranted",
+      denied: "micDenied",
+      unavailable: "micUnavailable",
+      unsupported: "micUnsupported",
+      checking: "micChecking",
+    } as const
+  )[status];
+  return (
+    <Shell title={article.title} back={() => go("settings")}>
+      <ArticleBody article={article} />
+      <section className="microphone-status">
+        <span>{t("micStatus")}</span>
+        <strong>{t(statusKey)}</strong>
+        <button
+          className="primary-button"
+          disabled={status === "checking"}
+          onClick={() => void check()}
+        >
+          {status === "granted" ? t("checkMic") : t("allowMic")}
+        </button>
+      </section>
+    </Shell>
+  );
+}
+function Links({ go }: { go: (s: Screen) => void }) {
+  const { t } = useI18n();
+  return (
+    <Shell title={t("links")} back={() => go("settings")}>
       <div className="links-list">
         <a
           href={EXTERNAL_LINKS.TUNE_TOTS_WEBSITE}
@@ -1588,14 +1964,18 @@ function Links({ go }: { go: (s: Screen) => void }) {
           rel="noopener noreferrer"
         >
           <strong>Tune Tots Lab</strong>
-          <small>School & community</small>
+          <small>tunetotslab.github.io</small>
           <b>›</b>
         </a>
-        <div>
+        <a
+          href={EXTERNAL_LINKS.NIKOLA_PORTFOLIO}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <strong>Nikola Chen</strong>
-          <small>Music & projects</small>
+          <small>Portfolio</small>
           <b>›</b>
-        </div>
+        </a>
         <a
           href={EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM}
           target="_blank"
@@ -1611,14 +1991,41 @@ function Links({ go }: { go: (s: Screen) => void }) {
           rel="noopener noreferrer"
         >
           <strong>Website</strong>
-          <small>tunetotslab.com</small>
+          <small>tunetotslab.github.io</small>
           <b>›</b>
         </a>
-        <div>
-          <strong>More Apps</strong>
-          <small>Coming soon</small>
+        <a
+          href={EXTERNAL_LINKS.TUNE_TOTS_TELEGRAM}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <strong>Tune Tots · Telegram</strong>
+          <small>@tunetots</small>
           <b>›</b>
-        </div>
+        </a>
+        <a
+          href={EXTERNAL_LINKS.NIKOLA_TELEGRAM}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <strong>Nikola Chen · Telegram</strong>
+          <small>@nikolachenmusic</small>
+          <b>›</b>
+        </a>
+        <a
+          href={EXTERNAL_LINKS.NIKOLA_INSTAGRAM}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <strong>Nikola Chen · Instagram</strong>
+          <small>@nikolachenmusic</small>
+          <b>›</b>
+        </a>
+        <a href={EXTERNAL_LINKS.SUPPORT_EMAIL}>
+          <strong>{t("emailUs")}</strong>
+          <small>tunetotslab@gmail.com</small>
+          <b>›</b>
+        </a>
       </div>
       <BrandFooter />
     </Shell>

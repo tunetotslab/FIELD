@@ -35,7 +35,21 @@ export type Screen =
   | "daily"
   | "map"
   | "settings"
-  | "links";
+  | "links"
+  | "privacy"
+  | "microphone"
+  | "about"
+  | "help";
+
+export interface SoundLocation {
+  placeId: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  region?: string;
+  lat: number;
+  lng: number;
+}
 
 export interface SoundDraft {
   id: string;
@@ -52,13 +66,15 @@ export interface SoundDraft {
   effect: EffectId;
   effectMix: number;
   pitchSemitones: number;
+  echoDelayMs: number;
   title?: string;
   emojis: string[];
   styleId?: string;
-  location?: { country?: string; city?: string };
+  location?: SoundLocation;
   visibility: Visibility;
   createdAt: number;
   waveform: number[];
+  dailyChallenge?: string;
 }
 
 export interface SoundRecord {
@@ -69,10 +85,12 @@ export interface SoundRecord {
   duration: number;
   createdAt: number;
   favorite: boolean;
-  location?: { country?: string; city?: string };
+  location?: SoundLocation;
   visibility: Visibility;
   audioBlob: Blob;
   waveform: number[];
   effect?: EffectId;
   effectMix?: number;
+  echoDelayMs?: number;
+  dailyChallenge?: string;
 }

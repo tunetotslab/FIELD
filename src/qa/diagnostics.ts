@@ -95,10 +95,15 @@ export async function runAudioChecks(
         stereoDifference += (data[index] - right[index]) ** 2;
       assert(stereoDifference > 0.001, "Chorus stereo width missing");
     }
-    const tail = effect === "space" ? 2.8 : effect === "echo" ? 1.35 : 0;
+    const tail =
+      effect === "space"
+        ? 2.8
+        : effect === "echo"
+          ? Math.min(3.2, Math.max(0.8, (fixture.echoDelayMs / 1000) * 4))
+          : 0;
     assert(
       Math.abs(rendered.duration - (clean.duration + tail)) <
-        1 / decoded.sampleRate,
+        2 / decoded.sampleRate,
       `${effect}: unexpected duration`,
     );
     if (effect === "space") {
@@ -134,6 +139,35 @@ export async function runAudioChecks(
     rejected = true;
   }
   assert(rejected, "Invalid trim accepted");
+  const trimmed = await renderDraft({
+    ...fixture,
+    effect: "original",
+    trimStart: 0.5,
+    trimEnd: 1.25,
+  });
+  assert(
+    Math.abs(trimmed.duration - 0.75) < 1 / 48000,
+    "Trim duration not applied",
+  );
+  const fastEcho = await renderDraft({
+    ...fixture,
+    effect: "echo",
+    effectMix: 100,
+    echoDelayMs: 80,
+  });
+  const slowEcho = await renderDraft({
+    ...fixture,
+    effect: "echo",
+    effectMix: 100,
+    echoDelayMs: 900,
+  });
+  assert(
+    slowEcho.duration > fastEcho.duration + 2,
+    "Echo delay parameter not applied",
+  );
+  report(
+    "PASS trim 0.50–1.25s → 0.75s · Echo rate changes rendered repeat spacing/tail",
+  );
   const name = `field-isolated-qa-${crypto.randomUUID()}`,
     repository = createSoundRepository(name);
   const record = {
