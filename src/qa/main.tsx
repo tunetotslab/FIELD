@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { useState } from "react";
-import App, { FxScreen } from "../App";
+import App, { EmojiScreen, FxScreen } from "../App";
 import { makeFixture } from "./fixture";
 import { runAudioChecks } from "./diagnostics";
 import "@fontsource-variable/caveat";
@@ -28,6 +28,17 @@ function QA() {
         />
       </div>
     );
+  if (mode === "emoji")
+    return (
+      <div className="viewport">
+        <EmojiScreen
+          draft={draft}
+          update={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          back={() => setMode("menu")}
+          next={() => setMode("menu")}
+        />
+      </div>
+    );
   if (mode === "app") return <App />;
   return (
     <main style={{ padding: 24, maxWidth: 800, margin: "auto" }}>
@@ -37,6 +48,9 @@ function QA() {
       </p>
       <button className="secondary-button" onClick={() => setMode("fx")}>
         OPEN FX FIXTURE
+      </button>{" "}
+      <button className="secondary-button" onClick={() => setMode("emoji")}>
+        OPEN EMOJI FIXTURE
       </button>{" "}
       <button className="secondary-button" onClick={() => setMode("app")}>
         OPEN APP

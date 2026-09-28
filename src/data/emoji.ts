@@ -40,6 +40,35 @@ const categoryDefinitions: Array<{
 ];
 
 const englishEntries = english as EmojiEntry[];
+
+// Emoji 16/17 glyphs still render as tofu on the Apple Color Emoji versions
+// used by a meaningful share of FIELD devices. Keep a broad, predictable 15.1
+// baseline until those glyphs are available across our supported platforms.
+export const EMOJI_COMPATIBILITY_VERSION = 15.1;
+const unsupportedHexcodes = new Set([
+  "1FAE9",
+  "1FAEA",
+  "1FAEF",
+  "1FAC8",
+  "1F9D1-200D-1FA70",
+  "1FAC6",
+  "1FACD",
+  "1FABE",
+  "1FADC",
+  "1F6D8",
+  "1FA8A",
+  "1FA89",
+  "1FA8E",
+  "1FA8F",
+  "1FADF",
+  "1F1E8-1F1F6",
+]);
+const supportedEnglishEntries = englishEntries.filter(
+  (entry) => !unsupportedHexcodes.has(entry.hexcode),
+);
+const supportedUnicode = new Set(
+  supportedEnglishEntries.map((entry) => entry.unicode),
+);
 const byHexcode = (entries: EmojiEntry[]) =>
   new Map(entries.map((entry) => [entry.hexcode, entry]));
 const localized = {
@@ -52,7 +81,7 @@ export const emojiCategories = categoryDefinitions.map((category) => ({
   ...category,
   items: [
     ...new Set(
-      englishEntries
+      supportedEnglishEntries
         .filter((entry) => entry.group === category.group)
         .map((entry) => entry.unicode),
     ),
@@ -106,7 +135,8 @@ export function searchEmoji(query: string, locale: Locale = "en") {
   if (!words.length) return [];
   const result: string[] = [];
   const add = (emoji: string) => {
-    if (!result.includes(emoji)) result.push(emoji);
+    if (supportedUnicode.has(emoji) && !result.includes(emoji))
+      result.push(emoji);
   };
 
   for (const [dictionaryLocale, supplemental] of Object.entries(
@@ -124,7 +154,7 @@ export function searchEmoji(query: string, locale: Locale = "en") {
       }
     }
   }
-  for (const entry of englishEntries) {
+  for (const entry of supportedEnglishEntries) {
     const translations = Object.values(localized).map((index) =>
       index.get(entry.hexcode),
     );

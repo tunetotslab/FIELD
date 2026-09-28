@@ -930,7 +930,7 @@ export function FxScreen({
   );
 }
 
-function EmojiScreen({ draft, update, next, back }: StepProps) {
+export function EmojiScreen({ draft, update, next, back }: StepProps) {
   const { t, locale } = useI18n();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<EmojiCategory>("smileys");

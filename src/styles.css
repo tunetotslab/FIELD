@@ -1171,10 +1171,6 @@ button:disabled {
 .location-none {
   margin-top: 12px;
 }
-.echo-art {
-  overflow: visible;
-}
-
 @media (min-width: 431px) {
   .app-shell {
     border-radius: 28px;

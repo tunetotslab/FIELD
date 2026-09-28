@@ -2,7 +2,11 @@ import { renderDraft } from "../audio/processing";
 import { decodeBlob } from "../audio/utils";
 import type { EffectId, SoundDraft } from "../types";
 import { createSoundRepository } from "../storage/db";
-import { emojiCategories, searchEmoji } from "../data/emoji";
+import {
+  EMOJI_COMPATIBILITY_VERSION,
+  emojiCategories,
+  searchEmoji,
+} from "../data/emoji";
 export async function runAudioChecks(
   fixture: SoundDraft,
   report: (line: string) => void,
@@ -17,6 +21,16 @@ export async function runAudioChecks(
   ).size;
   assert(emojiCategories.length === 9, "Emoji categories incomplete");
   assert(emojiCount > 1500, `Emoji catalogue too small: ${emojiCount}`);
+  const allEmoji = emojiCategories.flatMap((category) => category.items);
+  const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+  assert(
+    allEmoji.every(
+      (emoji) => [...segmenter.segment(emoji)].length === 1 && !emoji.includes("�"),
+    ),
+    "Emoji catalogue contains a broken Unicode sequence",
+  );
+  for (const unsupported of ["🫩", "🫪", "🫯", "🫈", "🫆", "🪾", "🪉"])
+    assert(!allEmoji.includes(unsupported), `Unsupported emoji leaked: ${unsupported}`);
   for (const [query, locale, expected] of [
     ["dog", "en", "🐶"],
     ["music", "en", "🎵"],
@@ -41,7 +55,7 @@ export async function runAudioChecks(
       `Emoji search ${locale}: ${query}`,
     );
   report(
-    `PASS emoji catalogue · ${emojiCount} Unicode entries · EN/RU/HY/ZH-TW search`,
+    `PASS emoji catalogue · ${emojiCount} Unicode entries · compatibility ≤ ${EMOJI_COMPATIBILITY_VERSION} · EN/RU/HY/ZH-TW search`,
   );
   const clean = await renderDraft({ ...fixture, effect: "original" });
   const cleanBuffer = await decodeBlob(clean.blob),

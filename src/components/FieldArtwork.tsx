@@ -14,34 +14,6 @@ const effects = import.meta.glob("../assets/effects/*.{webp,png}", {
 
 /** Transparent chrome renders derived from the FIELD material reference. */
 export function FxArtwork({ effect }: { effect: EffectId }) {
-  if (effect === "echo")
-    return (
-      <svg
-        className="effect-art echo-art"
-        viewBox="0 0 320 320"
-        aria-hidden="true"
-      >
-        <defs>
-          <radialGradient id="echoChrome" cx="32%" cy="24%" r="78%">
-            <stop stopColor="#fff" />
-            <stop offset=".28" stopColor="#f7b8df" />
-            <stop offset=".62" stopColor="#f531a4" />
-            <stop offset="1" stopColor="#821052" />
-          </radialGradient>
-        </defs>
-        {[0, 1, 2].map((index) => (
-          <path
-            key={index}
-            d={`M ${62 + index * 45} 82 C ${18 + index * 45} 119, ${18 + index * 45} 201, ${62 + index * 45} 238`}
-            fill="none"
-            stroke="url(#echoChrome)"
-            strokeWidth={42 - index * 6}
-            strokeLinecap="round"
-            opacity={1 - index * 0.19}
-          />
-        ))}
-      </svg>
-    );
   const asset =
     effect === "original"
       ? "clean"
@@ -51,7 +23,9 @@ export function FxArtwork({ effect }: { effect: EffectId }) {
           ? "tape"
           : effect;
   const extension =
-    effect === "chorus" || effect === "flanger" ? "png" : "webp";
+    effect === "echo" || effect === "chorus" || effect === "flanger"
+      ? "png"
+      : "webp";
   return (
     <img
       className="effect-art"
