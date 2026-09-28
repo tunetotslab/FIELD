@@ -1,5 +1,15 @@
-const CACHE = 'field-shell-v2';
-const SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE = 'field-shell-v3';
+const SHELL = [
+  '/',
+  '/manifest.webmanifest',
+  '/favicon.ico',
+  '/icons/icon-32.png',
+  '/icons/icon-180.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-192.png',
+  '/icons/maskable-512.png',
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
