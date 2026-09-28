@@ -195,7 +195,7 @@ export async function runAudioChecks(
     id: "disposable-fixture",
     title: "Test",
     emojis: [],
-    styleId: "grotesk",
+    styleId: "gothic",
     duration: clean.duration,
     createdAt: 0,
     favorite: false,
@@ -206,7 +206,7 @@ export async function runAudioChecks(
   await repository.save(record);
   const restored = (await createSoundRepository(name).getAll())[0];
   assert(
-    restored.audioBlob.size === clean.blob.size,
+    restored.audioBlob.size === clean.blob.size && restored.styleId === "gothic",
     "Blob persistence after DB reopen",
   );
   await repository.save({ ...restored, title: "Renamed", favorite: true });

@@ -170,7 +170,9 @@ button:disabled {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  margin: -10px 0 18px;
+  margin: 0 0 18px;
+  line-height: 1.35;
+  min-height: 15px;
 }
 .home-copy {
   position: absolute;
@@ -1337,7 +1339,7 @@ button:disabled {
 .parameter-control {
   margin: 12px 0 2px;
   display: grid;
-  grid-template-columns: 86px 1fr 52px;
+  grid-template-columns: minmax(112px, auto) 1fr 56px;
   align-items: center;
   gap: 9px;
   padding: 10px 12px;
@@ -1347,10 +1349,13 @@ button:disabled {
 }
 .parameter-control span {
   display: grid;
+  min-width: 0;
+  line-height: 1.15;
 }
 .parameter-control small {
-  font-size: 7px;
+  font-size: 8px;
   color: var(--color-grey);
+  white-space: nowrap;
 }
 .parameter-control input {
   width: 100%;
@@ -1360,6 +1365,19 @@ button:disabled {
   text-align: right;
   font-size: 11px;
   font-weight: 850;
+}
+.echo-control strong {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.draft-title-preview {
+  margin: -6px auto 12px;
+  max-width: 100%;
+  color: var(--color-pink-dark);
+  font-size: clamp(19px, 6vw, 27px);
+  line-height: 1.08;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .style-bubble {
   font-family: "Fraunces Variable", serif;

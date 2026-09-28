@@ -1033,6 +1033,14 @@ interface StepProps {
   next: () => void;
   back: () => void;
 }
+function DraftTitlePreview({ draft }: { draft: SoundDraft }) {
+  const { t } = useI18n();
+  return (
+    <p className={`draft-title-preview style-${draft.styleId || "grotesk"}`}>
+      {draft.title || t("yourSound")}
+    </p>
+  );
+}
 function TitleScreen({ draft, update, next, back }: StepProps) {
   const { t } = useI18n();
   return (
@@ -1154,6 +1162,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
   return (
     <Shell title={t("chooseLocation")} back={back}>
       <p className="eyebrow">{t("optionalApprox")}</p>
+      <DraftTitlePreview draft={draft} />
       <div className="location-search">
         <label>
           <span>{t("country")}</span>
@@ -1267,7 +1276,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
     </Shell>
   );
 }
-function VisibilityScreen({ draft, update, next, back }: StepProps) {
+export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const { t } = useI18n();
   const opts: [Visibility, string, string, boolean][] = [
     ["private", t("private"), t("privateCopy"), true],
@@ -1285,6 +1294,7 @@ function VisibilityScreen({ draft, update, next, back }: StepProps) {
   return (
     <Shell title={t("shareTo")} back={back}>
       <p className="eyebrow">{t("shareWhere")}</p>
+      <DraftTitlePreview draft={draft} />
       <div className="option-list visibility-list">
         {opts.map(([id, label, copy, enabled]) => (
           <button
@@ -1546,7 +1556,11 @@ function Library({
               </button>
               <Waveform peaks={r.waveform} />
               <div>
-                <strong>{r.title}</strong>
+                <strong
+                  className={`record-title style-${r.styleId || "grotesk"}`}
+                >
+                  {r.title}
+                </strong>
                 <small>
                   {formatTime(r.duration)} · {r.emojis.join(" ")}
                 </small>
@@ -1725,7 +1739,11 @@ function WorldMap({
                 }
               >
                 <span>{sound.emojis.join(" ")}</span>
-                <strong>{sound.title}</strong>
+                <strong
+                  className={`record-title style-${sound.styleId || "grotesk"}`}
+                >
+                  {sound.title}
+                </strong>
                 <i>{playingId === sound.id ? "■" : "▶"}</i>
               </button>
             ))}

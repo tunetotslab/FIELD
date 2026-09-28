@@ -39,6 +39,7 @@ export function makeFixture(): SoundDraft {
     echoDelayMs: 340,
     emojis: ["🌱", "🚋", "✨"],
     title: "QA — percussion",
+    styleId: "gothic",
     visibility: "private",
     createdAt: Date.now(),
     waveform: peaksFromBuffer(buffer),

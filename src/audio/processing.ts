@@ -217,15 +217,15 @@ export async function renderDraft(
     wetConnected = true;
   } else if (effect === "chorus") {
     const chorusBus = context.createGain();
-    chorusBus.gain.value = 1.08;
+    chorusBus.gain.value = 1.18;
     const center = context.createGain();
-    center.gain.value = 0.24;
+    center.gain.value = 0.12;
     node.connect(center).connect(chorusBus);
     const voices: Array<[number, number, number, number]> = [
-      [0.012, 0.0024, 0.31, -0.82],
-      [0.017, -0.0031, 0.37, 0.82],
-      [0.024, 0.0038, 0.23, -0.38],
-      [0.029, -0.0042, 0.27, 0.38],
+      [0.011, 0.0042, 0.34, -0.88],
+      [0.018, -0.0051, 0.43, 0.88],
+      [0.026, 0.0058, 0.27, -0.44],
+      [0.034, -0.0064, 0.52, 0.44],
     ];
     for (const [delaySeconds, depth, rate, pan] of voices) {
       const delay = context.createDelay(0.06);
@@ -237,7 +237,7 @@ export async function renderDraft(
       const position = context.createStereoPanner();
       position.pan.value = pan;
       const voiceLevel = context.createGain();
-      voiceLevel.gain.value = 0.29;
+      voiceLevel.gain.value = 0.36;
       lfo.connect(modulation).connect(delay.delayTime);
       node.connect(delay).connect(voiceLevel).connect(position).connect(chorusBus);
       lfo.start(0);
@@ -250,22 +250,22 @@ export async function renderDraft(
     wetConnected = true;
   } else if (effect === "flanger") {
     const flangerBus = context.createGain();
-    flangerBus.gain.value = 1.04;
+    flangerBus.gain.value = 1.08;
     const direct = context.createGain();
-    direct.gain.value = 0.62;
+    direct.gain.value = 0.58;
     node.connect(direct).connect(flangerBus);
     for (const [rate, depth, pan, polarity] of [
-      [0.17, 0.0036, -0.74, 1],
-      [0.23, -0.0032, 0.74, -1],
+      [0.31, 0.0044, -0.8, 1],
+      [0.39, -0.004, 0.8, -1],
     ] as const) {
       const delay = context.createDelay(0.012);
-      delay.delayTime.value = 0.0046;
+      delay.delayTime.value = 0.0052;
       const lfo = context.createOscillator();
       lfo.frequency.value = rate;
       const modulation = context.createGain();
       modulation.gain.value = depth;
       const feedback = context.createGain();
-      feedback.gain.value = 0.58 * polarity;
+      feedback.gain.value = 0.7 * polarity;
       const safeBass = context.createBiquadFilter();
       safeBass.type = "highpass";
       safeBass.frequency.value = 150;
@@ -273,7 +273,7 @@ export async function renderDraft(
       damp.type = "lowpass";
       damp.frequency.value = 8200;
       const level = context.createGain();
-      level.gain.value = 0.48;
+      level.gain.value = 0.66;
       const position = context.createStereoPanner();
       position.pan.value = pan;
       lfo.connect(modulation).connect(delay.delayTime);

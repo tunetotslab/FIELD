@@ -1,7 +1,8 @@
 import { createRoot, type Root } from "react-dom/client";
 import { useState } from "react";
-import App, { EmojiScreen, FxScreen } from "../App";
+import App, { EmojiScreen, FxScreen, VisibilityScreen } from "../App";
 import { AppNavigationProvider } from "../components/Shell";
+import { I18nProvider } from "../i18n";
 import { makeFixture } from "./fixture";
 import { runAudioChecks } from "./diagnostics";
 import "@fontsource-variable/caveat";
@@ -47,6 +48,17 @@ function QA() {
         />
       </div>
     );
+  if (mode === "share")
+    return (
+      <div className="viewport">
+        <VisibilityScreen
+          draft={draft}
+          update={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          back={() => setMode("menu")}
+          next={() => setMode("menu")}
+        />
+      </div>
+    );
   if (mode === "app") return <App />;
   return (
     <main style={{ padding: 24, maxWidth: 800, margin: "auto" }}>
@@ -59,6 +71,9 @@ function QA() {
       </button>{" "}
       <button className="secondary-button" onClick={() => setMode("emoji")}>
         OPEN EMOJI FIXTURE
+      </button>{" "}
+      <button className="secondary-button" onClick={() => setMode("share")}>
+        OPEN SHARE FIXTURE
       </button>{" "}
       <button className="secondary-button" onClick={() => setMode("app")}>
         OPEN APP
@@ -105,7 +120,11 @@ if (import.meta.env.DEV) {
   const hot = import.meta.hot as
     (ImportMeta["hot"] & { data: { root?: Root } }) | undefined;
   const root = hot?.data.root ?? createRoot(document.getElementById("root")!);
-  root.render(<QA />);
+  root.render(
+    <I18nProvider>
+      <QA />
+    </I18nProvider>,
+  );
   hot?.dispose((data) => {
     data.root = root;
   });
