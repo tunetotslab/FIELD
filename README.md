@@ -2,6 +2,20 @@
 
 Mobile-first Telegram Mini App / installable PWA for recording, shaping and collecting field sound.
 
+## Telegram Mini App
+
+The frontend is ready to be opened by Telegram as a Mini App. It loads the
+official Telegram Web App SDK, expands the viewport, follows Telegram theme
+colors, supports native haptics and the native Back button, and keeps the PWA
+fallback for normal browsers.
+
+The repository includes a GitHub Pages workflow. After enabling Pages with
+GitHub Actions in repository settings, the production URL is
+`https://tunetotslab.github.io/FIELD/`. Configure that URL in BotFather as the
+bot's Main Mini App or as a `web_app` button. The bot/backend is intentionally not part of this frontend;
+local recordings remain in IndexedDB and `sendData` sends only the saved sound
+metadata when the app was opened from a keyboard button.
+
 ## Run
 
 ```bash

@@ -56,10 +56,13 @@ const EFFECTS: EffectId[] = [
   "destroy",
 ];
 const player = new PlaybackManager();
-const selectTask = createTaskSelector(tasks.map((task) => task.id), {
-  getItem: (key) => window.localStorage.getItem(key),
-  setItem: (key, value) => window.localStorage.setItem(key, value),
-});
+const selectTask = createTaskSelector(
+  tasks.map((task) => task.id),
+  {
+    getItem: (key) => window.localStorage.getItem(key),
+    setItem: (key, value) => window.localStorage.setItem(key, value),
+  },
+);
 
 function newDraft(
   blob: Blob,
@@ -173,6 +176,30 @@ export default function App() {
     setNotice("");
     setScreen(next);
   };
+  useEffect(() => {
+    const backTargets: Partial<Record<Screen, Screen>> = {
+      record: "home",
+      edit: "record",
+      fx: "edit",
+      emoji: "fx",
+      title: "emoji",
+      style: "title",
+      location: "style",
+      visibility: "location",
+      ready: "visibility",
+      library: "home",
+      daily: "home",
+      map: "home",
+      settings: "home",
+      links: "settings",
+      privacy: "settings",
+      microphone: "settings",
+      about: "settings",
+      help: "settings",
+    };
+    const target = backTargets[screen];
+    telegram.setBackButton(Boolean(target), () => go(target || "home"));
+  }, [screen]);
   const update = (patch: Partial<SoundDraft>) =>
     setDraft((current) =>
       current
@@ -389,8 +416,7 @@ export default function App() {
           <Daily
             task={activeTask!}
             go={(next) => {
-              if (next === "record")
-                pendingChallenge.current = activeTask!.id;
+              if (next === "record") pendingChallenge.current = activeTask!.id;
               go(next);
             }}
             back={() =>
@@ -589,7 +615,7 @@ function RecordScreen({
                 ⌫
               </button>
               <button
-                className={`record-button compact ${state === "recording" ? "recording" : ""}`}
+                className={`record-button compact ${state === "recording" ? "recording" : "record-resume"}`}
                 onClick={() =>
                   state === "paused"
                     ? recorder.current?.resume()
@@ -599,7 +625,14 @@ function RecordScreen({
                   state === "paused" ? "Resume recording" : "Pause recording"
                 }
               >
-                <span>{state === "paused" ? "▶" : "Ⅱ"}</span>
+                {state === "paused" ? (
+                  <span className="record-resume-label">
+                    <i aria-hidden="true" />
+                    REC
+                  </span>
+                ) : (
+                  <span>Ⅱ</span>
+                )}
               </button>
               <button
                 className="round-control"

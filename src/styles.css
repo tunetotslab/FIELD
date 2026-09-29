@@ -6,8 +6,8 @@ body,
 #root {
   margin: 0;
   min-height: 100%;
-  background: #ece9e7;
-  color: var(--color-ink);
+  background: var(--tg-secondary-bg-color);
+  color: var(--tg-text-color);
   font-family: var(--font-ui);
 }
 button,
@@ -37,7 +37,7 @@ button:disabled {
   width: min(100%, 430px);
   min-height: 100dvh;
   height: 100dvh;
-  background: #fff;
+  background: var(--tg-bg-color);
   display: flex;
   flex-direction: column;
   padding: var(--safe-top) var(--space-4) calc(84px + var(--safe-bottom));
@@ -126,8 +126,8 @@ button:disabled {
   height: calc(70px + var(--safe-bottom));
   padding: 8px 22px var(--safe-bottom);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: rgba(255, 250, 247, 0.92);
+  grid-template-columns: repeat(5, 1fr);
+  background: color-mix(in srgb, var(--tg-bottom-bar-bg-color) 92%, transparent);
   backdrop-filter: blur(18px);
   border-top: 1px solid var(--color-line);
 }
@@ -256,6 +256,21 @@ button:disabled {
 .record-button.recording {
   animation: pulse 1.8s ease-in-out infinite;
 }
+.record-resume-label {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--color-pink-dark);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+.record-resume-label i {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-pink);
+}
 .timer {
   text-align: center;
   font-size: 36px;
@@ -367,9 +382,14 @@ button:disabled {
   pointer-events: auto;
   width: 22px;
   height: 142px;
-  background: transparent;
+  background: linear-gradient(
+    90deg,
+    transparent calc(50% - 1.5px),
+    var(--color-pink) calc(50% - 1.5px),
+    var(--color-pink) calc(50% + 1.5px),
+    transparent calc(50% + 1.5px)
+  );
   border: 0;
-  border-left: 3px solid var(--color-pink);
   border-radius: 0;
   cursor: ew-resize;
 }
@@ -377,9 +397,14 @@ button:disabled {
   pointer-events: auto;
   width: 18px;
   height: 142px;
-  background: transparent;
+  background: linear-gradient(
+    90deg,
+    transparent calc(50% - 1.5px),
+    var(--color-pink) calc(50% - 1.5px),
+    var(--color-pink) calc(50% + 1.5px),
+    transparent calc(50% + 1.5px)
+  );
   border: 0;
-  border-left: 3px solid var(--color-pink);
   border-radius: 0;
 }
 .trim-times {
@@ -1447,33 +1472,33 @@ button:disabled {
 .daily-card {
   min-height: 0;
   background: transparent;
-  padding: 0 4px;
+  padding: 14px 4px 8px;
   text-align: left;
 }
 .daily-card .daily-date {
-  margin: 0 0 6px;
+  margin: 0 0 12px;
   text-align: center;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
   font-weight: 800;
 }
 .daily-card h2 {
   position: relative;
   z-index: 1;
-  margin: 6px 0 18px;
-  font-size: 34px;
+  margin: 10px 0 24px;
+  font-size: 36px;
   color: #111;
   transform: rotate(-6deg);
   text-align: center;
 }
 .daily-illustration {
-  margin: 10px 0 18px;
+  margin: 16px 0 26px;
   text-align: center;
 }
 .daily-illustration img {
   display: block;
   width: 100%;
-  height: 280px;
+  height: 300px;
   object-fit: contain;
 }
 .daily-photo {
@@ -1505,12 +1530,12 @@ button:disabled {
   filter: saturate(0.72) contrast(1.04);
 }
 .daily-card > p:not(.daily-date) {
-  font-size: 12px;
-  line-height: 1.4;
-  margin: 0 4px 10px;
+  font-size: 13.5px;
+  line-height: 1.48;
+  margin: 0 4px 14px;
 }
 .daily-card .primary-button {
-  margin-top: 12px;
+  margin-top: 22px;
 }
 .field-globe {
   position: relative;

@@ -110,10 +110,18 @@ export function BottomNav({
   go,
   active,
 }: {
-  go: (screen: "home" | "library" | "daily" | "map") => void;
+  go: (screen: "home" | "library" | "daily" | "map" | "settings") => void;
   active?: string;
 }) {
   const { t } = useI18n();
+  const settingsActive = [
+    "settings",
+    "links",
+    "privacy",
+    "microphone",
+    "about",
+    "help",
+  ].includes(active ?? "");
   return (
     <nav className="bottom-nav" aria-label="Main navigation">
       <button
@@ -144,6 +152,13 @@ export function BottomNav({
         <NavIcon type="globe" />
         {t("map")}
       </button>
+      <button
+        className={settingsActive ? "active" : ""}
+        onClick={() => go("settings")}
+      >
+        <NavIcon type="settings" />
+        {t("settings")}
+      </button>
     </nav>
   );
 }
@@ -151,7 +166,7 @@ export function BottomNav({
 function NavIcon({
   type,
 }: {
-  type: "record" | "library" | "daily" | "globe";
+  type: "record" | "library" | "daily" | "globe" | "settings";
 }) {
   if (type === "record")
     return (
@@ -170,6 +185,13 @@ function NavIcon({
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="m12 3 2.2 5.2L20 9l-4.3 3.8 1.2 5.7L12 15.6l-4.9 2.9 1.2-5.7L4 9l5.8-.8L12 3Z" />
+      </svg>
+    );
+  if (type === "settings")
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.25" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .35 1.87l.06.06-2.88 2.88-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.5v-.09A1.7 1.7 0 0 0 8.4 19.4a1.7 1.7 0 0 0-1.87.35l-.06.06-2.88-2.88.06-.06A1.7 1.7 0 0 0 4 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2.2V9.5h.09A1.7 1.7 0 0 0 4 8.4a1.7 1.7 0 0 0-.35-1.87l-.06-.06 2.88-2.88.06.06A1.7 1.7 0 0 0 8.4 4a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 9.8 2.3V2.2h4.1v.09A1.7 1.7 0 0 0 15 4a1.7 1.7 0 0 0 1.87-.35l.06-.06 2.88 2.88-.06.06A1.7 1.7 0 0 0 19.4 8.4a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.1v4.1h-.09A1.7 1.7 0 0 0 19.4 15Z" />
       </svg>
     );
   return (

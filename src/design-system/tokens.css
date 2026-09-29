@@ -31,6 +31,13 @@
   --z-modal: 30;
   --safe-top: max(12px, env(safe-area-inset-top));
   --safe-bottom: max(12px, env(safe-area-inset-bottom));
+  --tg-bg-color: #fffaf7;
+  --tg-secondary-bg-color: #fffdfb;
+  --tg-text-color: #111111;
+  --tg-hint-color: #8d8a89;
+  --tg-button-color: #f531a4;
+  --tg-button-text-color: #ffffff;
+  --tg-bottom-bar-bg-color: #fffaf7;
   --motion-fast: 160ms;
   --motion-slow: 650ms;
 }
