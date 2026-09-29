@@ -19,7 +19,14 @@ import { FieldWordmark, Miley } from "./components/Brand";
 import { Waveform } from "./components/Waveform";
 import { ErrorPanel } from "./components/ErrorPanel";
 import { FieldGlobe, FxArtwork } from "./components/FieldArtwork";
-import dailyMetallic from "./assets/daily-metallic.jpg";
+import { Daily } from "./components/Daily";
+import { tasks, type Task } from "./data/tasks";
+import { taskImages } from "./data/taskImages";
+import {
+  createTaskSelector,
+  createImageVariantSelector,
+  TASK_ROTATION_MODE,
+} from "./data/taskRotation";
 import { emojiCategories, searchEmoji, type EmojiCategory } from "./data/emoji";
 import { useI18n, type Locale } from "./i18n";
 import { COMMUNITY_PUBLISHING_AVAILABLE, EXTERNAL_LINKS } from "./config";
@@ -49,6 +56,10 @@ const EFFECTS: EffectId[] = [
   "destroy",
 ];
 const player = new PlaybackManager();
+const selectTask = createTaskSelector(tasks.map((task) => task.id), {
+  getItem: (key) => window.localStorage.getItem(key),
+  setItem: (key, value) => window.localStorage.setItem(key, value),
+});
 
 function newDraft(
   blob: Blob,
@@ -75,8 +86,14 @@ function newDraft(
   };
 }
 
+const selectImageVariant = createImageVariantSelector({
+  getItem: (key) => window.localStorage.getItem(key),
+  setItem: (key, value) => window.localStorage.setItem(key, value),
+});
+
 export default function App() {
   const { t } = useI18n();
+  const [activeTask, setActiveTask] = useState<Task & { imageSrc: string }>();
   const [screen, setScreen] = useState<Screen>("home");
   const [draft, setDraft] = useState<SoundDraft>();
   const [records, setRecords] = useState<SoundRecord[]>([]);
@@ -107,6 +124,18 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [screen]);
   const go = (next: Screen) => {
+    if (next === "daily") {
+      const id = selectTask(TASK_ROTATION_MODE);
+      const task = tasks.find((task) => task.id === id)!;
+      const images = taskImages[task.imageId];
+      setActiveTask({
+        ...task,
+        imageSrc:
+          images[
+            selectImageVariant(task.imageId, images.length, TASK_ROTATION_MODE)
+          ],
+      });
+    }
     if (
       next === "settings" &&
       !["settings", "links", "privacy", "microphone", "about", "help"].includes(
@@ -358,9 +387,10 @@ export default function App() {
       case "daily":
         return (
           <Daily
+            task={activeTask!}
             go={(next) => {
               if (next === "record")
-                pendingChallenge.current = "something-metallic";
+                pendingChallenge.current = activeTask!.id;
               go(next);
             }}
             back={() =>
@@ -1625,30 +1655,6 @@ function Library({
           </div>
         </div>
       )}
-    </Shell>
-  );
-}
-
-function Daily({ go, back }: { go: (s: Screen) => void; back: () => void }) {
-  const { t } = useI18n();
-  const [first, ...rest] = t("metallic").split("\n");
-  return (
-    <Shell title={t("dailySound")} back={back}>
-      <article className="daily-card">
-        <p className="daily-date">{t("todayMetal")}</p>
-        <h2 className="hand">
-          {first}
-          <br />
-          {rest.join(" ")}
-        </h2>
-        <figure className="daily-photo">
-          <img src={dailyMetallic} alt="Metal beverage-can tabs" />
-        </figure>
-        <p>{t("metalPrompt")}</p>
-        <button className="primary-button" onClick={() => go("record")}>
-          {t("recordNow")}
-        </button>
-      </article>
     </Shell>
   );
 }

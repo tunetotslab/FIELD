@@ -1466,6 +1466,16 @@ button:disabled {
   transform: rotate(-6deg);
   text-align: center;
 }
+.daily-illustration {
+  margin: 10px 0 18px;
+  text-align: center;
+}
+.daily-illustration img {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: contain;
+}
 .daily-photo {
   position: relative;
   overflow: hidden;
