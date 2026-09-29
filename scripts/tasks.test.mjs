@@ -20,6 +20,46 @@ async function load(path, replace = (text) => text) {
   );
 }
 const { tasks } = await load("../src/data/tasks.ts");
+const taskTranslations = {};
+for (const locale of ["en", "hy", "zh-TW"]) {
+  const copy = JSON.parse(
+    await readFile(
+      new URL(`../src/i18n/tasks/${locale}.json`, import.meta.url),
+      "utf8",
+    ),
+  );
+  assert.deepEqual(
+    Object.keys(copy).sort(),
+    tasks.map((task) => task.id).sort(),
+  );
+  for (const task of tasks) {
+    assert.deepEqual(Object.keys(copy[task.id]).sort(), [
+      "handwrittenLabel",
+      "instruction",
+      "todayLabel",
+    ]);
+    for (const value of Object.values(copy[task.id])) {
+      assert.ok(value.trim().length > 0);
+      assert.ok(
+        !/[А-Яа-яЁё]/u.test(value),
+        `${locale}/${task.id} contains Russian`,
+      );
+    }
+  }
+  taskTranslations[locale] = copy;
+}
+globalThis.__fieldTaskTranslations = taskTranslations;
+const { getTaskCopy } = await load("../src/i18n/tasks/index.ts", (text) =>
+  text.replace(
+    /import (\w+) from "\.\/(.*?)\.json";/g,
+    (_, name, locale) =>
+      `const ${name} = globalThis.__fieldTaskTranslations[${JSON.stringify(locale)}];`,
+  ),
+);
+delete globalThis.__fieldTaskTranslations;
+console.log(
+  "PASS all 80 task IDs and three translated fields in en, hy and zh-TW",
+);
 const {
   createTaskSelector,
   createImageVariantSelector,
@@ -125,7 +165,7 @@ console.log(
 
 // Render the real card repeatedly with the same selected task, using lightweight
 // Shell/i18n wrappers so this test does not need the unrelated full application.
-globalThis.__fieldTaskTest = { createElement };
+globalThis.__fieldTaskTest = { createElement, getTaskCopy, locale: "ru" };
 try {
   const { Daily } = await load("../src/components/Daily.tsx", (text) =>
     text
@@ -135,7 +175,11 @@ try {
       )
       .replace(
         'import { useI18n } from "../i18n";',
-        "const useI18n = () => ({t: key => key});",
+        "const useI18n = () => ({t: key => key, locale: globalThis.__fieldTaskTest.locale});",
+      )
+      .replace(
+        'import { getTaskCopy } from "../i18n/tasks";',
+        "const { getTaskCopy } = globalThis.__fieldTaskTest;",
       )
       .replace(/^import type .*;$/gm, ""),
   );
@@ -147,6 +191,36 @@ try {
     assert.equal(renderToStaticMarkup(createElement(Daily, props)), html);
   assert.ok(html.includes('data-task-id="task-01-01"'));
   assert.equal(storage.getItem(TASK_ROTATION_KEY), before);
+  for (const selected of tasks) {
+    const props = {
+      task: { ...selected, imageSrc: taskImages[selected.imageId][0] },
+      go() {},
+      back() {},
+    };
+    for (const locale of ["en", "hy", "zh-TW", "ru"]) {
+      globalThis.__fieldTaskTest.locale = locale;
+      const copy =
+        locale === "ru" ? selected : taskTranslations[locale][selected.id];
+      assert.equal(getTaskCopy(selected, locale).instruction, copy.instruction);
+      const markup = renderToStaticMarkup(createElement(Daily, props));
+      assert.ok(markup.includes(`lang="${locale}"`));
+      assert.ok(markup.includes(`data-task-id="${selected.id}"`));
+      assert.ok(markup.includes(`src="${props.task.imageSrc}"`));
+      for (const field of ["todayLabel", "handwrittenLabel", "instruction"]) {
+        const escaped = renderToStaticMarkup(
+          createElement("span", null, copy[field]),
+        ).slice(6, -7);
+        assert.ok(
+          markup.includes(escaped),
+          `${locale}/${selected.id}/${field}`,
+        );
+      }
+    }
+  }
+  assert.equal(storage.getItem(TASK_ROTATION_KEY), before);
+  console.log(
+    "PASS all 320 localized cards preserve task ID, artwork and rotation state",
+  );
   console.log(
     "PASS repeated real card renders preserve selected task, artwork and queue",
   );

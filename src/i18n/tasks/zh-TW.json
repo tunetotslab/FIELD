@@ -1,0 +1,402 @@
+{
+  "task-01-01": {
+    "todayLabel": "聲音狩獵",
+    "handwrittenLabel": "某種被忽略的聲音",
+    "instruction": "打開錄音機，捕捉一個平常從耳邊溜走的聲音。小心，它可能會想逃跑。"
+  },
+  "task-01-02": {
+    "todayLabel": "聲音收藏",
+    "handwrittenLabel": "某種有趣的聲音",
+    "instruction": "錄下三種截然不同的聲音，讓它們互相認識。不知道沙沙聲、口哨聲和冰箱能不能成為朋友？"
+  },
+  "task-01-03": {
+    "todayLabel": "大採訪",
+    "handwrittenLabel": "某種紀實的聲音",
+    "instruction": "採訪任何一件物品。如果椅子拒絕回答，至少錄下它可疑的嘎吱聲。"
+  },
+  "task-01-04": {
+    "todayLabel": "祕密錄音",
+    "handwrittenLabel": "某種差點成為祕密的聲音",
+    "instruction": "找到附近最神祕的聲音，把它錄下來。別告訴任何人，那其實是洗衣機。"
+  },
+  "task-02-01": {
+    "todayLabel": "一定做得到",
+    "handwrittenLabel": "某種值得按讚的聲音",
+    "instruction": "錄下一個讓你想豎起大拇指的聲音：漂亮的投球、優美的和弦，或是罐子順利打開的那一聲。"
+  },
+  "task-02-02": {
+    "todayLabel": "小小勝利",
+    "handwrittenLabel": "某種冠軍的聲音",
+    "instruction": "一次就把一件事做好，錄下你的勝利之聲。開心的一聲「耶！」也算音樂作品。"
+  },
+  "task-02-03": {
+    "todayLabel": "好消息",
+    "handwrittenLabel": "某種帶來希望的聲音",
+    "instruction": "請一個人對著麥克風分享今天最暖心的消息。就算是「還有餅乾喔」也可以。"
+  },
+  "task-02-04": {
+    "todayLabel": "大聲稱讚",
+    "handwrittenLabel": "某種美好的聲音",
+    "instruction": "錄下你稱讚一個人、一隻動物，或一個非常努力的水壺。記得要真誠，而且隆重。"
+  },
+  "task-03-01": {
+    "todayLabel": "安靜時刻",
+    "handwrittenLabel": "某種幾乎聽不見的聲音",
+    "instruction": "找到房間裡最輕的聲音，把麥克風靠近它。別嚇跑它，輕輕的聲音都很害羞。"
+  },
+  "task-03-02": {
+    "todayLabel": "悄悄話",
+    "handwrittenLabel": "某種祕密的聲音",
+    "instruction": "對麥克風輕聲說一個可以讓大家聽見的重要祕密。例如：「不盯著義大利麵看，它會更好吃。」"
+  },
+  "task-03-03": {
+    "todayLabel": "無聲任務",
+    "handwrittenLabel": "某種偷偷摸摸的聲音",
+    "instruction": "盡可能安靜地走過房間，錄下你的行動。如果地板嘎吱一響，那它就是敵方派來的。"
+  },
+  "task-03-04": {
+    "todayLabel": "片刻平靜",
+    "handwrittenLabel": "某種平和的聲音",
+    "instruction": "錄下三十秒幾乎完全的寂靜。再重聽一次，查出到底是誰在沙沙作響。"
+  },
+  "task-04-01": {
+    "todayLabel": "仔細聆聽",
+    "handwrittenLabel": "某種有層次的聲音",
+    "instruction": "閉上眼睛，列出周圍所有的聲音。錄下藏得最遠的那一個。"
+  },
+  "task-04-02": {
+    "todayLabel": "最愛的聲音",
+    "handwrittenLabel": "某種舒服的聲音",
+    "instruction": "找一個讓你想一聽再聽的聲音：貓咪的呼嚕聲、雨聲，或打開餅乾包裝的聲音。"
+  },
+  "task-04-03": {
+    "todayLabel": "聲音測試",
+    "handwrittenLabel": "某種意想不到的聲音",
+    "instruction": "貼近一件熟悉的物品錄音，再戴上耳機，試著猜出它是什麼。不准用耳朵偷看！"
+  },
+  "task-04-04": {
+    "todayLabel": "專屬播放清單",
+    "handwrittenLabel": "某種悅耳的聲音",
+    "instruction": "用周圍的三種聲音組成一首迷你樂曲。讓鍋子、鑰匙和櫃門終於組成樂團吧。"
+  },
+  "task-05-01": {
+    "todayLabel": "聲音散步",
+    "handwrittenLabel": "某種街頭的聲音",
+    "instruction": "出門散步，錄下三種家裡沒有的聲音。遇到跟塑膠袋吵架的鴿子可以加分。"
+  },
+  "task-05-02": {
+    "todayLabel": "街區探索",
+    "handwrittenLabel": "某種在地的聲音",
+    "instruction": "找一個讓你閉著眼睛也能認出自家街道的聲音，把它保存下來，留給未來。"
+  },
+  "task-05-03": {
+    "todayLabel": "麥克風的旅程",
+    "handwrittenLabel": "某種旅途中的聲音",
+    "instruction": "錄下散步的起點、中途和終點。這會是一部小電影，只不過螢幕可以留在家裡。"
+  },
+  "task-05-04": {
+    "todayLabel": "隨興路線",
+    "handwrittenLabel": "某種四處遊走的聲音",
+    "instruction": "跟著最有趣的聲音走，直到找到它的來源。就算是垃圾車，這趟探險也算成功。"
+  },
+  "task-06-01": {
+    "todayLabel": "大自然",
+    "handwrittenLabel": "某種沙沙作響的聲音",
+    "instruction": "坐在草地上，錄下葉子和風在說什麼悄悄話。不一定要翻譯葉子的語言。"
+  },
+  "task-06-02": {
+    "todayLabel": "綠色音樂會",
+    "handwrittenLabel": "某種充滿生命力的聲音",
+    "instruction": "找到三種大自然的聲音，錄下它們的演出。可以請一隻特別大聲的烏鴉當主持人。"
+  },
+  "task-06-03": {
+    "todayLabel": "腳下的大地",
+    "handwrittenLabel": "某種草地的聲音",
+    "instruction": "錄下踩在草地、泥土和石頭上的腳步聲。選出最會演奏沙沙獨奏的地面。"
+  },
+  "task-06-04": {
+    "todayLabel": "雲下休息",
+    "handwrittenLabel": "某種慢悠悠的聲音",
+    "instruction": "安靜地躺著或坐著，不說話，錄下大自然的聲音。鳥兒的評論可以保留。"
+  },
+  "task-07-01": {
+    "todayLabel": "遠方的聲音",
+    "handwrittenLabel": "某種難以捕捉的聲音",
+    "instruction": "聽聽周圍最遠的聲音，出發去找它。如果是冰箱在呼喚，就不用走太遠。"
+  },
+  "task-07-02": {
+    "todayLabel": "耳朵雷達",
+    "handwrittenLabel": "某種躲起來的聲音",
+    "instruction": "閉上眼睛，在原地轉身，辨認聲音從哪裡傳來。錄下聲音捉迷藏的贏家。"
+  },
+  "task-07-03": {
+    "todayLabel": "猜猜看",
+    "handwrittenLabel": "某種身分不明的聲音",
+    "instruction": "請朋友在你背後發出一個聲音。錄下來，試著猜出來源，不准提示，也不准作弊。"
+  },
+  "task-07-04": {
+    "todayLabel": "聽覺偵探",
+    "handwrittenLabel": "某種可疑的聲音",
+    "instruction": "找一個無法立刻看見來源的聲音。可能是水管，可能是貓，也可能是水管裡的貓。"
+  },
+  "task-08-01": {
+    "todayLabel": "太空",
+    "handwrittenLabel": "某種來自地球之外的聲音",
+    "instruction": "找一顆月亮石，錄下它從另一個星球回來後講的故事。地球上的石頭也可以來試鏡。"
+  },
+  "task-08-02": {
+    "todayLabel": "太空實驗室",
+    "handwrittenLabel": "某種外星的聲音",
+    "instruction": "用玻璃杯、盒子或應用程式創造外星人的聲音，錄下它傳給地球的第一則訊息。"
+  },
+  "task-08-03": {
+    "todayLabel": "隕石",
+    "handwrittenLabel": "某種星際的聲音",
+    "instruction": "把不同的小石頭互相輕敲，選出最有太空感的聲音。宣布它是月球的官方聲音。"
+  },
+  "task-08-04": {
+    "todayLabel": "呼叫軌道",
+    "handwrittenLabel": "某種神祕的聲音",
+    "instruction": "錄一段給太空人的簡短無線電訊息：你是誰、你在哪裡，以及你的另一隻襪子為什麼又不見了。"
+  },
+  "task-09-01": {
+    "todayLabel": "發現節拍",
+    "handwrittenLabel": "某種有節奏的聲音",
+    "instruction": "找到一個重複的聲音，跟著它跳舞。汽車方向燈也完全可以當 DJ。"
+  },
+  "task-09-02": {
+    "todayLabel": "物品之舞",
+    "handwrittenLabel": "某種讓人跺腳的聲音",
+    "instruction": "用拍手、腳步和敲桌子的聲音創造節奏。趁桌子還沒要求酬勞，快把它錄下來。"
+  },
+  "task-09-03": {
+    "todayLabel": "迷你舞廳",
+    "handwrittenLabel": "某種讓人搖擺的聲音",
+    "instruction": "播放一段周圍環境的錄音，為它設計一個你的招牌舞步。"
+  },
+  "task-09-04": {
+    "todayLabel": "今日節奏",
+    "handwrittenLabel": "某種有彈性的聲音",
+    "instruction": "錄下一個讓你忍不住動起來的聲音。如果找不到，就用兩支湯匙和滿滿的熱情自己創造。"
+  },
+  "task-10-01": {
+    "todayLabel": "驚喜",
+    "handwrittenLabel": "某種突然出現的聲音",
+    "instruction": "請朋友出其不意地發出一個有趣的聲音，錄下你的真實反應。可別在耳邊吹氣笛。"
+  },
+  "task-10-02": {
+    "todayLabel": "奇怪的聲響",
+    "handwrittenLabel": "某種令人不解的聲音",
+    "instruction": "找到一件聲音和外表完全不搭的物品。恭喜，你發現了一個聲音冒牌貨。"
+  },
+  "task-10-03": {
+    "todayLabel": "哇的一刻",
+    "handwrittenLabel": "某種令人驚奇的聲音",
+    "instruction": "錄下一個讓你回頭的聲音。再隆重介紹它，宣布這是今天最重要的發現。"
+  },
+  "task-10-04": {
+    "todayLabel": "聲音魔術",
+    "handwrittenLabel": "某種會騙人的聲音",
+    "instruction": "創造一個朋友猜不出來的聲音。義大利麵、梳子和拖鞋都正式獲准使用。"
+  },
+  "task-11-01": {
+    "todayLabel": "即興演奏",
+    "handwrittenLabel": "某種充滿音樂感的聲音",
+    "instruction": "彈奏或哼出一段三個音的旋律。如果第四個音真的很想加入，也可以。"
+  },
+  "task-11-02": {
+    "todayLabel": "管樂音樂會",
+    "handwrittenLabel": "某種嗡嗡作響的聲音",
+    "instruction": "用瓶子、吸管或捲起的紙發出樂音。這個實驗最好先別告訴單簧管。"
+  },
+  "task-11-03": {
+    "todayLabel": "獨奏",
+    "handwrittenLabel": "某種展現技巧的聲音",
+    "instruction": "為一位聽眾舉辦一分鐘的音樂會，錄下最後的掌聲。聽眾可以是絨毛玩具。"
+  },
+  "task-11-04": {
+    "todayLabel": "奇妙樂團",
+    "handwrittenLabel": "某種有旋律的聲音",
+    "instruction": "錄下三種不同的長音，把它們合成一個和弦。就連水壺偶爾也夢想演奏爵士樂。"
+  },
+  "task-12-01": {
+    "todayLabel": "響亮的嗓音",
+    "handwrittenLabel": "某種響徹四方的聲音",
+    "instruction": "找一個安全的空曠地點，錄下一聲長長的「喂——！」。聽聽有沒有回音回答。"
+  },
+  "task-12-02": {
+    "todayLabel": "聲音巨人",
+    "handwrittenLabel": "某種雄壯的聲音",
+    "instruction": "模仿一位巨大又善良、卻弄丟了小湯匙的巨人的聲音。錄下他的尋物啟事。"
+  },
+  "task-12-03": {
+    "todayLabel": "呼喚與回應",
+    "handwrittenLabel": "某種呼喚的聲音",
+    "instruction": "用一個不尋常的聲音呼喚朋友，請他用自己的聲音回答。課本裡還沒有的新語言就這樣誕生了。"
+  },
+  "task-12-04": {
+    "todayLabel": "音量錦標賽",
+    "handwrittenLabel": "某種有力量的聲音",
+    "instruction": "錄下一個響亮的聲音，不要對著耳朵大喊：拍手、跺腳，或拍打枕頭。保護聽力，也照顧一下鄰居的吊燈。"
+  },
+  "task-13-01": {
+    "todayLabel": "大跳一場",
+    "handwrittenLabel": "某種充滿活力的聲音",
+    "instruction": "錄下你跳舞的聲音：腳步、拍手、跳躍和得意的落地聲。家具不參加這場演出。"
+  },
+  "task-13-02": {
+    "todayLabel": "動起來",
+    "handwrittenLabel": "某種停不下來的聲音",
+    "instruction": "想出一段讓雙腳自己跳起舞的節奏，錄下二十秒的表演。"
+  },
+  "task-13-03": {
+    "todayLabel": "廚房俱樂部",
+    "handwrittenLabel": "某種嗨翻天的聲音",
+    "instruction": "用安全的廚房聲音組成節拍，跳著舞登場。今天由湯勺擔任 DJ。"
+  },
+  "task-13-04": {
+    "todayLabel": "舞蹈挑戰",
+    "handwrittenLabel": "某種蹦蹦跳跳的聲音",
+    "instruction": "請朋友想出一個動作，你再為它設計一個聲音。錄下這段用舞蹈進行的對話。"
+  },
+  "task-14-01": {
+    "todayLabel": "音樂調查",
+    "handwrittenLabel": "某種失落的聲音",
+    "instruction": "找出房間裡失蹤的音符，錄下所有嫌疑犯的聲音。尤其要仔細盤問鋼琴。"
+  },
+  "task-14-02": {
+    "todayLabel": "怪聲案件",
+    "handwrittenLabel": "某種偵探故事裡的聲音",
+    "instruction": "錄下一個神祕的聲響，請朋友猜猜是什麼發出的。證據可以藏，拖鞋不可以。"
+  },
+  "task-14-03": {
+    "todayLabel": "尋找旋律",
+    "handwrittenLabel": "某種追蹤線索的聲音",
+    "instruction": "找到三個可以作為旋律開頭的聲音。把它們組合起來，宣布破案。"
+  },
+  "task-14-04": {
+    "todayLabel": "聲音足跡",
+    "handwrittenLabel": "某種可疑的聲音",
+    "instruction": "跟著聲音的線索，從一個房間走到另一個房間，錄下最後的發現。犯人八成又是冰箱。"
+  },
+  "task-15-01": {
+    "todayLabel": "水果樂團",
+    "handwrittenLabel": "某種多汁的聲音",
+    "instruction": "用水果和 Playtronica 創作音樂。趁香蕉還沒要求專屬休息室，錄下它的獨奏。"
+  },
+  "task-15-02": {
+    "todayLabel": "蔬菜音樂會",
+    "handwrittenLabel": "某種清脆的聲音",
+    "instruction": "錄下胡蘿蔔、小黃瓜和生菜葉的聲音。演出結束前，請不要吃掉音樂家。"
+  },
+  "task-15-03": {
+    "todayLabel": "可以吃的節拍",
+    "handwrittenLabel": "某種充滿維他命的聲音",
+    "instruction": "用咔嚓聲、敲擊聲和 Playtronica 的電子音組成節奏。這首曲子會得到想像中的營養師認可。"
+  },
+  "task-15-04": {
+    "todayLabel": "午餐音樂",
+    "handwrittenLabel": "某種聽起來很美味的聲音",
+    "instruction": "選一種水果或蔬菜，為它設定音樂個性。柳橙可以唱歌劇，馬鈴薯可以玩重搖滾。"
+  },
+  "task-16-01": {
+    "todayLabel": "夜晚",
+    "handwrittenLabel": "某種黑暗又神祕的聲音",
+    "instruction": "拿起手電筒，錄下一個只有晚上才出現的聲音。睡衣的沙沙聲也算夜行動物的聲音。"
+  },
+  "task-16-02": {
+    "todayLabel": "日落後的探險",
+    "handwrittenLabel": "某種閃爍的聲音",
+    "instruction": "帶著手電筒，沿著安全路線走，收集三種夜晚的聲音。影子不一定要錄。"
+  },
+  "task-16-03": {
+    "todayLabel": "月光報導",
+    "handwrittenLabel": "某種午夜的聲音",
+    "instruction": "對麥克風說說天黑後周圍正在發生什麼事。小聲一點，星星已經上床睡覺了。"
+  },
+  "task-16-04": {
+    "todayLabel": "夜間守衛",
+    "handwrittenLabel": "某種窸窣的聲音",
+    "instruction": "錄下夜裡神祕的窸窣聲，查明它的來源。十次有九次是袋子，不過還是有希望。"
+  },
+  "task-17-01": {
+    "todayLabel": "聲波",
+    "handwrittenLabel": "某種冒泡的聲音",
+    "instruction": "錄下水聲、泡泡聲，或用吸管吹出的咕嚕聲。精彩獨奏時可別把飲料吸進去。"
+  },
+  "task-17-02": {
+    "todayLabel": "未來音樂",
+    "handwrittenLabel": "某種太空電子聲音",
+    "instruction": "用手邊的物品創造最有未來感的聲音。替曲子取個名字，就像它是在 3026 年錄製的一樣。"
+  },
+  "task-17-03": {
+    "todayLabel": "聲音海洋",
+    "handwrittenLabel": "某種漂浮的聲音",
+    "instruction": "把流暢的聲音、圓潤的聲音和嘶嘶聲合成一段錄音。想像這是跳舞水母的配樂。"
+  },
+  "task-17-04": {
+    "todayLabel": "另一個次元",
+    "handwrittenLabel": "某種奇幻的聲音",
+    "instruction": "從一個聲音會化成可見泡泡的世界，錄一段語音訊息。告訴大家，你今天的「砰」是什麼顏色。"
+  },
+  "task-18-01": {
+    "todayLabel": "足球",
+    "handwrittenLabel": "某種運動的聲音",
+    "instruction": "錄下帶球、踢球和進球後的歡呼聲。如果沒踢進，那就是一次實驗性傳球。"
+  },
+  "task-18-02": {
+    "todayLabel": "球場",
+    "handwrittenLabel": "某種加油助威的聲音",
+    "instruction": "為你的隊伍想一段簡短口號，大家一起喊出來錄音。隊伍可以只有你和一顆球。"
+  },
+  "task-18-03": {
+    "todayLabel": "練習時間",
+    "handwrittenLabel": "某種彈跳的聲音",
+    "instruction": "錄下球在三種不同表面上的聲音。讓草地、柏油路和地板爭奪最佳低音獎。"
+  },
+  "task-18-04": {
+    "todayLabel": "決勝之戰",
+    "handwrittenLabel": "某種冠軍的聲音",
+    "instruction": "像真正的體育主播一樣，為一個足球時刻配音。「球」這個字說得越有戲劇性越好。"
+  },
+  "task-19-01": {
+    "todayLabel": "與朋友相聚",
+    "handwrittenLabel": "某種想抱抱的聲音",
+    "instruction": "找一位朋友，錄下你們最開心的問候。翅膀和香蕉裝不是必備，但非常歡迎。"
+  },
+  "task-19-02": {
+    "todayLabel": "香蕉心情",
+    "handwrittenLabel": "某種黃澄澄又快樂的聲音",
+    "instruction": "為有翅膀的香蕉設計一個聲音，錄下它邀請大家一起飛的話。記得說明果皮的攜帶規定。"
+  },
+  "task-19-03": {
+    "todayLabel": "友誼",
+    "handwrittenLabel": "某種溫暖的聲音",
+    "instruction": "請朋友說說，哪一種聲音會讓他想到你。如果答案是洋芋片的咔嚓聲，盡量別生氣。"
+  },
+  "task-19-04": {
+    "todayLabel": "特別的擁抱",
+    "handwrittenLabel": "某種善意的聲音",
+    "instruction": "抱抱親近的人或最喜歡的玩具，錄下這一刻的聲音。有時候，擁抱聽起來像「呼」。"
+  },
+  "task-20-01": {
+    "todayLabel": "滑板",
+    "handwrittenLabel": "某種輪子轟隆隆的聲音",
+    "instruction": "錄下滑板在平坦表面滑行的聲音。安全帽一定要戴，超級英雄的表情則隨你喜歡。"
+  },
+  "task-20-02": {
+    "todayLabel": "城市節奏",
+    "handwrittenLabel": "某種滾動的聲音",
+    "instruction": "用輪子聲、腳步聲，以及安全地輕拍滑板的聲音組成節拍。城市已經準備好跳舞了。"
+  },
+  "task-20-03": {
+    "todayLabel": "小小招式",
+    "handwrittenLabel": "某種帥氣的聲音",
+    "instruction": "錄下一個簡單又安全的滑板動作，以及觀眾熱烈的反應。就算只有一位觀眾也足夠。"
+  },
+  "task-20-04": {
+    "todayLabel": "輪子",
+    "handwrittenLabel": "某種沙沙飛馳的聲音",
+    "instruction": "比較滑板、滑板車和玩具車的聲音。舉辦一場由最有趣的聲響獲勝的比賽。"
+  }
+}

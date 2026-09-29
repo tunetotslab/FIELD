@@ -1,0 +1,402 @@
+{
+  "task-01-01": {
+    "todayLabel": "sound hunting",
+    "handwrittenLabel": "Something unnoticed",
+    "instruction": "Turn on your recorder and catch a sound that usually slips past your ears. Careful: it might try to escape."
+  },
+  "task-01-02": {
+    "todayLabel": "a sound collection",
+    "handwrittenLabel": "Something curious",
+    "instruction": "Record three completely different sounds and introduce them to each other. Will a rustle, a whistle and a fridge become friends?"
+  },
+  "task-01-03": {
+    "todayLabel": "the big report",
+    "handwrittenLabel": "Something documentary",
+    "instruction": "Interview any object. If the chair refuses to answer, at least record its suspicious creak."
+  },
+  "task-01-04": {
+    "todayLabel": "a secret recording",
+    "handwrittenLabel": "Something almost secret",
+    "instruction": "Find the most mysterious sound nearby and record it. Don't tell anyone it was the washing machine."
+  },
+  "task-02-01": {
+    "todayLabel": "you've got this",
+    "handwrittenLabel": "Something encouraging",
+    "instruction": "Record a sound that deserves a thumbs-up: a perfect shot, a beautiful chord or a jar opening just right."
+  },
+  "task-02-02": {
+    "todayLabel": "a little victory",
+    "handwrittenLabel": "Something triumphant",
+    "instruction": "Get something right on the first try and record the sound of your victory. A happy “yes!” counts as a musical composition too."
+  },
+  "task-02-03": {
+    "todayLabel": "good news",
+    "handwrittenLabel": "Something hopeful",
+    "instruction": "Ask someone to share the kindest news of the day into the microphone. Even “there are still cookies left” will do."
+  },
+  "task-02-04": {
+    "todayLabel": "a round of praise",
+    "handwrittenLabel": "Something wonderful",
+    "instruction": "Record yourself praising a person, an animal or a very hardworking kettle. Make it heartfelt and suitably grand."
+  },
+  "task-03-01": {
+    "todayLabel": "silence",
+    "handwrittenLabel": "Something barely audible",
+    "instruction": "Find the quietest sound in the room and bring the microphone close. Don't scare it off: quiet sounds are very shy."
+  },
+  "task-03-02": {
+    "todayLabel": "whispers",
+    "handwrittenLabel": "Something secret",
+    "instruction": "Whisper an important secret into the microphone that everyone is allowed to hear. For example: “Pasta tastes better when you aren't looking at it.”"
+  },
+  "task-03-03": {
+    "todayLabel": "a silent mission",
+    "handwrittenLabel": "Something sneaky",
+    "instruction": "Walk across the room as quietly as possible and record your mission. If the floor creaks, it's working for the other side."
+  },
+  "task-03-04": {
+    "todayLabel": "a moment of peace",
+    "handwrittenLabel": "Something calm",
+    "instruction": "Record thirty seconds of almost complete silence. Then listen back and find out who was rustling after all."
+  },
+  "task-04-01": {
+    "todayLabel": "deep listening",
+    "handwrittenLabel": "Something layered",
+    "instruction": "Close your eyes and list all the sounds around you. Record the one hiding furthest away."
+  },
+  "task-04-02": {
+    "todayLabel": "a favorite sound",
+    "handwrittenLabel": "Something cozy",
+    "instruction": "Find a sound you want to hear again and again: purring, rain or a packet of cookies being opened."
+  },
+  "task-04-03": {
+    "todayLabel": "a sound check",
+    "handwrittenLabel": "Something unexpected",
+    "instruction": "Record an everyday object from very close up, then try to identify it through headphones. No peeking with your ears!"
+  },
+  "task-04-04": {
+    "todayLabel": "a personal playlist",
+    "handwrittenLabel": "Something lovely",
+    "instruction": "Make a mini track from three sounds around you. Let the saucepan, keys and cupboard door finally form a band."
+  },
+  "task-05-01": {
+    "todayLabel": "a sound walk",
+    "handwrittenLabel": "Something from the street",
+    "instruction": "Go for a walk and record three sounds you don't hear at home. A pigeon arguing with a plastic bag gets bonus points."
+  },
+  "task-05-02": {
+    "todayLabel": "exploring the neighborhood",
+    "handwrittenLabel": "Something local",
+    "instruction": "Find a sound that lets you recognize your street with your eyes closed, and save it for posterity."
+  },
+  "task-05-03": {
+    "todayLabel": "the microphone's journey",
+    "handwrittenLabel": "Something from the road",
+    "instruction": "Record the beginning, middle and end of your walk. You'll have a little film, only you can leave the screen at home."
+  },
+  "task-05-04": {
+    "todayLabel": "a wandering route",
+    "handwrittenLabel": "Something roaming",
+    "instruction": "Follow the most interesting sound until you find its source. If it's a garbage truck, the expedition is still a success."
+  },
+  "task-06-01": {
+    "todayLabel": "nature",
+    "handwrittenLabel": "Something rustling",
+    "instruction": "Sit on the grass and record what the leaves are whispering to the wind. No translation from leaf language required."
+  },
+  "task-06-02": {
+    "todayLabel": "a green concert",
+    "handwrittenLabel": "Something alive",
+    "instruction": "Find three sounds of nature and record their performance. An especially loud crow can host the concert."
+  },
+  "task-06-03": {
+    "todayLabel": "the ground beneath your feet",
+    "handwrittenLabel": "Something grassy",
+    "instruction": "Record footsteps on grass, soil and stones. Decide which surface plays the best rustling solo."
+  },
+  "task-06-04": {
+    "todayLabel": "a cloudy daydream",
+    "handwrittenLabel": "Something slow",
+    "instruction": "Lie down or sit quietly and record nature without talking. Bird commentary is allowed."
+  },
+  "task-07-01": {
+    "todayLabel": "a distant sound",
+    "handwrittenLabel": "Something hard to catch",
+    "instruction": "Listen for the most distant sound around you and go looking for it. Don't go too far if it's the fridge calling."
+  },
+  "task-07-02": {
+    "todayLabel": "ear radar",
+    "handwrittenLabel": "Something hidden",
+    "instruction": "Close your eyes, turn on the spot and work out where a sound is coming from. Record the winner of sound hide-and-seek."
+  },
+  "task-07-03": {
+    "todayLabel": "a guessing game",
+    "handwrittenLabel": "Something unidentified",
+    "instruction": "Ask a friend to make a sound behind your back. Record it and try to guess its source without hints or cheating."
+  },
+  "task-07-04": {
+    "todayLabel": "sound detective work",
+    "handwrittenLabel": "Something suspicious",
+    "instruction": "Find a sound whose source you can't see right away. Maybe it's a pipe. Maybe it's a cat. Maybe it's a cat in a pipe."
+  },
+  "task-08-01": {
+    "todayLabel": "outer space",
+    "handwrittenLabel": "Something otherworldly",
+    "instruction": "Find a moon rock and record its story after returning from another planet. Earth rocks are welcome to audition too."
+  },
+  "task-08-02": {
+    "todayLabel": "a space laboratory",
+    "handwrittenLabel": "Something alien",
+    "instruction": "Create an alien voice using a glass, a box or an app, and record its first message to Earth."
+  },
+  "task-08-03": {
+    "todayLabel": "a meteorite",
+    "handwrittenLabel": "Something starry",
+    "instruction": "Tap different pebbles together and choose the most cosmic sound. Declare it the official voice of the Moon."
+  },
+  "task-08-04": {
+    "todayLabel": "calling orbit",
+    "handwrittenLabel": "Something mysterious",
+    "instruction": "Record a short radio message for astronauts: who you are, where you are and why your other sock has gone missing again."
+  },
+  "task-09-01": {
+    "todayLabel": "a found beat",
+    "handwrittenLabel": "Something rhythmic",
+    "instruction": "Find a repeating sound and dance to it. A car's turn signal can absolutely be a DJ."
+  },
+  "task-09-02": {
+    "todayLabel": "the dance of objects",
+    "handwrittenLabel": "Something foot-tapping",
+    "instruction": "Create a rhythm with claps, footsteps and taps on a table. Record it before the table asks to be paid."
+  },
+  "task-09-03": {
+    "todayLabel": "a tiny disco",
+    "handwrittenLabel": "Something groovy",
+    "instruction": "Play a recording of a sound from your surroundings and invent one signature dance move to go with it."
+  },
+  "task-09-04": {
+    "todayLabel": "the rhythm of the day",
+    "handwrittenLabel": "Something bouncy",
+    "instruction": "Record a sound you can't help moving to. If you can't find one, make your own with two spoons and some enthusiasm."
+  },
+  "task-10-01": {
+    "todayLabel": "a surprise",
+    "handwrittenLabel": "Something sudden",
+    "instruction": "Ask a friend to make an unexpected funny sound and record your genuine reaction. Just no air horns right next to your ear."
+  },
+  "task-10-02": {
+    "todayLabel": "a strange noise",
+    "handwrittenLabel": "Something puzzling",
+    "instruction": "Find an object that sounds nothing like it looks. Congratulations: you've discovered a sound in disguise."
+  },
+  "task-10-03": {
+    "todayLabel": "a wow moment",
+    "handwrittenLabel": "Something amazing",
+    "instruction": "Record a sound that made you turn around. Then give it a grand introduction as the day's greatest discovery."
+  },
+  "task-10-04": {
+    "todayLabel": "a sound trick",
+    "handwrittenLabel": "Something deceptive",
+    "instruction": "Create a sound your friends won't be able to guess. Pasta, a comb and a slipper are officially allowed."
+  },
+  "task-11-01": {
+    "todayLabel": "improvisation",
+    "handwrittenLabel": "Something musical",
+    "instruction": "Play or hum a three-note melody. A fourth note is allowed if it really wants to join in."
+  },
+  "task-11-02": {
+    "todayLabel": "a wind concert",
+    "handwrittenLabel": "Something humming",
+    "instruction": "Make a musical sound with a bottle, a straw or rolled-up paper. Probably best not to tell the clarinet about this experiment."
+  },
+  "task-11-03": {
+    "todayLabel": "a solo",
+    "handwrittenLabel": "Something virtuosic",
+    "instruction": "Give a one-minute concert for a single listener and record the final applause. A stuffed animal counts as a listener."
+  },
+  "task-11-04": {
+    "todayLabel": "an unusual orchestra",
+    "handwrittenLabel": "Something melodic",
+    "instruction": "Record three different sustained sounds and combine them into one chord. Even a kettle sometimes dreams of playing jazz."
+  },
+  "task-12-01": {
+    "todayLabel": "a loud voice",
+    "handwrittenLabel": "Something booming",
+    "instruction": "Find a safe open space and record a long “Hellooo!” Listen for an echo answering back."
+  },
+  "task-12-02": {
+    "todayLabel": "a sound giant",
+    "handwrittenLabel": "Something mighty",
+    "instruction": "Do the voice of a huge, friendly giant who has lost a tiny spoon. Record the giant's announcement."
+  },
+  "task-12-03": {
+    "todayLabel": "call and response",
+    "handwrittenLabel": "Something calling",
+    "instruction": "Call a friend with an unusual sound and have them reply with their own. That's how a language no textbook has heard of is born."
+  },
+  "task-12-04": {
+    "todayLabel": "a loudness championship",
+    "handwrittenLabel": "Something powerful",
+    "instruction": "Record a loud sound without shouting into anyone's ear: a clap, a stomp or a thump on a pillow. Look after your hearing and the neighbor's chandelier."
+  },
+  "task-13-01": {
+    "todayLabel": "a big dance",
+    "handwrittenLabel": "Something energetic",
+    "instruction": "Record the sounds of your own dance: steps, claps, a jump and a triumphant landing. The furniture isn't part of the act."
+  },
+  "task-13-02": {
+    "todayLabel": "movement",
+    "handwrittenLabel": "Something restless",
+    "instruction": "Invent a rhythm that makes your feet start dancing all by themselves, and record twenty seconds of your performance."
+  },
+  "task-13-03": {
+    "todayLabel": "a kitchen club",
+    "handwrittenLabel": "Something mind-blowing",
+    "instruction": "Build a beat from safe kitchen sounds and make your dance-floor entrance. The ladle is today's DJ."
+  },
+  "task-13-04": {
+    "todayLabel": "a dance challenge",
+    "handwrittenLabel": "Something jumpy",
+    "instruction": "Ask a friend to invent a movement, then invent a sound for it. Record your choreographed conversation."
+  },
+  "task-14-01": {
+    "todayLabel": "a musical investigation",
+    "handwrittenLabel": "Something lost",
+    "instruction": "Find the notes that have gone missing in the room and record the sounds of all the suspects. Question the piano especially carefully."
+  },
+  "task-14-02": {
+    "todayLabel": "the case of the strange sound",
+    "handwrittenLabel": "Something detective-like",
+    "instruction": "Record a mysterious noise and ask your friends to guess what made it. You may hide the evidence, but not the slipper."
+  },
+  "task-14-03": {
+    "todayLabel": "a melody hunt",
+    "handwrittenLabel": "Something on the trail",
+    "instruction": "Find three sounds that could start a melody. Put them together and declare the case closed."
+  },
+  "task-14-04": {
+    "todayLabel": "sound clues",
+    "handwrittenLabel": "Something suspicious",
+    "instruction": "Follow a trail of sounds from room to room and record your final discovery. Chances are the culprit is the fridge again."
+  },
+  "task-15-01": {
+    "todayLabel": "a fruit orchestra",
+    "handwrittenLabel": "Something juicy",
+    "instruction": "Make music with fruit and Playtronica. Record the banana's solo before it starts demanding its own dressing room."
+  },
+  "task-15-02": {
+    "todayLabel": "a vegetable concert",
+    "handwrittenLabel": "Something crunchy",
+    "instruction": "Record the sounds of a carrot, a cucumber and a lettuce leaf. Don't eat the musicians before the performance is over."
+  },
+  "task-15-03": {
+    "todayLabel": "an edible beat",
+    "handwrittenLabel": "Something full of vitamins",
+    "instruction": "Build a rhythm from crunches, taps and Playtronica's electronic sounds. The result: a track approved by an imaginary nutritionist."
+  },
+  "task-15-04": {
+    "todayLabel": "music for lunch",
+    "handwrittenLabel": "Something tasty-sounding",
+    "instruction": "Choose a fruit or vegetable and give it a musical personality. An orange might sing opera, while a potato plays hard rock."
+  },
+  "task-16-01": {
+    "todayLabel": "nighttime",
+    "handwrittenLabel": "Something dark and mysterious",
+    "instruction": "Grab a flashlight and record a sound that only appears in the evening. Rustling pajamas count as nocturnal wildlife too."
+  },
+  "task-16-02": {
+    "todayLabel": "an expedition after sunset",
+    "handwrittenLabel": "Something shimmering",
+    "instruction": "Take a flashlight along a safe route and collect three nighttime sounds. Recording the shadows is optional."
+  },
+  "task-16-03": {
+    "todayLabel": "a moonlit report",
+    "handwrittenLabel": "Something from midnight",
+    "instruction": "Tell the microphone what's happening around you after dark. Speak softly: the stars have already gone to bed."
+  },
+  "task-16-04": {
+    "todayLabel": "night watch",
+    "handwrittenLabel": "Something rustly",
+    "instruction": "Record a mysterious nighttime rustle and find out where it comes from. Nine times out of ten it's a bag, but there's still hope."
+  },
+  "task-17-01": {
+    "todayLabel": "sound waves",
+    "handwrittenLabel": "Something bubbling",
+    "instruction": "Record water, bubbles or gurgling through a straw. Don't suck up your drink in the middle of the grand solo."
+  },
+  "task-17-02": {
+    "todayLabel": "music of the future",
+    "handwrittenLabel": "Something cosmic and electronic",
+    "instruction": "Create the most futuristic sound you can from objects at hand. Name your track as if it were recorded in the year 3026."
+  },
+  "task-17-03": {
+    "todayLabel": "a sound ocean",
+    "handwrittenLabel": "Something floating",
+    "instruction": "Combine a smooth sound, a round sound and a hissing sound in one recording. Imagine it's the soundtrack for a dancing jellyfish."
+  },
+  "task-17-04": {
+    "todayLabel": "another dimension",
+    "handwrittenLabel": "Something fantastical",
+    "instruction": "Record a voice message from a world where sounds are visible as bubbles. Tell us what color your “boom” is today."
+  },
+  "task-18-01": {
+    "todayLabel": "football",
+    "handwrittenLabel": "Something sporty",
+    "instruction": "Record dribbling a ball, a kick and a happy shout after a goal. If you miss, it was an experimental pass."
+  },
+  "task-18-02": {
+    "todayLabel": "the stadium",
+    "handwrittenLabel": "Something full of team spirit",
+    "instruction": "Invent a short chant for your team and record it together. Your team can be just you and one ball."
+  },
+  "task-18-03": {
+    "todayLabel": "practice",
+    "handwrittenLabel": "Something bouncing",
+    "instruction": "Record a ball on three different surfaces. Let the grass, asphalt and floor compete for the best bass."
+  },
+  "task-18-04": {
+    "todayLabel": "the deciding match",
+    "handwrittenLabel": "Something triumphant",
+    "instruction": "Narrate a football moment like a real commentator. The more dramatically you say “ball,” the better."
+  },
+  "task-19-01": {
+    "todayLabel": "meeting friends",
+    "handwrittenLabel": "Something huggable",
+    "instruction": "Find a friend and record your happiest greeting. Wings and a banana costume are optional, but welcome."
+  },
+  "task-19-02": {
+    "todayLabel": "a banana mood",
+    "handwrittenLabel": "Something yellow and cheerful",
+    "instruction": "Invent a voice for a winged banana and record it inviting everyone to fly. Include the rules for bringing peels on board."
+  },
+  "task-19-03": {
+    "todayLabel": "friendship",
+    "handwrittenLabel": "Something warm",
+    "instruction": "Ask a friend which sound reminds them of you. Try not to be offended if it's the crunch of chips."
+  },
+  "task-19-04": {
+    "todayLabel": "an unusual hug",
+    "handwrittenLabel": "Something kind",
+    "instruction": "Hug someone close to you or your favorite toy and record the sound of the moment. Sometimes a hug sounds like “oof.”"
+  },
+  "task-20-01": {
+    "todayLabel": "skateboarding",
+    "handwrittenLabel": "Something rumbling on wheels",
+    "instruction": "Record a skateboard rolling along a smooth surface. A helmet is required; a superhero facial expression is optional."
+  },
+  "task-20-02": {
+    "todayLabel": "an urban rhythm",
+    "handwrittenLabel": "Something rolling",
+    "instruction": "Build a beat from wheels, footsteps and a safe tap on the board. The city is ready to dance."
+  },
+  "task-20-03": {
+    "todayLabel": "a little trick",
+    "handwrittenLabel": "Something daring",
+    "instruction": "Record a simple, safe skateboard move and the audience's grand reaction. Even one spectator is enough."
+  },
+  "task-20-04": {
+    "todayLabel": "wheels",
+    "handwrittenLabel": "Something whizzing by",
+    "instruction": "Compare the sounds of a skateboard, a scooter and a toy car. Hold a race where the most interesting noise wins."
+  }
+}
