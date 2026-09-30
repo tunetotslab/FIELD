@@ -1736,7 +1736,6 @@ function WorldMap({
           markers={markers}
           onMarker={(marker) => setSelected(marker.id)}
         />
-        <Miley state="world" />
       </div>
       <p className="world-privacy">{t("worldPrivacy")}</p>
       {markers.length === 0 ? (
