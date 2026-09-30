@@ -35,6 +35,8 @@ export type Screen =
   | "daily"
   | "map"
   | "settings"
+  | "donate"
+  | "randomDonate"
   | "links"
   | "privacy"
   | "microphone"

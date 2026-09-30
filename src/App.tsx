@@ -14,6 +14,10 @@ import { formatTime } from "./audio/utils";
 import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
 import { telegram } from "./telegram";
+import { Dialog } from './components/Dialog';
+import { Donate } from './components/Donate';
+import { publishSound, worldSounds, worldAudio } from './world';
+import { getThemePreference, setThemePreference, type ThemePreference } from './theme';
 import { AppNavigationProvider, BrandFooter, Shell } from "./components/Shell";
 import { FieldWordmark, Miley } from "./components/Brand";
 import { Waveform } from "./components/Waveform";
@@ -119,9 +123,9 @@ export default function App() {
     }
   }, []);
   useEffect(() => {
-    telegram.init();
+    const cleanup = telegram.init();
     void loadLibrary();
-    return () => player.stop();
+    return () => { cleanup?.(); player.stop(); };
   }, [loadLibrary]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -141,7 +145,7 @@ export default function App() {
     }
     if (
       next === "settings" &&
-      !["settings", "links", "privacy", "microphone", "about", "help"].includes(
+      !["settings", "donate", "randomDonate", "links", "privacy", "microphone", "about", "help"].includes(
         screen,
       )
     )
@@ -161,6 +165,7 @@ export default function App() {
       else if (
         [
           "settings",
+          "donate", "randomDonate",
           "links",
           "privacy",
           "microphone",
@@ -176,30 +181,6 @@ export default function App() {
     setNotice("");
     setScreen(next);
   };
-  useEffect(() => {
-    const backTargets: Partial<Record<Screen, Screen>> = {
-      record: "home",
-      edit: "record",
-      fx: "edit",
-      emoji: "fx",
-      title: "emoji",
-      style: "title",
-      location: "style",
-      visibility: "location",
-      ready: "visibility",
-      library: "home",
-      daily: "home",
-      map: "home",
-      settings: "home",
-      links: "settings",
-      privacy: "settings",
-      microphone: "settings",
-      about: "settings",
-      help: "settings",
-    };
-    const target = backTargets[screen];
-    telegram.setBackButton(Boolean(target), () => go(target || "home"));
-  }, [screen]);
   const update = (patch: Partial<SoundDraft>) =>
     setDraft((current) =>
       current
@@ -228,9 +209,7 @@ export default function App() {
         createdAt: draft.createdAt,
         favorite: false,
         location: draft.location,
-        visibility: COMMUNITY_PUBLISHING_AVAILABLE
-          ? draft.visibility
-          : "private",
+        visibility: 'private',
         effect: draft.effect,
         effectMix: draft.effectMix,
         echoDelayMs: draft.echoDelayMs,
@@ -239,6 +218,10 @@ export default function App() {
         waveform: rendered.waveform,
       };
       await soundsDb.save(record);
+      if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
+        try { await publishSound(record); }
+        catch { await loadLibrary(); setNotice(t('publishFailed')); return; }
+      }
       await loadLibrary();
       telegram.success();
       setDraft({
@@ -446,6 +429,8 @@ export default function App() {
         );
       case "settings":
         return <Settings go={go} back={() => go(settingsReturn.current)} />;
+      case 'donate': return <Donate go={go} />;
+      case 'randomDonate': return <Donate key="random" go={go} random />;
       case "links":
         return <Links go={go} />;
       case "privacy":
@@ -1032,6 +1017,8 @@ export function EmojiScreen({ draft, update, next, back }: StepProps) {
           <button
             className={slot === i ? "active" : ""}
             key={i}
+            aria-pressed={slot === i}
+            aria-label={`${i + 1}: ${draft.emojis[i] || '—'}`}
             onClick={() => setSlot(i)}
           >
             <span>{draft.emojis[i] || "·"}</span>
@@ -1081,7 +1068,7 @@ export function EmojiScreen({ draft, update, next, back }: StepProps) {
       )}
       <button
         className="primary-button"
-        disabled={draft.emojis.length !== 3}
+        disabled={![0, 1, 2].every((i) => Boolean(draft.emojis[i]))}
         onClick={next}
       >
         {t("continue")}
@@ -1513,7 +1500,7 @@ function ReadyScreen({
   );
 }
 
-function Library({
+export function Library({
   records,
   reload,
   go,
@@ -1534,6 +1521,8 @@ function Library({
 }) {
   const [filter, setFilter] = useState<"all" | "favorites" | "recents">("all");
   const [renaming, setRenaming] = useState<SoundRecord>();
+  const [menuRecord, setMenuRecord] = useState<SoundRecord>();
+  const { t } = useI18n();
   const [renameValue, setRenameValue] = useState("");
   const shown = useMemo(
     () =>
@@ -1635,36 +1624,23 @@ function Library({
               >
                 ♡
               </button>
-              <details>
-                <summary aria-label="Sound menu">⋮</summary>
-                <div className="menu">
-                  <button onClick={() => void favorite(r)}>
-                    {r.favorite ? "UNFAVORITE" : "FAVORITE"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setRenaming(r);
-                      setRenameValue(r.title);
-                    }}
-                  >
-                    RENAME
-                  </button>
-                  <button onClick={() => download(r.audioBlob, r.title)}>
-                    EXPORT WAV
-                  </button>
-                  <button onClick={() => void share(r)}>SHARE</button>
-                  <button
-                    className="danger-text"
-                    onClick={() => void remove(r)}
-                  >
-                    DELETE
-                  </button>
-                </div>
-              </details>
+              <button className="sound-menu-trigger" aria-label={t('soundActions')} onClick={() => setMenuRecord(r)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+              </button>
             </article>
           ))
         )}
       </div>
+      {menuRecord && <Dialog title={menuRecord.title} close={() => setMenuRecord(undefined)}>
+        <div className="sound-actions">
+          <button onClick={() => { void favorite(menuRecord); setMenuRecord(undefined); }}>{t(menuRecord.favorite ? 'unfavorite' : 'favorite')}</button>
+          <button onClick={() => { setRenaming(menuRecord); setRenameValue(menuRecord.title); setMenuRecord(undefined); }}>{t('rename')}</button>
+          <button onClick={() => { download(menuRecord.audioBlob, menuRecord.title); setMenuRecord(undefined); }}>{t('exportWav')}</button>
+          <button onClick={() => { void share(menuRecord); setMenuRecord(undefined); }}>{t('share')}</button>
+          <button className="danger-text" onClick={() => { void remove(menuRecord); setMenuRecord(undefined); }}>{t('delete')}</button>
+          <button onClick={() => setMenuRecord(undefined)}>{t('cancel')}</button>
+        </div>
+      </Dialog>}
       {renaming && (
         <div className="modal-backdrop">
           <div
@@ -1705,14 +1681,14 @@ function WorldMap({
   back: () => void;
 }) {
   const { t } = useI18n();
-  const publicRecords = COMMUNITY_PUBLISHING_AVAILABLE
-    ? records.filter(
-        (record) =>
-          record.visibility === "world" &&
-          record.location?.city &&
-          record.location?.country,
-      )
-    : [];
+  const [publicRecords, setPublicRecords] = useState<SoundRecord[]>([]);
+  const [worldError, setWorldError] = useState('');
+  useEffect(() => {
+    if (!COMMUNITY_PUBLISHING_AVAILABLE) return;
+    const controller = new AbortController();
+    void worldSounds(controller.signal).then(setPublicRecords).catch(() => { if (!controller.signal.aborted) setWorldError(t('worldLoadFailed')); });
+    return () => controller.abort();
+  }, [t]);
   const groups = useMemo(() => {
     const result = new Map<string, SoundRecord[]>();
     for (const record of publicRecords) {
@@ -1745,6 +1721,7 @@ function WorldMap({
   const sounds = selected ? groups.get(selected) || [] : [];
   return (
     <Shell variant="world" title={t("fieldWorld")} back={back}>
+      {worldError && <p role="alert">{worldError}</p>}
       <div className="world-composition">
         <FieldGlobe
           markers={markers}
@@ -1771,11 +1748,7 @@ function WorldMap({
             {sounds.map((sound) => (
               <button
                 key={sound.id}
-                onClick={() =>
-                  player.play(sound.id, sound.audioBlob, (value) =>
-                    setPlayingId(value ? sound.id : undefined),
-                  )
-                }
+                onClick={() => { void worldAudio(sound.id).then(blob => player.play(sound.id, blob, value => setPlayingId(value ? sound.id : undefined))).catch(() => setWorldError(t('worldLoadFailed'))); }}
               >
                 <span>{sound.emojis.join(" ")}</span>
                 <strong
@@ -1804,6 +1777,7 @@ function WorldMap({
 }
 function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   const { t, locale, setLocale } = useI18n();
+  const [theme, setTheme] = useState<ThemePreference>(getThemePreference);
   const languages: [Locale, string][] = [
     ["en", "English"],
     ["ru", "Русский"],
@@ -1813,6 +1787,11 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   return (
     <Shell title={t("settings")} back={back}>
       <div className="settings-list">
+        <button onClick={() => go('donate')}><span>⭐ {t('donate')}</span><strong>›</strong></button>
+        <fieldset className="language-picker">
+          <legend>{t('appearance')}</legend>
+          {(['light', 'system'] as const).map((value) => <button key={value} aria-pressed={theme === value} className={theme === value ? 'selected' : ''} onClick={() => { setTheme(value); setThemePreference(value); }}>{t(value === 'light' ? 'lightTheme' : 'systemTheme')}</button>)}
+        </fieldset>
         <div>
           <span>{t("audioQuality")}</span>
           <strong>WAV</strong>

@@ -1,0 +1,85 @@
+/* One palette owns every surface, independent of Telegram's automatic colors. */
+:root {
+  --surface: #fffaf7;
+  --surface-raised: #fffdfb;
+  --surface-muted: #f0eded;
+  --color-ink: #171217;
+  --tg-text-color: var(--color-ink);
+  --tg-bg-color: var(--surface);
+  --tg-secondary-bg-color: var(--surface-muted);
+  --tg-bottom-bar-bg-color: var(--surface);
+  --safe-top: max(12px, env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
+  --safe-bottom: max(12px, env(safe-area-inset-bottom, 0px), calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px)));
+}
+:root[data-theme="dark"] {
+  --surface: #191619;
+  --surface-raised: #282228;
+  --surface-muted: #342d34;
+  --color-ink: #faf0f7;
+  --color-grey: #c0b0bc;
+  --color-line: #584453;
+  --color-paper: var(--surface);
+  --color-paper-strong: var(--surface-raised);
+  --color-pink-soft: #553047;
+  --color-pink-dark: #ff80c8;
+}
+.app-shell { height: var(--tg-viewport-stable-height, 100dvh); min-height: 0; padding-bottom: 0; background: var(--surface); }
+.app-header, .screen-title { flex-shrink: 0; }
+.app-header { grid-template-columns: minmax(44px, 1fr) auto minmax(44px, 1fr); }
+.header-right { flex-wrap: wrap; }
+.screen-content { overflow-x: hidden; flex: 1 1 auto; padding-bottom: 16px; }
+.screen-content > * { flex-shrink: 0; }
+.screen-content .brand-footer { display: block; }
+.bottom-nav, .shell-home .bottom-nav, .shell-world .bottom-nav {
+  position: relative; inset: auto; width: auto; transform: none;
+  flex: 0 0 auto; margin: 0 -16px; padding: 8px 8px var(--safe-bottom);
+  height: auto; min-height: calc(62px + var(--safe-bottom)); background: var(--surface);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.bottom-nav button { min-width: 0; min-height: 44px; font-size: 9px; overflow-wrap: anywhere; }
+.shell-home, .shell-world, .shell-fx { height: var(--tg-viewport-stable-height, 100dvh); padding-bottom: 0; }
+.emoji-slots button { width: 72px; height: 76px; border: 0; border-radius: 0; background: none; gap: 4px; }
+.emoji-slots button.active { outline: none; }
+.emoji-slots small { font-family: var(--font-ui); border-bottom: 3px solid transparent; padding: 3px 12px; }
+.emoji-slots button.active small { border-color: var(--color-pink); }
+.emoji-slots button:focus-visible { outline: 2px solid var(--color-pink); }
+.emoji-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; min-height: 140px; }
+.emoji-grid button { min-height: 44px; min-width: 0; }
+.emoji-categories { display: flex; overflow-x: auto; gap: 2px; }
+.emoji-categories button { flex: 0 0 44px; height: 44px; }
+.emoji-grid { flex: 1 1 180px; }
+.sound-list { overflow: visible; flex-shrink: 0; }
+.sound-list article { grid-template-columns: 44px minmax(0, 1fr) 44px 44px; gap: 4px; padding-block: 8px; }
+.sound-list article > .waveform { display: none; }
+.row-play, .favorite, .sound-menu-trigger { width: 44px; height: 44px; display: grid; place-items: center; }
+.field-dialog { border: 1px solid var(--color-line); border-radius: 22px; padding: 0; width: min(400px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); color: var(--color-ink); background: var(--surface-raised); }
+.field-dialog::backdrop { background: #0008; }
+.dialog-content { padding: 24px; }
+.dialog-content h2 { font-size: 20px; overflow-wrap: anywhere; }
+.sound-actions { display: grid; gap: 8px; }
+.sound-actions button { min-height: 48px; border-bottom: 1px solid var(--color-line); text-align: left; }
+.text-input, .language-picker button, .rename-modal, .world-sounds button, .world-pin, .world-empty { background: var(--surface-raised); color: var(--color-ink); }
+.tabs { background: var(--surface-muted); }
+.tabs button.active { background: var(--surface-raised); }
+.language-picker { min-width: 0; }
+.language-picker button { overflow-wrap: anywhere; }
+:root[data-theme="dark"] .brand-logo-link { background: #fffaf7; border-radius: 12px; padding: 4px; }
+:root[data-theme="dark"] :is(.daily-card h2, .home-credit, .world-privacy, .world-pin small, .sound-list article small) { color: var(--color-ink); }
+:root[data-theme="dark"] :is(.sound-card, .ready-card, .style-option, .links-list a, .microphone-status, .trim-playback button) { background: var(--surface-raised); color: var(--color-ink); }
+:root[data-theme="dark"] :is(.error-panel, .playback-review button, .search-results, .round-control, .sound-marker) { background: var(--surface-raised); color: var(--color-ink); }
+:root[data-theme="dark"] .error-panel p { color: var(--color-grey); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--color-pink); outline-offset: 2px; }
+.ready-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ready-actions button { min-width: 0; min-height: 64px; }
+.donate-page { display: grid; gap: 16px; text-align: center; }
+.donate-page .miley-art { position: static; width: 160px; height: 160px; margin: auto; object-fit: contain; }
+.donate-page p { margin: 0; line-height: 1.5; }
+.donate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.donate-grid button { min-height: 52px; border: 1px solid var(--color-line); border-radius: 14px; font-size: 13px; }
+.donate-grid button[aria-pressed="true"] { border-color: var(--color-pink); background: var(--color-pink-wash); box-shadow: inset 0 0 0 1px var(--color-pink); }
+.donate-amount { font-size: 44px; color: var(--color-pink-dark); font-weight: 800; }
+.donate-note { color: var(--color-grey); font-size: 13px; }
+@media (min-width: 600px) {
+  .app-shell, .shell-home, .shell-world, .shell-fx { width: 430px; height: min(880px, calc(100dvh - 32px)); min-height: 0; border-inline: 1px solid var(--color-line); }
+}
+@media (max-height: 500px) { .app-header { min-height: 48px; } .brand-logo { max-height: 44px; } }

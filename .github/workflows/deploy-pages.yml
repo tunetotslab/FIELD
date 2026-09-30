@@ -30,6 +30,9 @@ jobs:
       - name: Verify
         run: npm run typecheck && npm test
       - name: Build
+        env:
+          VITE_FIELD_API_URL: ${{ vars.FIELD_API_URL }}
+          VITE_FIELD_WORLD_ENABLED: ${{ vars.FIELD_WORLD_ENABLED }}
         run: npm run build -- --base=/FIELD/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>FIELD responsive QA</title></head>
+<body style="margin:20px;background:#eee;font-family:system-ui">
+<h1>FIELD responsive QA — browser viewports, not physical devices</h1>
+<label>Screen <select id="screen"><option value="/">App</option><option value="/qa.html">Fixtures</option></select></label>
+<label>Width <select id="size"><option>375</option><option>390</option><option>430</option><option>320</option><option>1024</option></select></label>
+<label>Height <select id="height"><option>667</option><option>844</option><option>932</option><option>568</option><option>768</option></select></label>
+<iframe title="FIELD preview" style="display:block;border:1px solid #aaa;margin-top:12px;width:375px;height:667px" src="/"></iframe>
+<script type="module">
+if (!import.meta.env.DEV) throw new Error('Development only');
+const frame = document.querySelector('iframe');
+document.querySelector('#size').onchange = e => frame.style.width = e.target.value + 'px';
+document.querySelector('#height').onchange = e => frame.style.height = e.target.value + 'px';
+document.querySelector('#screen').onchange = e => frame.src = e.target.value;
+</script></body></html>

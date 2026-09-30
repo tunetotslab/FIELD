@@ -1,3 +1,4 @@
+import { initTheme } from '../theme';
 type ThemeParams = Partial<{
   bg_color: string;
   secondary_bg_color: string;
@@ -10,6 +11,10 @@ type ThemeParams = Partial<{
 }>;
 
 type TelegramWebApp = {
+  initData?: string;
+  platform?: string;
+  colorScheme?: 'light' | 'dark';
+  openInvoice?: (url: string, callback: (status: string) => void) => void;
   ready?: () => void;
   expand?: () => void;
   setHeaderColor?: (color: string) => void;
@@ -36,43 +41,17 @@ declare global {
   }
 }
 
-const themeVariables: Record<string, string> = {
-  bg_color: "--tg-bg-color",
-  secondary_bg_color: "--tg-secondary-bg-color",
-  text_color: "--tg-text-color",
-  hint_color: "--tg-hint-color",
-  link_color: "--tg-link-color",
-  button_color: "--tg-button-color",
-  button_text_color: "--tg-button-text-color",
-  bottom_bar_bg_color: "--tg-bottom-bar-bg-color",
-};
-
-function applyTheme(theme: ThemeParams = {}) {
-  const root = document.documentElement;
-  for (const [telegramName, cssName] of Object.entries(themeVariables)) {
-    const value = theme[telegramName as keyof ThemeParams];
-    if (value) root.style.setProperty(cssName, value);
-  }
-  root.dataset.telegram = "true";
-}
-
 let activeBackHandler: (() => void) | undefined;
 
 export const telegram = {
-  get isTelegram() { return Boolean(window.Telegram?.WebApp); },
+  get isTelegram() { return Boolean(window.Telegram?.WebApp?.initData); },
   init() {
     const webApp = window.Telegram?.WebApp;
-    if (!webApp) return;
-    applyTheme(webApp.themeParams);
+    const cleanup = initTheme();
+    if (!webApp) return cleanup;
     webApp.ready?.();
     webApp.expand?.();
-    webApp.setHeaderColor?.(webApp.themeParams?.bg_color || "#fffaf7");
-    webApp.setBackgroundColor?.(webApp.themeParams?.bg_color || "#fffaf7");
-    webApp.onEvent?.("themeChanged", () => {
-      applyTheme(webApp.themeParams);
-      webApp.setHeaderColor?.(webApp.themeParams?.bg_color || "#fffaf7");
-      webApp.setBackgroundColor?.(webApp.themeParams?.bg_color || "#fffaf7");
-    });
+    return cleanup;
   },
   impact(style: 'light' | 'medium' | 'heavy' = 'light') { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.(style); },
   success() { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success'); },

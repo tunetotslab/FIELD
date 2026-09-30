@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { useState } from "react";
-import App, { EmojiScreen, FxScreen, VisibilityScreen } from "../App";
+import App, { EmojiScreen, FxScreen, VisibilityScreen, Library } from "../App";
 import { AppNavigationProvider } from "../components/Shell";
 import { I18nProvider } from "../i18n";
 import { makeFixture } from "./fixture";
@@ -11,6 +11,7 @@ import "@fontsource/unifrakturcook/700.css";
 import "../design-system/tokens.css";
 import "../styles.css";
 import "../visual-cleanup.css";
+import "../responsive.css";
 
 function QA() {
   const [draft, setDraft] = useState(makeFixture);
@@ -18,6 +19,7 @@ function QA() {
   const [lines, setLines] = useState<string[]>([]);
   const [samples, setSamples] = useState<{ name: string; url: string }[]>([]);
   const [running, setRunning] = useState(false);
+  if (mode === 'library') return <div className="viewport"><Library records={[{...draft, id:'qa-only-not-saved',title:'A very long recording title — QA fixture',styleId:'grotesk',favorite:false,audioBlob:draft.originalBlob}]} reload={async () => {}} go={() => setMode('menu')} back={() => setMode('menu')} setPlayingId={() => {}} setNotice={() => {}} notice="QA fixture — no real recording" /></div>;
   if (mode === "fx")
     return (
       <div className="viewport">
@@ -63,6 +65,8 @@ function QA() {
   return (
     <main style={{ padding: 24, maxWidth: 800, margin: "auto" }}>
       <h1>FIELD · development QA</h1>
+      <button onClick={() => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; }}>TOGGLE QA PALETTE</button>
+      <button onClick={() => setMode('library')}>OPEN LIBRARY FIXTURE</button>
       <p>
         Synthetic test signal only. No microphone access or library changes.
       </p>

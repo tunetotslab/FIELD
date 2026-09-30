@@ -8,4 +8,5 @@ export const EXTERNAL_LINKS = {
   SUPPORT_EMAIL: "mailto:tunetotslab@gmail.com",
 } as const;
 
-export const COMMUNITY_PUBLISHING_AVAILABLE = false;
+export const API_URL = (import.meta.env.VITE_FIELD_API_URL || '').replace(/\/$/, '');
+export const COMMUNITY_PUBLISHING_AVAILABLE = Boolean(API_URL) && import.meta.env.VITE_FIELD_WORLD_ENABLED === 'true';

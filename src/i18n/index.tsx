@@ -8,6 +8,13 @@ import {
 
 export type Locale = "en" | "ru" | "hy" | "zh-TW";
 const en = {
+  appearance: 'Appearance', lightTheme: 'Light', systemTheme: 'Device / Telegram',
+  soundActions: 'Sound actions',
+  publishFailed: 'Saved on this device. Publishing failed; try again when online.', worldLoadFailed: 'Could not load FIELD World. Please try again later.',
+  donate: 'Donate', randomDonate: 'Random donation', donateIntro: 'Support FIELD and Tune Tots Lab. Your donation is voluntary.',
+  randomRange: 'A random amount from 5 to 100 Stars. No prizes or automatic payments.', rollDonate: 'Roll an amount', rollAgain: 'Roll again',
+  donateConfirm: 'You will see the exact amount in Telegram and confirm before paying.', donateUnavailable: 'Donations are not open yet.', donateTelegram: 'Open FIELD in Telegram to donate.',
+  donateThanks: 'Thank you! Telegram reports your payment as completed.', donateCancelled: 'Cancelled. You can choose another amount.', donatePending: 'Payment is pending. Check the receipt in Telegram before trying again.', donateError: 'Could not open payment. Please try again later.',
   settings: "SETTINGS",
   back: "Go back",
   library: "LIBRARY",
@@ -75,7 +82,7 @@ const en = {
   share: "SHARE",
   newSound: "NEW",
   savedPrivate: "Saved privately to your library.",
-  savedWorld: "Saved locally. Shared publishing is unavailable in this build.",
+  savedWorld: "Saved on this device and published to FIELD World.",
   all: "ALL",
   favorites: "FAV",
   recents: "RECENTS",
@@ -139,6 +146,12 @@ const en = {
 type Key = keyof typeof en;
 const ru: Record<Key, string> = {
   ...en,
+  appearance: 'Оформление', lightTheme: 'Светлая', systemTheme: 'Тема устройства / Telegram',
+  soundActions: 'Действия с записью',
+  donate: 'Донат', randomDonate: 'Случайный донат', donateIntro: 'Поддержите FIELD и Tune Tots Lab. Донат — добровольный.',
+  randomRange: 'Случайная сумма от 5 до 100 звёзд. Без призов и автоматического списания.', rollDonate: 'Бросить кубик', rollAgain: 'Бросить ещё раз',
+  donateConfirm: 'Перед оплатой Telegram покажет точную сумму и попросит подтверждение.', donateUnavailable: 'Приём донатов пока не открыт.', donateTelegram: 'Для доната откройте FIELD в Telegram.',
+  donateThanks: 'Спасибо! Telegram сообщил об успешной оплате.', donateCancelled: 'Отменено. Можно выбрать другую сумму.', donatePending: 'Платёж обрабатывается. Проверьте квитанцию в Telegram перед повтором.', donateError: 'Не удалось открыть оплату. Попробуйте позже.',
   settings: "НАСТРОЙКИ",
   back: "Назад",
   library: "БИБЛИОТЕКА",
@@ -206,7 +219,7 @@ const ru: Record<Key, string> = {
   share: "ПОДЕЛИТЬСЯ",
   newSound: "НОВЫЙ",
   savedPrivate: "Сохранено в личную библиотеку.",
-  savedWorld: "Сохранено локально. Общая публикация в этой сборке недоступна.",
+  savedWorld: "Сохранено на устройстве и опубликовано в FIELD World.",
   all: "ВСЕ",
   favorites: "ИЗБР.",
   recents: "НЕДАВНИЕ",
@@ -266,6 +279,12 @@ const ru: Record<Key, string> = {
 };
 const hy: Record<Key, string> = {
   ...en,
+  appearance: 'Տեսք', lightTheme: 'Լուսավոր', systemTheme: 'Սարքի / Telegram-ի թեմա', soundActions: 'Ձայնագրության գործողություններ',
+  donate: 'Աջակցել', randomDonate: 'Պատահական նվիրատվություն', donateIntro: 'Աջակցեք FIELD-ին և Tune Tots Lab-ին։ Նվիրատվությունը կամավոր է։',
+  randomRange: 'Պատահական գումար՝ 5–100 աստղ։ Առանց մրցանակների կամ ավտոմատ վճարման։', rollDonate: 'Ընտրել պատահական գումար', rollAgain: 'Կրկին ընտրել',
+  donateConfirm: 'Վճարելուց առաջ Telegram-ը ցույց կտա ճշգրիտ գումարը և կխնդրի հաստատել։', donateUnavailable: 'Նվիրատվությունները դեռ հասանելի չեն։', donateTelegram: 'Նվիրատվության համար բացեք FIELD-ը Telegram-ում։',
+  donateThanks: 'Շնորհակալություն։ Telegram-ը հաստատեց վճարումը։', donateCancelled: 'Չեղարկված է։ Կարող եք ընտրել այլ գումար։', donatePending: 'Վճարումը մշակվում է։ Նախ ստուգեք Telegram-ի անդորրագիրը։', donateError: 'Վճարումը չհաջողվեց բացել։ Փորձեք ավելի ուշ։',
+  publishFailed: 'Պահպանվել է սարքում։ Հրապարակումը չհաջողվեց։ Փորձեք առցանց լինելիս։', worldLoadFailed: 'FIELD World-ը չհաջողվեց բեռնել։ Փորձեք ավելի ուշ։',
   settings: "ԿԱՐԳԱՎՈՐՈՒՄՆԵՐ",
   back: "Հետ",
   library: "ՁԱՅՆԱԴԱՐԱՆ",
@@ -334,7 +353,7 @@ const hy: Record<Key, string> = {
   newSound: "ՆՈՐ",
   savedPrivate: "Պահպանվել է անձնական ձայնադարանում։",
   savedWorld:
-    "Պահպանվել է տեղային։ Ընդհանուր հրապարակումն այս տարբերակում անհասանելի է։",
+    "Պահպանվել է սարքում և հրապարակվել FIELD World-ում։",
   all: "ԲՈԼՈՐԸ",
   favorites: "ՍԻՐԵԼԻ",
   recents: "ՎԵՐՋԻՆ",
@@ -394,6 +413,12 @@ const hy: Record<Key, string> = {
 };
 const zh: Record<Key, string> = {
   ...en,
+  appearance: '外觀', lightTheme: '淺色', systemTheme: '裝置 / Telegram 主題', soundActions: '錄音操作',
+  donate: '贊助', randomDonate: '隨機贊助', donateIntro: '支持 FIELD 和 Tune Tots Lab。贊助完全自願。',
+  randomRange: '隨機選擇 5–100 顆星星，沒有獎品，也不會自動付款。', rollDonate: '抽取金額', rollAgain: '再抽一次',
+  donateConfirm: '付款前，Telegram 會顯示確切金額並請你確認。', donateUnavailable: '尚未開放贊助。', donateTelegram: '請在 Telegram 中開啟 FIELD 進行贊助。',
+  donateThanks: '謝謝！Telegram 已回報付款完成。', donateCancelled: '已取消。你可以選擇其他金額。', donatePending: '付款處理中。重試前請先查看 Telegram 收據。', donateError: '無法開啟付款，請稍後再試。',
+  publishFailed: '已儲存至此裝置。發佈失敗，請連線後再試。', worldLoadFailed: '無法載入 FIELD World，請稍後再試。',
   settings: "設定",
   back: "返回",
   library: "聲音庫",
@@ -461,7 +486,7 @@ const zh: Record<Key, string> = {
   share: "分享",
   newSound: "新增",
   savedPrivate: "已儲存至私人聲音庫。",
-  savedWorld: "已儲存在本機。此版本尚無共享發佈功能。",
+  savedWorld: "已儲存至此裝置並發佈到 FIELD World。",
   all: "全部",
   favorites: "最愛",
   recents: "最近",

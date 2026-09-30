@@ -1,4 +1,5 @@
-const CACHE = 'field-shell-v3';
+const CACHE = 'field-shell-v4';
+const root = self.registration.scope;
 const SHELL = [
   '/',
   '/manifest.webmanifest',
@@ -9,7 +10,7 @@ const SHELL = [
   '/icons/icon-512.png',
   '/icons/maskable-192.png',
   '/icons/maskable-512.png',
-];
+].map(path => new URL(path.replace(/^\//, ''), root).href);
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
@@ -17,15 +18,16 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith('field-shell-') && key !== CACHE).map(key => caches.delete(key)))));
   self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || event.request.headers.has('Authorization') || url.origin !== self.location.origin || !url.href.startsWith(root)) return;
   event.respondWith(fetch(event.request).then(response => {
     const copy = response.clone();
-    caches.open(CACHE).then(cache => cache.put(event.request, copy));
+    if (response.ok) event.waitUntil(caches.open(CACHE).then(cache => cache.put(event.request, copy)));
     return response;
-  }).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
+  }).catch(async () => (await caches.match(event.request)) || (event.request.mode === 'navigate' ? await caches.match(root) : undefined) || Response.error()));
 });

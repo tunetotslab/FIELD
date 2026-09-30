@@ -1,0 +1,11 @@
+{
+  "name": "field-api",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-01",
+  "vars": {
+    "APP_ORIGIN": "https://tunetotslab.github.io",
+    "SUPPORT_EMAIL": "tunetotslab@gmail.com"
+  },
+  "d1_databases": [{ "binding": "DB", "database_name": "field", "database_id": "REPLACE_WITH_CLOUDFLARE_DATABASE_ID" }],
+  "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "field-audio" }]
+}
