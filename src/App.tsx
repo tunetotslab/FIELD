@@ -1520,6 +1520,7 @@ export function Library({
   back: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "favorites" | "recents">("all");
+  const [query, setQuery] = useState("");
   const [renaming, setRenaming] = useState<SoundRecord>();
   const [menuRecord, setMenuRecord] = useState<SoundRecord>();
   const { t } = useI18n();
@@ -1528,8 +1529,9 @@ export function Library({
     () =>
       records
         .filter((r) => filter !== "favorites" || r.favorite)
+        .filter((r) => r.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
         .slice(0, filter === "recents" ? 10 : undefined),
-    [records, filter],
+    [records, filter, query],
   );
   const play = (r: SoundRecord) =>
     player.play(r.id, r.audioBlob, (v) => setPlayingId(v ? r.id : undefined));
@@ -1586,6 +1588,13 @@ export function Library({
           </button>
         ))}
       </div>
+      <input
+        className="text-input library-search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={t("searchLibrary")}
+        aria-label={t("searchLibrary")}
+      />
       {notice && <p className="notice">{notice}</p>}
       <div className="sound-list">
         {shown.length === 0 ? (

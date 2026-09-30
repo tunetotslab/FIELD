@@ -73,12 +73,19 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--color-pink); ou
 .ready-actions button { min-width: 0; min-height: 64px; }
 .donate-page { display: grid; gap: 16px; text-align: center; }
 .donate-page .miley-art { position: static; width: 160px; height: 160px; margin: auto; object-fit: contain; }
+.donate-page .daily-random-art { display: block; width: 160px; height: 160px; margin: auto; object-fit: contain; border-radius: 22px; }
 .donate-page p { margin: 0; line-height: 1.5; }
 .donate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .donate-grid button { min-height: 52px; border: 1px solid var(--color-line); border-radius: 14px; font-size: 13px; }
 .donate-grid button[aria-pressed="true"] { border-color: var(--color-pink); background: var(--color-pink-wash); box-shadow: inset 0 0 0 1px var(--color-pink); }
 .donate-amount { font-size: 44px; color: var(--color-pink-dark); font-weight: 800; }
 .donate-note { color: var(--color-grey); font-size: 13px; }
+.library-search { width: 100%; margin-bottom: 12px; }
+.globe-stage { position: relative; width: min(100%, 420px); margin: 0 auto; overflow: hidden; border-radius: 28px; touch-action: none; }
+.interactive-globe { display: block; width: 100%; height: auto; min-height: 280px; cursor: grab; touch-action: none; }
+.interactive-globe:active { cursor: grabbing; }
+.globe-controls { position: absolute; right: 12px; bottom: 12px; display: grid; gap: 6px; }
+.globe-controls button { width: 42px; height: 42px; border: 1px solid var(--color-line); border-radius: 50%; background: var(--surface-raised); color: var(--color-ink); font-size: 25px; line-height: 1; box-shadow: 0 4px 12px #2b10231f; }
 @media (min-width: 600px) {
   .app-shell, .shell-home, .shell-world, .shell-fx { width: 430px; height: min(880px, calc(100dvh - 32px)); min-height: 0; border-inline: 1px solid var(--color-line); }
 }

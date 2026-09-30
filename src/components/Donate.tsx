@@ -3,6 +3,7 @@ import { Shell } from './Shell';
 import { useI18n } from '../i18n';
 import { API_URL } from '../config';
 import { Miley } from './Brand';
+import { dailyImageCollection } from '../data/taskImages';
 import type { Screen } from '../types';
 
 export const DONATION_AMOUNTS = [5, 10, 25, 50, 75, 100, 1000, 10000, 1000000];
@@ -24,9 +25,14 @@ export function randomDonationAmount() {
   return 100001 + randomInt(900000);
 }
 
+function randomDailyImage() {
+  return dailyImageCollection[randomInt(dailyImageCollection.length)];
+}
+
 export function Donate({ go, random = false }: { go: (screen: Screen) => void; random?: boolean }) {
   const { t, locale } = useI18n();
   const [amount, setAmount] = useState<number>();
+  const [dailyImage, setDailyImage] = useState(() => randomDailyImage());
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const format = (value: number) => new Intl.NumberFormat(locale).format(value);
@@ -47,12 +53,12 @@ export function Donate({ go, random = false }: { go: (screen: Screen) => void; r
   }
   return <Shell title={t(random ? 'randomDonate' : 'donate')} back={() => go(random ? 'donate' : 'settings')}>
     <div className="donate-page">
-      <Miley state="world" />
+      {random ? <img className="daily-random-art" src={dailyImage} alt="" /> : <Miley state="world" />}
       <p>{t('donateIntro')}</p>
       {random ? <>
         <p>{t('randomRange')}</p>
         <output className="donate-amount" aria-live="polite">{amount ? `${format(amount)} ⭐` : '？'}</output>
-        <button className="secondary-button" disabled={busy} onClick={() => { setAmount(randomDonationAmount()); setNotice(''); }}>{t(amount ? 'rollAgain' : 'rollDonate')}</button>
+        <button className="secondary-button" disabled={busy} onClick={() => { setAmount(randomDonationAmount()); setDailyImage(randomDailyImage()); setNotice(''); }}>{t(amount ? 'rollAgain' : 'rollDonate')}</button>
       </> : <>
         <button className="secondary-button" onClick={() => go('randomDonate')}>{t('randomDonate')} 🎲</button>
         <div className="donate-grid">{DONATION_AMOUNTS.map(value => <button key={value} disabled={busy} aria-pressed={amount === value} onClick={() => { setAmount(value); setNotice(''); }}>{format(value)} ⭐</button>)}</div>

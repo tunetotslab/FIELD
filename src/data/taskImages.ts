@@ -45,3 +45,5 @@ export const taskImages: Record<number, readonly string[]> = {
   19: [image19],
   20: [image20, image20Alt],
 };
+
+export const dailyImageCollection = Object.values(taskImages).flat();

@@ -54,6 +54,7 @@ export function FieldGlobe({
   onMarker?: (marker: GlobeMarker) => void;
 }) {
   const [rotation, setRotation] = useState<[number, number]>([-44, -35]);
+  const [zoom, setZoom] = useState(1);
   const drag = useRef<{
     x: number;
     y: number;
@@ -72,11 +73,11 @@ export function FieldGlobe({
     () =>
       geoOrthographic()
         .translate([180, 180])
-        .scale(164)
+        .scale(164 * zoom)
         .clipAngle(90)
         .precision(0.3)
         .rotate([rotation[0], rotation[1], 0]),
-    [rotation],
+    [rotation, zoom],
   );
   const path = geoPath(projection);
   const move = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -89,23 +90,28 @@ export function FieldGlobe({
     ]);
   };
   return (
-    <svg
-      className="world-planet interactive-globe"
-      viewBox="0 0 360 360"
-      role="img"
-      aria-label="Interactive globe; drag to rotate"
-      onPointerDown={(event) => {
-        event.currentTarget.setPointerCapture(event.pointerId);
-        drag.current = { x: event.clientX, y: event.clientY, rotation };
-      }}
-      onPointerMove={move}
-      onPointerUp={() => {
-        drag.current = null;
-      }}
-      onPointerCancel={() => {
-        drag.current = null;
-      }}
-    >
+    <div className="globe-stage">
+      <svg
+        className="world-planet interactive-globe"
+        viewBox="0 0 360 360"
+        role="img"
+        aria-label="Interactive globe; drag to rotate and use the controls to zoom"
+        onWheel={(event) => {
+          event.preventDefault();
+          setZoom((value) => Math.max(0.72, Math.min(2.35, value * (event.deltaY < 0 ? 1.12 : 0.89))));
+        }}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          drag.current = { x: event.clientX, y: event.clientY, rotation };
+        }}
+        onPointerMove={move}
+        onPointerUp={() => {
+          drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+      >
       <defs>
         <radialGradient id="globeOcean" cx="30%" cy="22%" r="80%">
           <stop stopColor="#fff8fd" />
@@ -161,6 +167,11 @@ export function FieldGlobe({
           </g>
         );
       })}
-    </svg>
+      </svg>
+      <div className="globe-controls" aria-label="Globe zoom">
+        <button type="button" onClick={() => setZoom((value) => Math.min(2.35, value * 1.2))} aria-label="Zoom in">+</button>
+        <button type="button" onClick={() => setZoom((value) => Math.max(0.72, value / 1.2))} aria-label="Zoom out">−</button>
+      </div>
+    </div>
   );
 }

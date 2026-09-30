@@ -1,5 +1,7 @@
 export type TaskRotationMode = "per_visit" | "daily";
-export const TASK_ROTATION_MODE: TaskRotationMode = "per_visit";
+// Daily is intentionally stable for the whole local calendar day. Reopening the
+// screen no longer advances the challenge or its artwork.
+export const TASK_ROTATION_MODE: TaskRotationMode = "daily";
 export const TASK_ROTATION_KEY = "field-task-rotation-v1";
 
 type Storage = Pick<globalThis.Storage, "getItem" | "setItem">;
