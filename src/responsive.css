@@ -63,7 +63,7 @@
 .tabs button.active { background: var(--surface-raised); }
 .language-picker { min-width: 0; }
 .language-picker button { overflow-wrap: anywhere; }
-:root[data-theme="dark"] .brand-logo-link { background: #fffaf7; border-radius: 12px; padding: 4px; }
+:root[data-theme="dark"] .brand-logo { filter: invert(1); }
 :root[data-theme="dark"] :is(.daily-card h2, .home-credit, .world-privacy, .world-pin small, .sound-list article small) { color: var(--color-ink); }
 :root[data-theme="dark"] :is(.sound-card, .ready-card, .style-option, .links-list a, .microphone-status, .trim-playback button) { background: var(--surface-raised); color: var(--color-ink); }
 :root[data-theme="dark"] :is(.error-panel, .playback-review button, .search-results, .round-control, .sound-marker) { background: var(--surface-raised); color: var(--color-ink); }

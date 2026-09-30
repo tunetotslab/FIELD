@@ -48,18 +48,6 @@ export function Shell({
     return () => telegram.setBackButton(false, () => {});
   }, [back]);
   const showBottomNavigation = navigation && navigation.screen !== "record";
-  const showSettings =
-    navigation &&
-    ![
-      "record",
-      "settings",
-      "donate", "randomDonate",
-      "links",
-      "privacy",
-      "microphone",
-      "about",
-      "help",
-    ].includes(navigation.screen);
   return (
     <main className={`app-shell${variant ? ` shell-${variant}` : ""}`}>
       <header className="app-header">
@@ -75,18 +63,7 @@ export function Shell({
           )}
         </div>
         <TuneTotsLogo />
-        <div className="header-side header-right">
-          {right}
-          {showSettings && (
-            <button
-              className="icon-button settings-button"
-              onClick={() => navigation.go("settings")}
-              aria-label={t("settings")}
-            >
-              ⚙
-            </button>
-          )}
-        </div>
+        <div className="header-side header-right">{right}</div>
       </header>
       {title && <h1 className="screen-title">{title}</h1>}
       <section className="screen-content">{children}</section>

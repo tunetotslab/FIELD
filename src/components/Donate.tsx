@@ -6,6 +6,24 @@ import { Miley } from './Brand';
 import type { Screen } from '../types';
 
 export const DONATION_AMOUNTS = [5, 10, 25, 50, 75, 100, 1000, 10000, 1000000];
+
+function randomInt(maxExclusive: number) {
+  const limit = Math.floor(0x100000000 / maxExclusive) * maxExclusive;
+  const values = new Uint32Array(1);
+  do crypto.getRandomValues(values); while (values[0] >= limit);
+  return values[0] % maxExclusive;
+}
+
+/** Everyday gifts are common; six-figure gifts remain possible but rare. */
+export function randomDonationAmount() {
+  const roll = randomInt(100);
+  if (roll < 65) return 1 + randomInt(100);
+  if (roll < 85) return 101 + randomInt(900);
+  if (roll < 95) return 1001 + randomInt(9000);
+  if (roll < 99) return 10001 + randomInt(90000);
+  return 100001 + randomInt(900000);
+}
+
 export function Donate({ go, random = false }: { go: (screen: Screen) => void; random?: boolean }) {
   const { t, locale } = useI18n();
   const [amount, setAmount] = useState<number>();
@@ -34,7 +52,7 @@ export function Donate({ go, random = false }: { go: (screen: Screen) => void; r
       {random ? <>
         <p>{t('randomRange')}</p>
         <output className="donate-amount" aria-live="polite">{amount ? `${format(amount)} ⭐` : '？'}</output>
-        <button className="secondary-button" disabled={busy} onClick={() => { setAmount(5 + crypto.getRandomValues(new Uint32Array(1))[0] % 96); setNotice(''); }}>{t(amount ? 'rollAgain' : 'rollDonate')}</button>
+        <button className="secondary-button" disabled={busy} onClick={() => { setAmount(randomDonationAmount()); setNotice(''); }}>{t(amount ? 'rollAgain' : 'rollDonate')}</button>
       </> : <>
         <button className="secondary-button" onClick={() => go('randomDonate')}>{t('randomDonate')} 🎲</button>
         <div className="donate-grid">{DONATION_AMOUNTS.map(value => <button key={value} disabled={busy} aria-pressed={amount === value} onClick={() => { setAmount(value); setNotice(''); }}>{format(value)} ⭐</button>)}</div>

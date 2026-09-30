@@ -29,7 +29,7 @@ async function telegram(env, method, body) {
   if (!result.ok) throw new Error('Telegram unavailable');
   return result.result;
 }
-export function validAmount(amount) { return Number.isInteger(amount) && (amounts.includes(amount) || amount >= 5 && amount <= 100); }
+export function validAmount(amount) { return Number.isInteger(amount) && amount >= 1 && amount <= 1000000; }
 const json = (value, status = 200) => Response.json(value,{status});
 
 async function webhook(request, env) {

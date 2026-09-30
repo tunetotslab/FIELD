@@ -41,8 +41,9 @@ may be cached by the service worker.
 ## Amounts
 
 Presets: 5, 10, 25, 50, 75, 100, 1000, 10000, 1000000 XTR. Random amounts:
-5–100 XTR, displayed before requesting an invoice. Telegram may reject a large
-invoice; no claim is made that 1,000,000 Stars is supported before live testing.
+1–1,000,000 XTR, displayed before requesting an invoice. FIELD weights the roll
+so everyday gifts are common and very large gifts are rare. Telegram may reject
+a large invoice; the maximum must be live-tested before launch.
 Random selection never executes a payment. Donation invoices award no prize.
 
 References: https://core.telegram.org/bots/payments-stars,

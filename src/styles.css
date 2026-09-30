@@ -946,7 +946,7 @@ button:disabled {
   font-size: 10px;
 }
 .settings-list > button {
-  color: #b00020;
+  color: var(--color-pink);
   font-weight: 800;
 }
 .asset-note {

@@ -12,7 +12,7 @@ await assert.rejects(authenticate(params.toString().replace('12345','99999'),tok
 await assert.rejects(authenticate(params.toString(),token,now+3601000));
 await assert.rejects(authenticate(params.toString()+'&user=%7B%22id%22%3A5%7D',token,now));
 for (const amount of [5,6,99,100,1000,10000,1000000]) assert.ok(validAmount(amount));
-for (const amount of [0,-1,4,5.5,101,'10',Infinity]) assert.ok(!validAmount(amount));
+for (const amount of [0,-1,1000001,5.5,'10',Infinity]) assert.ok(!validAmount(amount));
 const env = {APP_ORIGIN:'https://tunetotslab.github.io',BOT_TOKEN:token,WEBHOOK_SECRET:'test-only'};
 assert.equal((await worker.fetch(new Request('https://example.com/donations',{method:'POST',headers:{Origin:env.APP_ORIGIN},body:'{}'}),env)).status,401);
 assert.equal((await worker.fetch(new Request('https://example.com/telegram/webhook',{method:'POST',body:'{}'}),env)).status,403);
