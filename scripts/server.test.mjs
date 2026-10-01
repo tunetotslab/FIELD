@@ -58,3 +58,85 @@ try {
   }
 } finally { globalThis.fetch = originalFetch; }
 console.log('PASS localized help, links and about via commands and inline buttons; all app links included');
+
+class AdminTestDB {
+  constructor() { this.rows = [{ id:'invoice-1', user_id:77, amount:25, created_at:now, charge_id:null, paid_at:null, username:null, display_name:null, admin_notified_at:null }]; }
+  prepare(sql) {
+    const db = this;
+    return { args: [], bind(...args) { this.args = args; return this; },
+      async first() {
+        if (sql.startsWith('SELECT language')) return null;
+        if (sql.includes('WHERE id = ?')) return db.rows.find(row => row.id === this.args[0]) || null;
+        if (sql.includes('WHERE charge_id = ?')) return db.rows.find(row => row.charge_id === this.args[0]) || null;
+        if (sql.includes('COALESCE(SUM(amount)') && sql.includes('paid_at >= ?')) {
+          const paid = db.rows.filter(row => row.paid_at !== null && row.paid_at >= this.args[0]);
+          return { stars: paid.reduce((sum, row) => sum + row.amount, 0), donations: paid.length };
+        }
+        if (sql.includes('COALESCE(SUM(amount)')) {
+          const paid = db.rows.filter(row => row.paid_at !== null);
+          return { stars: paid.reduce((sum, row) => sum + row.amount, 0), donations: paid.length };
+        }
+        return null;
+      },
+      async all() {
+        if (sql.includes('WHERE paid_at IS NOT NULL')) return { results: db.rows.filter(row => row.paid_at !== null).sort((a,b) => b.paid_at - a.paid_at).slice(0, this.args[0]) };
+        return { results: [] };
+      },
+      async run() {
+        if (sql.startsWith('UPDATE donations SET charge_id')) {
+          const [charge_id, paid_at, username, display_name, id] = this.args;
+          const row = db.rows.find(item => item.id === id && item.charge_id === null);
+          if (!row) return { meta:{ changes:0 } };
+          if (db.rows.some(item => item.charge_id === charge_id)) throw new Error('UNIQUE');
+          Object.assign(row,{charge_id,paid_at,username,display_name});
+          return { meta:{ changes:1 } };
+        }
+        if (sql.startsWith('UPDATE donations SET admin_notified_at')) {
+          const [admin_notified_at,id] = this.args;
+          const row = db.rows.find(item => item.id === id && item.admin_notified_at === null);
+          if (!row) return { meta:{ changes:0 } };
+          row.admin_notified_at = admin_notified_at;
+          return { meta:{ changes:1 } };
+        }
+        return { meta:{ changes:0 } };
+      }
+    };
+  }
+}
+
+const adminEnv = { ...env, APP_URL:'https://tunetotslab.github.io/FIELD/', ADMIN_TELEGRAM_ID:'5232786567', DB:new AdminTestDB() };
+const paymentUpdate = { message:{ from:{ id:77, username:'field_friend', first_name:'Field', last_name:'Friend' }, chat:{id:77}, successful_payment:{ invoice_payload:'invoice-1', currency:'XTR', total_amount:25, telegram_payment_charge_id:'charge-abcdefghijklmnopqrstuvwxyz' } } };
+const telegramCalls = [];
+globalThis.fetch = async (url, options) => {
+  const method = String(url).split('/').at(-1);
+  const body = JSON.parse(options.body);
+  telegramCalls.push({method,...body});
+  if (method === 'getMyStarBalance') return Response.json({ok:true,result:{amount:25}});
+  return Response.json({ok:true,result:true});
+};
+try {
+  for (let attempt=0; attempt<2; attempt++) {
+    const response = await worker.fetch(new Request('https://example.com/telegram/webhook',{method:'POST',headers:{'X-Telegram-Bot-Api-Secret-Token':env.WEBHOOK_SECRET},body:JSON.stringify(paymentUpdate)}),adminEnv);
+    assert.equal(response.status,200);
+  }
+  const notifications = telegramCalls.filter(call => call.method === 'sendMessage' && call.chat_id === 5232786567 && call.text.includes('FIELD JUST GOT FED'));
+  assert.equal(notifications.length,1);
+  assert.equal(adminEnv.DB.rows.filter(row => row.paid_at !== null).length,1);
+  assert.equal(adminEnv.DB.rows[0].username,'field_friend');
+
+  telegramCalls.length = 0;
+  const adminCommand = {message:{from:{id:5232786567,language_code:'ru'},chat:{id:5232786567},text:'/stats'}};
+  await worker.fetch(new Request('https://example.com/telegram/webhook',{method:'POST',headers:{'X-Telegram-Bot-Api-Secret-Token':env.WEBHOOK_SECRET},body:JSON.stringify(adminCommand)}),adminEnv);
+  assert.ok(telegramCalls.some(call => call.text?.includes('⭐ FIELD STATS') && call.text.includes('Telegram balance: 25 ⭐')));
+
+  telegramCalls.length = 0;
+  const outsiderCommand = {message:{from:{id:999,language_code:'en'},chat:{id:999},text:'/stats'}};
+  await worker.fetch(new Request('https://example.com/telegram/webhook',{method:'POST',headers:{'X-Telegram-Bot-Api-Secret-Token':env.WEBHOOK_SECRET},body:JSON.stringify(outsiderCommand)}),adminEnv);
+  assert.ok(telegramCalls.some(call => call.method === 'sendMessage' && !call.text.includes('FIELD STATS')));
+
+  telegramCalls.length = 0;
+  const transactionsCallback = {callback_query:{id:'admin-callback',from:{id:5232786567},data:'admin:transactions',message:{chat:{id:5232786567}}}};
+  await worker.fetch(new Request('https://example.com/telegram/webhook',{method:'POST',headers:{'X-Telegram-Bot-Api-Secret-Token':env.WEBHOOK_SECRET},body:JSON.stringify(transactionsCallback)}),adminEnv);
+  assert.ok(telegramCalls.some(call => call.text?.includes('LAST 10 FIELD DONATIONS') && call.text.includes('charge-a…uvwxyz')));
+} finally { globalThis.fetch = originalFetch; }
+console.log('PASS paid-only admin notification, duplicate webhook protection, private stats and transactions');

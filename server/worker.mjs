@@ -1,6 +1,7 @@
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
 import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
+import { isAdmin, sendAdminPaymentNotification, sendAdminStats, sendAdminTransactions } from './admin.mjs';
 const amounts = [5, 10, 25, 50, 75, 100, 1000, 10000, 100000];
 const locales = ['en', 'ru', 'hy', 'zh-TW'];
 export const BOT_COMMANDS = {
@@ -45,6 +46,7 @@ async function telegram(env, method, body) {
   if (!result.ok) throw new Error('Telegram unavailable');
   return result.result;
 }
+function telegramFor(env) { return (method, body) => telegram(env, method, body); }
 export function validAmount(amount) { return Number.isInteger(amount) && amount >= 1 && amount <= 100000; }
 const json = (value, status = 200) => Response.json(value,{status});
 
@@ -108,13 +110,20 @@ async function handleBotUpdate(update, env) {
   let locale = await storedLocale(env, user.id) || localeFromCode(user.language_code);
   const data = callback?.data || '';
   if (callback) await answerCallback(env, callback.id);
+  const command = data.startsWith('bot:') ? data.slice(4) : (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
+  const adminAction = data.startsWith('admin:') ? data.slice(6) : command;
+  if (adminAction === 'stats' || adminAction === 'transactions') {
+    if (!isAdmin(env, user.id)) return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env));
+    return adminAction === 'stats'
+      ? sendAdminStats(env, telegramFor(env), chatId)
+      : sendAdminTransactions(env, telegramFor(env), chatId);
+  }
   if (data.startsWith('lang:')) { locale = data.slice(5); if (!locales.includes(locale)) locale = 'en'; await saveLocale(env, user.id, locale); return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env)); }
   if (data === 'bot:home') return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env));
   if (data === 'bot:language') return sendBot(env, chatId, copy(locale).languageTitle, { inline_keyboard: [[{text:'English',callback_data:'lang:en'},{text:'Русский',callback_data:'lang:ru'}],[{text:'Հայերեն',callback_data:'lang:hy'},{text:'繁體中文',callback_data:'lang:zh-TW'}],[{text:'↩️',callback_data:'bot:home'}]] });
   if (data === 'bot:donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
   if (data.startsWith('bot:amount:')) { const amount = Number(data.slice(11)); return botInvoice(env, chatId, user.id, amount, locale); }
   if (data === 'bot:daily') { const mission = dailyMissions[Math.floor(Date.now() / 86400000) % dailyMissions.length]; return sendBot(env, chatId, `${copy(locale).today} #${String(Math.floor(Date.now() / 86400000) % 1000).padStart(3, '0')}\n\n${mission}`, { inline_keyboard: [[{text:copy(locale).record,web_app:{url:appUrl(env)}}],[{text:copy(locale).another,callback_data:'bot:daily'},{text:'↩️',callback_data:'bot:home'}]] }); }
-  const command = data.startsWith('bot:') ? data.slice(4) : (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
   if (command === 'donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
   if (command === 'daily') { const mission = dailyMissions[Math.floor(Date.now() / 86400000) % dailyMissions.length]; return sendBot(env, chatId, `${copy(locale).today} #${String(Math.floor(Date.now() / 86400000) % 1000).padStart(3, '0')}\n\n${mission}`, { inline_keyboard: [[{text:copy(locale).record,web_app:{url:appUrl(env)}}],[{text:copy(locale).another,callback_data:'bot:daily'},{text:'↩️',callback_data:'bot:home'}]] }); }
   if (command === 'about') return sendBot(env, chatId, copy(locale).aboutText, backKeyboard(locale, env));
@@ -122,6 +131,43 @@ async function handleBotUpdate(update, env) {
   if (command === 'links') return sendBot(env, chatId, `${copy(locale).linksText}\n${links.SUPPORT_EMAIL.replace('mailto:', '')}`, linksKeyboard(locale, env));
   if (command === 'language') return sendBot(env, chatId, copy(locale).languageTitle, { inline_keyboard: [[{text:'English',callback_data:'lang:en'},{text:'Русский',callback_data:'lang:ru'}],[{text:'Հայերեն',callback_data:'lang:hy'},{text:'繁體中文',callback_data:'lang:zh-TW'}]] });
   return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env));
+}
+
+async function recordSuccessfulPayment(update, env) {
+  const payment = update.message.successful_payment;
+  const payer = update.message.from;
+  const order = await env.DB.prepare('SELECT * FROM donations WHERE id = ?').bind(payment.invoice_payload).first();
+  if (!order || payment.currency !== 'XTR' || payment.total_amount !== order.amount || payer.id !== order.user_id) return false;
+  if (order.charge_id && order.charge_id !== payment.telegram_payment_charge_id) return false;
+  let paidAt = order.paid_at || Date.now();
+  const displayName = [payer.first_name, payer.last_name].filter(Boolean).join(' ') || null;
+  if (!order.charge_id) {
+    let result;
+    try {
+      result = await env.DB.prepare(
+        'UPDATE donations SET charge_id = ?, paid_at = ?, username = ?, display_name = ? WHERE id = ? AND charge_id IS NULL',
+      ).bind(payment.telegram_payment_charge_id, paidAt, payer.username || null, displayName, order.id).run();
+    } catch {
+      const existing = await env.DB.prepare('SELECT id FROM donations WHERE charge_id = ?').bind(payment.telegram_payment_charge_id).first();
+      return Boolean(existing);
+    }
+    if (Number(result.meta?.changes || 0) !== 1) {
+      const current = await env.DB.prepare('SELECT charge_id, paid_at FROM donations WHERE id = ?').bind(order.id).first();
+      if (current?.charge_id !== payment.telegram_payment_charge_id) return false;
+      paidAt = current.paid_at;
+    }
+  }
+  const claim = await env.DB.prepare(
+    'UPDATE donations SET admin_notified_at = ? WHERE id = ? AND admin_notified_at IS NULL',
+  ).bind(paidAt, order.id).run();
+  const adminId = Number(env.ADMIN_TELEGRAM_ID);
+  if (Number(claim.meta?.changes || 0) === 1 && Number.isSafeInteger(adminId) && adminId > 0) {
+    await sendAdminPaymentNotification(env, telegramFor(env), {
+      ...order, paid_at: paidAt, charge_id: payment.telegram_payment_charge_id,
+      username: payer.username || null, display_name: displayName,
+    });
+  }
+  return true;
 }
 
 async function webhook(request, env) {
@@ -135,14 +181,12 @@ async function webhook(request, env) {
   }
   const payment = update.message?.successful_payment;
   if (payment) {
-    const order = await env.DB.prepare('SELECT * FROM donations WHERE id = ?').bind(payment.invoice_payload).first();
-    if (!order || payment.currency !== 'XTR' || payment.total_amount !== order.amount || update.message.from.id !== order.user_id) return json({error:'Invalid receipt'},400);
-    await env.DB.prepare('UPDATE donations SET charge_id = ?, paid_at = ? WHERE id = ? AND charge_id IS NULL').bind(payment.telegram_payment_charge_id, Date.now(), order.id).run();
+    if (!await recordSuccessfulPayment(update, env)) return json({error:'Invalid receipt'},400);
   }
   if (/^\/paysupport(?:@\w+)?(?:\s|$)/.test(update.message?.text || '')) {
     await telegram(env,'sendMessage',{chat_id:update.message.chat.id,text:`FIELD payment support: ${env.SUPPORT_EMAIL}. Include your Telegram payment receipt. Refund requests are reviewed by Tune Tots Lab.`});
   }
-  if (update.callback_query || (update.message && !/^\/paysupport(?:@\w+)?(?:\s|$)/.test(update.message.text || ''))) {
+  if (update.callback_query || (update.message && !payment && !/^\/paysupport(?:@\w+)?(?:\s|$)/.test(update.message.text || ''))) {
     try { await handleBotUpdate(update, env); } catch { /* A bot-menu delivery failure must not break payment acknowledgements. */ }
   }
   return json({ok:true});

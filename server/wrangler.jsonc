@@ -5,6 +5,7 @@
 	"vars": {
 		"APP_ORIGIN": "https://tunetotslab.github.io",
 		"APP_URL": "https://tunetotslab.github.io/FIELD/",
+		"ADMIN_TELEGRAM_ID": "5232786567",
 		"SUPPORT_EMAIL": "tunetotslab@gmail.com"
 	},
 	"d1_databases": [

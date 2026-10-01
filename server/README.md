@@ -52,3 +52,12 @@ Random selection never executes a payment. Donation invoices award no prize.
 References: https://core.telegram.org/bots/payments-stars,
 https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app,
 https://developers.cloudflare.com/workers/ci-cd/builds/.
+
+## Owner admin
+
+`ADMIN_TELEGRAM_ID` is a non-secret Worker variable. `/stats` and `/transactions`
+are handled only when the sender ID matches it; other users receive the ordinary
+FIELD home response. Successful payments are recorded by unique Telegram charge
+ID before an owner notification can be claimed, so webhook retries do not count
+or notify twice. Apply `migrations/0001_admin_donations.sql` before deploying the
+Worker version that uses the added nullable donor and notification columns.
