@@ -25,6 +25,27 @@ frontend. No OpenAI hosting or storage is used.
 8. Add repository Actions variable `FIELD_API_URL` with the Worker HTTPS URL,
    then rebuild Pages. Donations stay disabled without this variable.
 
+## Tune Tots Groups
+
+Apply `migrations/0002_tune_tots_groups.sql` before enabling group UI. In the
+private bot chat the FIELD owner creates a course group with
+`/newgroup Course name`. The bot returns a nine-character code. Add the bot as
+an administrator to the target Telegram group, then send `/connect CODE` in the
+group or in the required forum topic. The binding stores `message_thread_id`, so
+different FIELD course groups can target different topics in one supergroup.
+
+Members join through the authenticated Mini App API with the code. Group audio
+stays in private R2; D1 membership is checked for listing and playback. The bot
+sends the stored WAV with `sendDocument` because Telegram `sendAudio` only
+accepts MP3/M4A. A failed
+Telegram delivery is recorded as `failed` and must never be presented as a
+successful chat delivery.
+
+After the migration is applied, set the Worker variable `GROUPS_ENABLED=true`.
+Until then the deployed Worker keeps the existing audio authorization query and
+returns `503` from group endpoints, so a GitHub-driven Worker deployment cannot
+break FIELD World before its D1 schema is ready.
+
 ## FIELD World launch gate
 
 Set Worker variable `WORLD_ENABLED=true` and GitHub variable

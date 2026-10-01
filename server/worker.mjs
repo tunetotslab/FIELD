@@ -2,6 +2,14 @@
 import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
 import { isAdmin, sendAdminPaymentNotification, sendAdminStats, sendAdminTransactions } from './admin.mjs';
+import {
+  connectTelegramDestination,
+  createFieldGroup,
+  disconnectTelegramDestination,
+  groupsForUser,
+  isGroupMember,
+  joinFieldGroup,
+} from './groups.mjs';
 const amounts = [5, 10, 25, 50, 75, 100, 1000, 10000, 100000];
 const locales = ['en', 'ru', 'hy', 'zh-TW'];
 export const BOT_COMMANDS = {
@@ -47,6 +55,19 @@ async function telegram(env, method, body) {
   return result.result;
 }
 function telegramFor(env) { return (method, body) => telegram(env, method, body); }
+async function telegramAudioDocument(env, { chatId, messageThreadId, audio, caption }) {
+  const form = new FormData();
+  form.set('chat_id', String(chatId));
+  if (messageThreadId) form.set('message_thread_id', String(messageThreadId));
+  form.set('caption', caption.slice(0, 1024));
+  // Bot API sendAudio only accepts MP3/M4A. FIELD stores lossless WAV, so send
+  // it as a document instead of falsely labelling or transcoding it.
+  form.set('document', audio, 'field-sound.wav');
+  const response = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, { method:'POST', body:form });
+  const result = await response.json();
+  if (!result.ok) throw new Error('Telegram audio delivery failed');
+  return result.result;
+}
 export function validAmount(amount) { return Number.isInteger(amount) && amount >= 1 && amount <= 100000; }
 const json = (value, status = 200) => Response.json(value,{status});
 
@@ -93,7 +114,7 @@ async function storedLocale(env, user) {
 async function saveLocale(env, user, locale) {
   try { await env.DB.prepare('INSERT INTO bot_users (user_id,language,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET language=excluded.language,updated_at=excluded.updated_at').bind(user, locale, Date.now()).run(); } catch { /* Migration may not be applied yet. */ }
 }
-async function sendBot(env, chatId, text, replyMarkup) { return telegram(env, 'sendMessage', { chat_id: chatId, text, reply_markup: replyMarkup }); }
+async function sendBot(env, chatId, text, replyMarkup, extra = {}) { return telegram(env, 'sendMessage', { chat_id: chatId, text, ...(replyMarkup ? {reply_markup:replyMarkup} : {}), ...extra }); }
 async function answerCallback(env, id) { return telegram(env, 'answerCallbackQuery', { callback_query_id: id }); }
 async function botInvoice(env, chatId, userId, amount, locale) {
   if (!validAmount(amount)) throw new Error('Invalid amount');
@@ -119,6 +140,39 @@ async function handleBotUpdate(update, env) {
       : sendAdminTransactions(env, telegramFor(env), chatId);
   }
   if (data.startsWith('lang:')) { locale = data.slice(5); if (!locales.includes(locale)) locale = 'en'; await saveLocale(env, user.id, locale); return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env)); }
+  if (command === 'newgroup') {
+    if (env.GROUPS_ENABLED !== 'true') return sendBot(env, chatId, 'Tune Tots Groups are being prepared. Try again after the next release.', backKeyboard(locale, env));
+    if (!isAdmin(env, user.id) || message?.chat?.type !== 'private') return sendBot(env, chatId, 'Only the FIELD owner can create a course group in a private bot chat.', backKeyboard(locale, env));
+    const name = (message.text || '').replace(/^\/newgroup(?:@\w+)?\s*/i, '').trim();
+    if (!name) return sendBot(env, chatId, 'Usage: /newgroup Course name', backKeyboard(locale, env));
+    try {
+      const group = await createFieldGroup(env, user.id, name);
+      return sendBot(env, chatId, `Tune Tots Group created: ${group.name}\n\nCode: ${group.joinCode}\n\nAdd this bot to the target Telegram group, then send /connect ${group.joinCode} in the group or in the required topic.`, backKeyboard(locale, env));
+    } catch { return sendBot(env, chatId, 'Could not create the group. Check the name and try again.', backKeyboard(locale, env)); }
+  }
+  if (command === 'groups') {
+    if (env.GROUPS_ENABLED !== 'true') return sendBot(env, chatId, 'Tune Tots Groups are being prepared. Try again after the next release.', backKeyboard(locale, env));
+    try {
+      const groups = await groupsForUser(env, user.id);
+      const text = groups.length ? groups.map(group => `${group.role === 'owner' ? '★' : '•'} ${group.name}${group.telegramTitle ? ` → ${group.telegramTitle}` : ''}`).join('\n') : 'You have not joined a Tune Tots Group yet.';
+      return sendBot(env, chatId, text, backKeyboard(locale, env));
+    } catch { return sendBot(env, chatId, 'Tune Tots Groups are not available yet.', backKeyboard(locale, env)); }
+  }
+  if (command === 'connect') {
+    if (env.GROUPS_ENABLED !== 'true') return sendBot(env, chatId, 'Tune Tots Groups are not enabled yet.', undefined);
+    const code = (message?.text || '').replace(/^\/connect(?:@\w+)?\s*/i, '').trim();
+    try {
+      const group = await connectTelegramDestination(env, telegramFor(env), { code, userId:user.id, chat:message?.chat, messageThreadId:message?.message_thread_id });
+      return sendBot(env, chatId, `Connected to Tune Tots Group: ${group.name}`, undefined, message?.message_thread_id ? {message_thread_id:message.message_thread_id} : {});
+    } catch (error) { return sendBot(env, chatId, `Could not connect: ${error.message}`, undefined, message?.message_thread_id ? {message_thread_id:message.message_thread_id} : {}); }
+  }
+  if (command === 'disconnect') {
+    if (env.GROUPS_ENABLED !== 'true') return sendBot(env, chatId, 'Tune Tots Groups are not enabled yet.', undefined);
+    try {
+      const removed = await disconnectTelegramDestination(env, telegramFor(env), { userId:user.id, chat:message?.chat, messageThreadId:message?.message_thread_id });
+      return sendBot(env, chatId, removed ? 'This Telegram destination is disconnected from FIELD.' : 'No FIELD group is connected here.', undefined, message?.message_thread_id ? {message_thread_id:message.message_thread_id} : {});
+    } catch (error) { return sendBot(env, chatId, `Could not disconnect: ${error.message}`, undefined, message?.message_thread_id ? {message_thread_id:message.message_thread_id} : {}); }
+  }
   if (data === 'bot:home') return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env));
   if (data === 'bot:language') return sendBot(env, chatId, copy(locale).languageTitle, { inline_keyboard: [[{text:'English',callback_data:'lang:en'},{text:'Русский',callback_data:'lang:ru'}],[{text:'Հայերեն',callback_data:'lang:hy'},{text:'繁體中文',callback_data:'lang:zh-TW'}],[{text:'↩️',callback_data:'bot:home'}]] });
   if (data === 'bot:donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
@@ -212,6 +266,57 @@ async function route(request, env) {
     const link = await telegram(env,'createInvoiceLink',{title:'Support FIELD',description:'Voluntary support for FIELD by Tune Tots Lab. No subscription or prize.',payload:id,currency:'XTR',prices:[{label:'Donation',amount}]});
     return json({url:link});
   }
+  if (url.pathname === '/groups' && request.method === 'GET') {
+    if (env.GROUPS_ENABLED !== 'true') return json({error:'Groups unavailable'},503);
+    return json(await groupsForUser(env, user));
+  }
+  if (url.pathname === '/groups/join' && request.method === 'POST') {
+    if (env.GROUPS_ENABLED !== 'true') return json({error:'Groups unavailable'},503);
+    if (Number(request.headers.get('Content-Length')) > 1024) return json({error:'Too large'},413);
+    const { code } = await request.json();
+    const group = await joinFieldGroup(env, user, code);
+    return group ? json(group,201) : json({error:'Invalid group code'},404);
+  }
+  const groupSoundMatch = url.pathname.match(/^\/groups\/([0-9a-f-]+)\/sounds$/i);
+  if (groupSoundMatch && request.method === 'GET') {
+    if (env.GROUPS_ENABLED !== 'true') return json({error:'Groups unavailable'},503);
+    const groupId = groupSoundMatch[1];
+    if (!await isGroupMember(env, groupId, user)) return json({error:'Not found'},404);
+    const {results} = await env.DB.prepare(
+      'SELECT id,metadata,telegram_delivery_state AS telegramDeliveryState FROM sounds WHERE group_id=? ORDER BY created_at DESC LIMIT 200',
+    ).bind(groupId).all();
+    return json(results.map(row => ({...JSON.parse(row.metadata),id:row.id,telegramDeliveryState:row.telegramDeliveryState})));
+  }
+  if (groupSoundMatch && request.method === 'POST') {
+    if (env.GROUPS_ENABLED !== 'true') return json({error:'Groups unavailable'},503);
+    const groupId = groupSoundMatch[1];
+    if (!await isGroupMember(env, groupId, user)) return json({error:'Not found'},404);
+    if (!Number(request.headers.get('Content-Length')) || Number(request.headers.get('Content-Length')) > 25000000) return json({error:'Maximum upload 25 MB'},413);
+    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM sounds WHERE user_id=? AND group_id=? AND created_at>?').bind(user,groupId,Date.now()-86400000).first();
+    if (recent.n >= 20) return json({error:'Daily upload limit'},429);
+    const form = await request.formData();
+    const audio = form.get('audio');
+    let data;
+    try { data = JSON.parse(String(form.get('metadata'))); } catch { return json({error:'Invalid metadata'},400); }
+    if (!(audio instanceof File) || audio.size > 24000000 || audio.size < 44 || typeof data.title !== 'string' || data.title.length > 80 || !Array.isArray(data.emojis) || data.emojis.length !== 3 || data.emojis.some(x => typeof x !== 'string' || x.length > 32) || !Number.isFinite(data.duration) || data.duration <= 0 || data.duration > 60) return json({error:'Invalid sound'},400);
+    const header = new TextDecoder().decode(await audio.slice(0,12).arrayBuffer());
+    if (!header.startsWith('RIFF') || header.slice(8) !== 'WAVE') return json({error:'WAV required'},400);
+    const metadata = {title:data.title,emojis:data.emojis,duration:data.duration,createdAt:Date.now(),visibility:'group',favorite:false,effect:data.effect || 'original',effectMix:Number(data.effectMix)||0,styleId:data.styleId || 'grotesk',waveform:[],groupId};
+    const id = crypto.randomUUID();
+    await env.AUDIO.put(id,audio.stream(),{httpMetadata:{contentType:'audio/wav'}});
+    try { await env.DB.prepare("INSERT INTO sounds (id,user_id,metadata,published,created_at,group_id,telegram_delivery_state) VALUES (?,?,?,0,?,?, 'pending')").bind(id,user,JSON.stringify(metadata),Date.now(),groupId).run(); }
+    catch (error) { await env.AUDIO.delete(id); throw error; }
+    let telegramDeliveryState = 'unconnected';
+    const binding = await env.DB.prepare('SELECT chat_id,message_thread_id FROM telegram_group_bindings WHERE group_id=?').bind(groupId).first();
+    if (binding) {
+      try {
+        await telegramAudioDocument(env,{chatId:binding.chat_id,messageThreadId:binding.message_thread_id,audio,caption:`${data.emojis.join(' ')}  ${data.title}\nFIELD · Tune Tots Group`});
+        telegramDeliveryState = 'delivered';
+      } catch { telegramDeliveryState = 'failed'; }
+    }
+    await env.DB.prepare('UPDATE sounds SET telegram_delivery_state=? WHERE id=?').bind(telegramDeliveryState,id).run();
+    return json({id,...metadata,telegramDeliveryState},201);
+  }
   // All world reads are authenticated; R2 is private, served only through this worker.
   if (url.pathname === '/world' && request.method === 'POST') {
     if (env.WORLD_ENABLED !== 'true') return json({error:'Publishing unavailable'},503);
@@ -254,7 +359,13 @@ async function route(request, env) {
   }
   if (url.pathname.startsWith('/audio/') && request.method === 'GET') {
     const id = url.pathname.slice(7);
-    const row = await env.DB.prepare('SELECT id FROM sounds WHERE id = ? AND (published = 1 OR user_id = ?)').bind(id,user).first();
+    const row = env.GROUPS_ENABLED === 'true'
+      ? await env.DB.prepare(
+        `SELECT s.id FROM sounds s
+         LEFT JOIN field_group_members m ON m.group_id=s.group_id AND m.user_id=?
+         WHERE s.id=? AND (s.published=1 OR s.user_id=? OR m.user_id IS NOT NULL)`,
+      ).bind(user,id,user).first()
+      : await env.DB.prepare('SELECT id FROM sounds WHERE id=? AND (published=1 OR user_id=?)').bind(id,user).first();
     if (!row) return json({error:'Not found'},404);
     const object = await env.AUDIO.get(id);
     return object ? new Response(object.body,{headers:{'Content-Type':'audio/wav','Cache-Control':'private, no-store'}}) : json({error:'Not found'},404);
