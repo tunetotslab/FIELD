@@ -15,6 +15,9 @@ frontend. No OpenAI hosting or storage is used.
    `setWebhook`, using the same `secret_token` and updates `message` and
    `pre_checkout_query`. Inspect existing webhook first; do not replace another
    bot service unknowingly.
+   The Worker now also serves FIELD bot menus for `/start`, `/open`, `/daily`,
+   `/donate`, `/about`, `/help`, `/links`, `/language` and inline callbacks.
+   After deploy, set localized command menus with `server/register-commands.mjs`.
 7. Test invoices in Telegram's test environment: cancel, pending, paid,
    duplicate delivery, bad payload, wrong user/amount, and `/paysupport`.
    Receipts in D1 (`charge_id`) are the authoritative record. To refund use
