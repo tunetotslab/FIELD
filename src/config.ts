@@ -1,12 +1,5 @@
-export const EXTERNAL_LINKS = {
-  TUNE_TOTS_INSTAGRAM: "https://www.instagram.com/tunetots_lab",
-  TUNE_TOTS_WEBSITE: "https://tunetotslab.github.io/",
-  TUNE_TOTS_TELEGRAM: "https://t.me/tunetots",
-  NIKOLA_INSTAGRAM: "https://www.instagram.com/nikolachenmusic",
-  NIKOLA_TELEGRAM: "https://t.me/nikolachenmusic",
-  NIKOLA_PORTFOLIO: "http://nikolachen.tilda.ws",
-  SUPPORT_EMAIL: "mailto:tunetotslab@gmail.com",
-} as const;
+import links from '../shared/links.json';
+export const EXTERNAL_LINKS = links;
 
 const DEFAULT_FIELD_API_URL = 'https://field-api.nikolachenmusic.workers.dev';
 export const API_URL = (import.meta.env.VITE_FIELD_API_URL || DEFAULT_FIELD_API_URL).replace(/\/$/, '');

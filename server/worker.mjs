@@ -1,4 +1,6 @@
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
+import links from '../shared/links.json' with { type: 'json' };
+import { helpText, linksText } from './bot-help.mjs';
 const amounts = [5, 10, 25, 50, 75, 100, 1000, 10000, 100000];
 const locales = ['en', 'ru', 'hy', 'zh-TW'];
 export const BOT_COMMANDS = {
@@ -53,7 +55,17 @@ function localeFromCode(code) {
   return 'en';
 }
 function appUrl(env) { return env.APP_URL || `${env.APP_ORIGIN}/FIELD/`; }
-function copy(locale) { return BOT_COPY[locale] || BOT_COPY.en; }
+function copy(locale) { const lang = locales.includes(locale) ? locale : 'en'; return { ...BOT_COPY[lang], helpText: helpText[lang], linksText: linksText[lang] }; }
+function linksKeyboard(locale, env) {
+  return { inline_keyboard: [
+    [{ text: copy(locale).open, web_app: { url: appUrl(env) } }],
+    [{ text: '🌱 Tune Tots Lab · Website', url: links.TUNE_TOTS_WEBSITE }],
+    [{ text: '📷 Tune Tots · Instagram', url: links.TUNE_TOTS_INSTAGRAM }, { text: '💬 Tune Tots · Telegram', url: links.TUNE_TOTS_TELEGRAM }],
+    [{ text: '🎵 Nikola Chen · Portfolio', url: links.NIKOLA_PORTFOLIO }],
+    [{ text: '📷 Nikola · Instagram', url: links.NIKOLA_INSTAGRAM }, { text: '💬 Nikola · Telegram', url: links.NIKOLA_TELEGRAM }],
+    [{ text: '↩️', callback_data: 'bot:home' }],
+  ] };
+}
 function homeKeyboard(locale, env) {
   const c = copy(locale);
   return { inline_keyboard: [
@@ -102,12 +114,12 @@ async function handleBotUpdate(update, env) {
   if (data === 'bot:donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
   if (data.startsWith('bot:amount:')) { const amount = Number(data.slice(11)); return botInvoice(env, chatId, user.id, amount, locale); }
   if (data === 'bot:daily') { const mission = dailyMissions[Math.floor(Date.now() / 86400000) % dailyMissions.length]; return sendBot(env, chatId, `${copy(locale).today} #${String(Math.floor(Date.now() / 86400000) % 1000).padStart(3, '0')}\n\n${mission}`, { inline_keyboard: [[{text:copy(locale).record,web_app:{url:appUrl(env)}}],[{text:copy(locale).another,callback_data:'bot:daily'},{text:'↩️',callback_data:'bot:home'}]] }); }
-  const command = (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
+  const command = data.startsWith('bot:') ? data.slice(4) : (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
   if (command === 'donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
   if (command === 'daily') { const mission = dailyMissions[Math.floor(Date.now() / 86400000) % dailyMissions.length]; return sendBot(env, chatId, `${copy(locale).today} #${String(Math.floor(Date.now() / 86400000) % 1000).padStart(3, '0')}\n\n${mission}`, { inline_keyboard: [[{text:copy(locale).record,web_app:{url:appUrl(env)}}],[{text:copy(locale).another,callback_data:'bot:daily'},{text:'↩️',callback_data:'bot:home'}]] }); }
   if (command === 'about') return sendBot(env, chatId, copy(locale).aboutText, backKeyboard(locale, env));
   if (command === 'help') return sendBot(env, chatId, copy(locale).helpText, backKeyboard(locale, env));
-  if (command === 'links') return sendBot(env, chatId, `${copy(locale).linksText}\n\nTune Tots Lab · https://www.instagram.com/tunetots_lab\nFIELD · https://tunetotslab.github.io/FIELD/\nTelegram · https://t.me/tunetots`, backKeyboard(locale, env));
+  if (command === 'links') return sendBot(env, chatId, `${copy(locale).linksText}\n${links.SUPPORT_EMAIL.replace('mailto:', '')}`, linksKeyboard(locale, env));
   if (command === 'language') return sendBot(env, chatId, copy(locale).languageTitle, { inline_keyboard: [[{text:'English',callback_data:'lang:en'},{text:'Русский',callback_data:'lang:ru'}],[{text:'Հայերեն',callback_data:'lang:hy'},{text:'繁體中文',callback_data:'lang:zh-TW'}]] });
   return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env));
 }
