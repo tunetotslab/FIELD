@@ -6,7 +6,7 @@ import { Miley } from './Brand';
 import { dailyImageCollection } from '../data/taskImages';
 import type { Screen } from '../types';
 
-export const DONATION_AMOUNTS = [5, 10, 25, 50, 75, 100, 1000, 10000, 1000000];
+export const DONATION_AMOUNTS = [5, 10, 25, 50, 75, 100, 1000, 10000, 999999];
 
 function randomInt(maxExclusive: number) {
   const limit = Math.floor(0x100000000 / maxExclusive) * maxExclusive;
@@ -22,7 +22,7 @@ export function randomDonationAmount() {
   if (roll < 85) return 101 + randomInt(900);
   if (roll < 95) return 1001 + randomInt(9000);
   if (roll < 99) return 10001 + randomInt(90000);
-  return 100001 + randomInt(900000);
+  return 100001 + randomInt(899999);
 }
 
 function randomDailyImage() {
