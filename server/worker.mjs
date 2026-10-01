@@ -1,5 +1,5 @@
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
-const amounts = [5, 10, 25, 50, 75, 100, 1000, 10000, 999999];
+const amounts = [5, 10, 25, 50, 75, 100, 1000, 10000, 100000];
 const locales = ['en', 'ru', 'hy', 'zh-TW'];
 export const BOT_COMMANDS = {
   en: [['start', 'Open FIELD'], ['open', 'Open FIELD'], ['daily', 'Daily Sound'], ['donate', 'Donate'], ['about', 'About FIELD'], ['help', 'How to FIELD'], ['links', 'Links'], ['language', 'Language'], ['paysupport', 'Payment support']],
@@ -43,7 +43,7 @@ async function telegram(env, method, body) {
   if (!result.ok) throw new Error('Telegram unavailable');
   return result.result;
 }
-export function validAmount(amount) { return Number.isInteger(amount) && amount >= 1 && amount <= 999999; }
+export function validAmount(amount) { return Number.isInteger(amount) && amount >= 1 && amount <= 100000; }
 const json = (value, status = 200) => Response.json(value,{status});
 
 function localeFromCode(code) {
@@ -68,7 +68,7 @@ function donationKeyboard(locale) {
   return { inline_keyboard: [
     [{ text: '5 ⭐', callback_data: 'bot:amount:5' }, { text: '10 ⭐', callback_data: 'bot:amount:10' }, { text: '25 ⭐', callback_data: 'bot:amount:25' }],
     [{ text: '50 ⭐', callback_data: 'bot:amount:50' }, { text: '75 ⭐', callback_data: 'bot:amount:75' }, { text: '100 ⭐', callback_data: 'bot:amount:100' }],
-    [{ text: '1000 ⭐', callback_data: 'bot:amount:1000' }, { text: '10000 ⭐', callback_data: 'bot:amount:10000' }, { text: '999999 ⭐', callback_data: 'bot:amount:999999' }],
+    [{ text: '1000 ⭐', callback_data: 'bot:amount:1000' }, { text: '10000 ⭐', callback_data: 'bot:amount:10000' }, { text: '100000 ⭐', callback_data: 'bot:amount:100000' }],
     [{ text: '↩️', callback_data: 'bot:home' }],
   ] };
 }
