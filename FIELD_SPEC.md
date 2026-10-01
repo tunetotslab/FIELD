@@ -527,6 +527,25 @@ For every effect verify:
 
 FX quality is more important than having a large number of weak effects.
 
+## Effect chains
+
+A recording may use a chain of up to three effects.
+
+Requirements:
+
+* effect order must be explicit and editable;
+* each slot can be bypassed or removed;
+* Original remains recoverable at all times;
+* every effect in the chain must perform real DSP;
+* preview and final render must use the same chain and parameters;
+* the final stage must include linked-channel peak protection / limiting;
+* combinations must not create uncontrolled feedback, clipping, extreme loudness
+  jumps or unusable low-frequency distortion;
+* changing one slot must not permanently render over the source or the other slots.
+
+The UI should make playful combinations easy without requiring the user to
+understand professional insert chains.
+
 ---
 
 # 20. EFFECT UI
@@ -924,21 +943,45 @@ sharing state
 
 # 36. LIBRARY ACTIONS
 
-At minimum the user should eventually be able to:
+Every saved recording must be playable by tapping its card or its Play control.
+
+At minimum the user must be able to:
 
 ```text
 Play
 Rename
-Edit metadata
+Edit title, emoji, style and location
+Reopen Trim / FX editing
 Change sharing state
+Publish an existing private recording to FIELD World
+Publish an existing private recording to a selected Tune Tots Group
+Remove the user's own recording from FIELD World
+Retry a failed or pending publication
+Download / Save WAV in ordinary browsers, including Chrome
+Open the native share sheet when the platform supports it
 Delete
 ```
 
-Future:
+Sharing and downloading are separate actions. If the browser share sheet cannot
+save the file, FIELD must still offer a direct WAV download. Opening a browser
+must never leave the user with no way to save or export the recording.
+
+A user does not need to decide visibility during the initial recording flow.
+They may keep a sound private, return later, edit it and publish it afterwards.
+
+Publishing an already saved sound must show a real state:
 
 ```text
-Download
-Export
+LOCAL
+PENDING UPLOAD
+PUBLISHED TO WORLD
+PUBLISHED TO GROUP: <name>
+UPLOAD FAILED — RETRY
+```
+
+Future additions:
+
+```text
 Collections
 Tags
 Favorites
@@ -1192,13 +1235,18 @@ ORIGINAL AUDIO
 and store:
 
 ```text
-selectedEffect
+effectChain: EffectSlot[] // zero to three ordered slots
 effectParameters
 ```
 
 This allows the user to return to Original.
 
 Do not permanently overwrite the source recording merely because the user previews an effect.
+
+Saving or publishing a rendered version must not remove the canonical original
+audio or the editable effect chain from the local Library. Reopening an existing
+recording must restore its trim, fades, chain order, per-effect parameters and
+waveform.
 
 ---
 
@@ -1216,10 +1264,16 @@ interface FieldRecording {
   audioAssetId: string
   durationMs: number
 
-  selectedEffect: string
-  effectParams?: Record<string, number>
+  effectChain: Array<{
+    effect: string
+    mix: number
+    params?: Record<string, number>
+    bypassed?: boolean
+  }> // maximum 3
 
-  visibility: 'private' | 'field-world'
+  visibility: 'private' | 'field-world' | 'group'
+  groupId?: string
+  publicationState?: 'local' | 'pending' | 'published' | 'failed'
 
   location?: {
     city: string

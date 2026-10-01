@@ -58,6 +58,26 @@
 - архив группы и playback;
 - честные состояния upload/delivery/retry.
 
+### M2.1 — жизнь записи после сохранения
+
+- тап по карточке запускает Play/Pause;
+- меню записи: редактировать, скачать WAV, системный Share, удалить;
+- повторно открыть trim, emoji, title, style, location и FX;
+- уже сохранённую Private-запись можно позднее отправить в FIELD World;
+- уже сохранённую Private-запись можно позднее отправить в выбранную Tune Tots Group;
+- прямой Download/Save в Chrome остаётся доступным независимо от Web Share API;
+- статусы Local / Pending / Published / Failed + ручной Retry.
+
+### M2.2 — цепочки эффектов
+
+- от нуля до трёх FX в одной записи;
+- изменение порядка, bypass и удаление каждого FX;
+- отдельный mix/parameters для каждого слота;
+- один и тот же chain для preview и render;
+- финальный linked-channel limiter / peak protection;
+- тесты комбинаций на feedback, clipping, loudness jump и низкочастотную «кашу»;
+- оригинал и настройки цепочки всегда остаются доступными для повторного редактирования.
+
 ### M3 — FIELD World launch safety
 
 - локальная очередь повторной загрузки;
@@ -101,6 +121,24 @@
 > никогда не должна попадать в публичный API. Добавь unit/integration tests и
 > обнови privacy/help copy. Production-флаги не включай до ручного acceptance.
 
+### Промпт 3A — повторное редактирование и публикация
+
+> Реализуй M2.1 из `FIELD_WORLD_GROUPS_PLAN_RU.md`. Любая карточка Library должна
+> реально проигрываться и открывать действия Edit, Download WAV, Share, Publish
+> to FIELD World, Publish to Tune Tots Group, Retry и Delete. Сохраняй canonical
+> original и editable metadata; пользователь может решить опубликовать звук через
+> дни после записи. В Chrome всегда оставляй прямое скачивание, даже если Web Share
+> недоступен или открыл браузер без файлового действия. Не выдавай pending upload
+> за публикацию.
+
+### Промпт 3B — до трёх FX
+
+> Реализуй M2.2 из `FIELD_WORLD_GROUPS_PLAN_RU.md`: ordered non-destructive chain
+> максимум из трёх эффектов, per-slot mix/parameters/bypass, единый preview/render
+> path и финальный linked-channel limiter. Сохраняй оригинал и весь chain для
+> повторного редактирования. Добавь DSP-тесты сложных комбинаций, rapid switching,
+> clipping, feedback, DC/low-frequency overload и loudness jumps.
+
 ### Промпт 4 — acceptance и включение
 
 > Выполни M4 из `FIELD_WORLD_GROUPS_PLAN_RU.md` только из GitHub-репозитория FIELD.
@@ -115,4 +153,3 @@
 - публичные профили, лайки, рейтинги и комментарии;
 - точные GPS-координаты;
 - облачная синхронизация Private Library.
-
