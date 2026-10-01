@@ -8,5 +8,6 @@ export const EXTERNAL_LINKS = {
   SUPPORT_EMAIL: "mailto:tunetotslab@gmail.com",
 } as const;
 
-export const API_URL = (import.meta.env.VITE_FIELD_API_URL || '').replace(/\/$/, '');
+const DEFAULT_FIELD_API_URL = 'https://field-api.nikolachenmusic.workers.dev';
+export const API_URL = (import.meta.env.VITE_FIELD_API_URL || DEFAULT_FIELD_API_URL).replace(/\/$/, '');
 export const COMMUNITY_PUBLISHING_AVAILABLE = Boolean(API_URL) && import.meta.env.VITE_FIELD_WORLD_ENABLED === 'true';
