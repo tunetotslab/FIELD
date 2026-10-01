@@ -74,6 +74,8 @@ export interface SoundDraft {
   styleId?: string;
   location?: SoundLocation;
   visibility: Visibility;
+  groupId?: string;
+  groupName?: string;
   createdAt: number;
   waveform: number[];
   dailyChallenge?: string;
@@ -89,6 +91,8 @@ export interface SoundRecord {
   favorite: boolean;
   location?: SoundLocation;
   visibility: Visibility;
+  groupId?: string;
+  groupName?: string;
   audioBlob: Blob;
   waveform: number[];
   effect?: EffectId;

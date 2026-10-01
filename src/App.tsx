@@ -17,6 +17,7 @@ import { telegram } from "./telegram";
 import { Dialog } from './components/Dialog';
 import { Donate } from './components/Donate';
 import { publishSound, worldSounds, worldAudio } from './world';
+import { fieldGroups, joinFieldGroup, publishGroupSound, type FieldGroup } from './groups';
 import { getThemePreference, setThemePreference, type ThemePreference } from './theme';
 import { AppNavigationProvider, BrandFooter, Shell } from "./components/Shell";
 import { FieldWordmark, Miley } from "./components/Brand";
@@ -33,7 +34,7 @@ import {
 } from "./data/taskRotation";
 import { emojiCategories, searchEmoji, type EmojiCategory } from "./data/emoji";
 import { useI18n, type Locale } from "./i18n";
-import { COMMUNITY_PUBLISHING_AVAILABLE, EXTERNAL_LINKS } from "./config";
+import { COMMUNITY_PUBLISHING_AVAILABLE, EXTERNAL_LINKS, GROUP_PUBLISHING_AVAILABLE } from "./config";
 import { countries, searchCities, type CountryOption } from "./data/geo";
 import { settingsContent, type SettingsArticle } from "./data/settingsContent";
 
@@ -210,6 +211,8 @@ export default function App() {
         favorite: false,
         location: draft.location,
         visibility: 'private',
+        groupId: draft.groupId,
+        groupName: draft.groupName,
         effect: draft.effect,
         effectMix: draft.effectMix,
         echoDelayMs: draft.echoDelayMs,
@@ -221,6 +224,16 @@ export default function App() {
       if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
         try { await publishSound(record); }
         catch { await loadLibrary(); setNotice(t('publishFailed')); return; }
+      }
+      if (draft.visibility === 'group' && GROUP_PUBLISHING_AVAILABLE && draft.groupId) {
+        try {
+          const published = await publishGroupSound(draft.groupId, record);
+          if (published.telegramDeliveryState !== 'delivered') {
+            await loadLibrary();
+            setNotice(published.telegramDeliveryState === 'unconnected' ? t('savedGroupUnconnected') : t('savedGroupDeliveryFailed'));
+            return;
+          }
+        } catch { await loadLibrary(); setNotice(t('groupPublishFailed')); return; }
       }
       await loadLibrary();
       telegram.success();
@@ -235,6 +248,8 @@ export default function App() {
           ? t("savedLocalOnly")
           : draft.visibility === "world"
             ? t("savedWorld")
+            : draft.visibility === "group"
+              ? t("savedGroup")
             : t("savedPrivate"),
       );
     } catch {
@@ -1328,6 +1343,32 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
 }
 export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const { t } = useI18n();
+  const [groups, setGroups] = useState<FieldGroup[]>([]);
+  const [code, setCode] = useState('');
+  const [groupError, setGroupError] = useState('');
+  const [joining, setJoining] = useState(false);
+  const loadGroups = useCallback(async (signal?: AbortSignal) => {
+    if (!GROUP_PUBLISHING_AVAILABLE) return;
+    try { setGroups(await fieldGroups(signal)); setGroupError(''); }
+    catch { if (!signal?.aborted) setGroupError(t('groupsLoadFailed')); }
+  }, [t]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadGroups(controller.signal);
+    return () => controller.abort();
+  }, [loadGroups]);
+  const join = async () => {
+    if (!code.trim()) return;
+    setJoining(true); setGroupError('');
+    try {
+      const group = await joinFieldGroup(code);
+      await loadGroups();
+      update({ visibility:'group', groupId:group.id, groupName:group.name });
+      setCode('');
+    } catch { setGroupError(t('invalidGroupCode')); }
+    finally { setJoining(false); }
+  };
+  const groupEnabled = GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
   const opts: [Visibility, string, string, boolean][] = [
     ["private", t("private"), t("privateCopy"), true],
     [
@@ -1339,7 +1380,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
       COMMUNITY_PUBLISHING_AVAILABLE &&
         Boolean(draft.location?.city && draft.location?.country),
     ],
-    ["group", t("group"), t("backendRequired"), false],
+    ["group", t("group"), GROUP_PUBLISHING_AVAILABLE ? t("groupCopy") : t("backendRequired"), groupEnabled],
   ];
   return (
     <Shell title={t("shareTo")} back={back}>
@@ -1375,7 +1416,22 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
           </button>
         ))}
       </div>
-      <button className="primary-button" onClick={next}>
+      {GROUP_PUBLISHING_AVAILABLE && (
+        <section className="group-connect-panel">
+          <strong>{t('yourGroups')}</strong>
+          {groups.map(group => (
+            <button key={group.id} className={`group-choice ${draft.groupId === group.id ? 'selected' : ''}`} onClick={() => update({visibility:'group',groupId:group.id,groupName:group.name})}>
+              <span><b>{group.name}</b><small>{group.telegramTitle || t('telegramNotConnected')}</small></span><i />
+            </button>
+          ))}
+          <div className="group-code-row">
+            <input className="text-input" value={code} onChange={event => setCode(event.target.value.toUpperCase())} placeholder={t('groupCode')} maxLength={16} />
+            <button disabled={joining || !code.trim()} onClick={() => void join()}>{joining ? '…' : t('joinGroup')}</button>
+          </div>
+          {groupError && <p role="alert" className="search-status">{groupError}</p>}
+        </section>
+      )}
+      <button className="primary-button" disabled={draft.visibility === 'group' && !draft.groupId} onClick={next}>
         {t("continue")}
       </button>
     </Shell>

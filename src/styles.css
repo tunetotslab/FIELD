@@ -720,6 +720,16 @@ button:disabled {
 .visibility-list > button {
   min-height: 78px;
 }
+.group-connect-panel { margin: 16px 0; display: grid; gap: 8px; }
+.group-connect-panel > strong { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.group-choice { width: 100%; min-height: 58px; padding: 10px 14px; border: 1px solid var(--color-line); border-radius: 14px; background: var(--surface-raised); display: flex; align-items: center; justify-content: space-between; text-align: left; }
+.group-choice span { display: grid; gap: 3px; }
+.group-choice small { color: var(--color-muted); }
+.group-choice i { width: 18px; height: 18px; border: 2px solid #aaa; border-radius: 50%; }
+.group-choice.selected i { border: 5px solid var(--color-pink); }
+.group-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.group-code-row .text-input { margin: 0; text-transform: uppercase; }
+.group-code-row button { border: 0; border-radius: 999px; padding: 0 16px; background: var(--color-ink); color: var(--surface-raised); font-weight: 800; }
 .sound-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--color-line);

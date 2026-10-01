@@ -33,6 +33,7 @@ jobs:
         env:
           VITE_FIELD_API_URL: ${{ vars.FIELD_API_URL }}
           VITE_FIELD_WORLD_ENABLED: ${{ vars.FIELD_WORLD_ENABLED }}
+          VITE_FIELD_GROUPS_ENABLED: ${{ vars.FIELD_GROUPS_ENABLED }}
         run: npm run build -- --base=/FIELD/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
