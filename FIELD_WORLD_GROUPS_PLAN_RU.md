@@ -419,3 +419,17 @@ World включается для контрольного теста польз
   реальный IndexedDB save/reopen/rename/favorite и сохранность аудио при unpublish.
   Использована только изолированная тестовая база; пользовательская Library не
   открывалась, production Telegram сообщения не отправлялись.
+- Выпущен код `2318d77`: GitHub Pages run
+  https://github.com/tunetotslab/FIELD/actions/runs/37014649843 — success
+  (полный Verify + Build + Deploy). Live `/FIELD/assets/index-5ea5glnQ.js`
+  содержит все 10 проверенных маркеров byte storage/file relay/native sharing.
+- После push применена только additive `0006_private_file_transfers.sql`, затем
+  Worker `451978c8-64b4-4df7-a96a-1aefd01af72c`. Health — 200; unsigned private
+  file POST — 401; Pages Origin preflight — 204/no-store. Python urllib probe
+  отвергнут edge 1010; стандартный curl достигает Worker, поэтому не принимаем
+  этот probe за отказ самого API или доказательство проблемы телефона.
+- Read-only D1 после выпуска: World 4 / Group 6, все Group delivered, private
+  transfer receipts 0. Production аудио/тестовые сообщения не загружались.
+- Ready fixture при simulated failed/busy публикации сохраняет Export/Share
+  доступными и экспортирует 384044 bytes. Проблемный iPhone файл физически ещё
+  не проверен. Обновление Mini App через закрыть/открыть, без очистки данных.
