@@ -318,3 +318,10 @@ World включается для контрольного теста польз
   и корректные author/studio href; письмо не отправлялось.
 - Полный npm test, typecheck, lint и production build проходят. Новая regression
   сначала упала 413 вместо 201 на прежнем сервере, затем прошла с bounded reader.
+- Выпуск: сервер `e65bbc8`, клиент `7033baf`; Pages Actions
+  https://github.com/tunetotslab/FIELD/actions/runs/37005431414 — success.
+  Worker `bc85632f-c616-46a1-812e-d83454f6888b`, health 200; World без сессии
+  с разрешённым Origin — 401. Live JS содержит новые сообщения, About и Copy email.
+  Ручной acceptance: на одном iPhone 12 mini повторить ту же сохранённую запись
+  в World и Group; при отказе сообщить новый точный текст/HTTP-код. Второй телефон
+  сейчас недоступен, его отсутствие не препятствует этой проверке.
