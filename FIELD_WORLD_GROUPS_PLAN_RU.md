@@ -325,3 +325,61 @@ World включается для контрольного теста польз
   Ручной acceptance: на одном iPhone 12 mini повторить ту же сохранённую запись
   в World и Group; при отказе сообщить новый точный текст/HTTP-код. Второй телефон
   сейчас недоступен, его отсутствие не препятствует этой проверке.
+
+### Мгновенный отказ и неработающие действия результата — повторная диагностика
+
+- На iPhone 12 mini пользователь всё ещё получает мгновенный общий отказ; сам
+  проблемный файл и запрос телефона недоступны. Поэтому прежний выпуск не считается
+  подтверждённым исправлением именно этого случая. Добавлены безопасные коды
+  AUDIO_MISSING/WAV/DECODE/CONVERT, CITY_RESOLVE, WORLD_UPLOAD, GROUP_UPLOAD,
+  NETWORK/TIMEOUT и LOCAL с именем ошибки; HTTP-коды сохраняются. Неизвестная
+  локальная ошибка больше не маскируется сообщением о подключении.
+- Подтверждён клиентский дефект: любые изменения метаданных сбрасывали processed
+  render. Теперь название, emoji, город, destination и стиль сохраняют готовый
+  файл, а изменения Trim/FX создают новую версию и инвалидируют render. После
+  отказа upload готовый локальный файл остаётся доступен для preview/export.
+- Сохранённый PCM WAV разбирается непосредственно: пересобирается стандартный
+  заголовок, duration вычисляется по samples, публичная копия ограничивается 60s
+  с fade на конце. Original и сохранённый render не перезаписываются. Нет Web Audio
+  context/AudioBuffer constructor для этого пути; fallback других форматов также
+  больше не создаёт новый AudioBuffer. Реальные World/Group client payloads
+  проверены без Web Audio constructors и с недоступным localStorage.
+- Ready заранее готовит файл и кеширует результат для Save/Export/Share. Native
+  share вызывается непосредственно из click, до await. Прежний Send to Chat
+  передавал только metadata через sendData, а не аудио; теперь Share WAV передаёт
+  сам File через системное меню, где пользователь выбирает Telegram. Без поддержки
+  native file share используется download. Это не серверная публикация private
+  Library. Поддержку меню конкретной версией Telegram iOS подтверждает устройство.
+- Network deadline теперь включает чтение body; regression воспроизводит
+  зависший response после полученных headers и проверяет WORLD_UPLOAD:TIMEOUT.
+- Дополнительно обнаружена обязательная crypto.randomUUID в создании draft и
+  World clientId: её отсутствие прерывало путь до HTTP. Добавлен secure UUID v4
+  fallback через getRandomValues. Тест настоящего upload queue без randomUUID
+  проверяет failure/retry, неизменные bytes и тот же clientId. Версия iOS телефона
+  неизвестна; это воспроизводимый compatibility дефект, не доказательство причины
+  конкретного запроса владельца.
+- Обычный браузер не имеет подписанной Telegram session. World показывает
+  понятное объяснение сразу; доступ к API не ослаблен. Production preflight
+  разрешает POST/Authorization/Content-Type с GitHub Pages Origin (204).
+- Имя владельца: Никола Чен (Nikola Chen), «создан Николой Ченом»; один основатель
+  и преподаватель, без выдуманных других преподавателей. Закреплено в AGENTS/SPEC,
+  исправлено в четырёх About локалях. Instagram ссылки сохранены, фраза поддержки
+  открывает существующий Donate. Copy/Write/Gmail имеют одинаковые розовые controls
+  44px/999px; Write открывает выбор Gmail в браузере/default mail/copy fallback.
+- Браузерная QA: Ready экспортирует 384044 bytes из saved render при имитации
+  отказа/busy и отсутствующем original; новый trimmed render — 307244 bytes.
+  Проверены mail chooser, одинаковые computed styles, donate navigation, отсутствие
+  сессии и карта с 21 звуком в изолированном fixture. Ничего не опубликовано в
+  production World/Group, письма/донаты не отправлялись; Library не очищалась.
+- Физический acceptance остаётся открытым: та же старая запись в World и Group,
+  Export/Share на iPhone 12 mini; при отказе нужен видимый код в квадратных скобках.
+  Когда второй телефон доступен — город и воспроизведение после обновления World.
+- Проверки этого выпуска: полный npm test, typecheck, lint, production build;
+  после UUID follow-up повторены compatibility tests/typecheck/lint/build, затем
+  GitHub Actions заново выполнил весь npm test и сборку — success.
+- Выпущен `06a2905`: Pages Actions
+  https://github.com/tunetotslab/FIELD/actions/runs/37009266380 — success.
+  Live bundle `/FIELD/assets/index-wc7U9hjq.js` содержит 11 проверенных маркеров
+  новых upload stages, secure ID fallback, Share WAV, авторского имени, donation
+  и session/contact текста. Worker/D1/R2 и их данные в этом follow-up не менялись;
+  рабочий Worker остаётся `bc85632f-c616-46a1-812e-d83454f6888b`.
