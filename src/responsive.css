@@ -54,6 +54,7 @@
 .row-play, .favorite, .sound-menu-trigger { width: 44px; height: 44px; display: grid; place-items: center; }
 .field-dialog { border: 1px solid var(--color-line); border-radius: 22px; padding: 0; width: min(400px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); color: var(--color-ink); background: var(--surface-raised); }
 .field-dialog::backdrop { background: #0008; }
+dialog.world-city-dialog { top:auto; bottom:12px; margin:0 auto; border-radius:24px 24px 16px 16px; }
 .dialog-content { padding: 24px; }
 .dialog-content h2 { font-size: 20px; overflow-wrap: anywhere; }
 .sound-actions { display: grid; gap: 8px; }

@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from '../i18n';
 import type { EffectId } from "../types";
 import { geoDistance, geoOrthographic, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
@@ -49,12 +50,18 @@ export interface GlobeMarker {
 export function FieldGlobe({
   markers = [],
   onMarker,
+  focus,
 }: {
   markers?: GlobeMarker[];
   onMarker?: (marker: GlobeMarker) => void;
+  focus?: GlobeMarker;
 }) {
+  const {t}=useI18n();
   const [rotation, setRotation] = useState<[number, number]>([-44, -35]);
   const [zoom, setZoom] = useState(1);
+  const pointers=useRef(new Map<number,{x:number;y:number}>());
+  const pinch=useRef<{distance:number;zoom:number}|null>(null);
+  useEffect(()=>{if(focus)setRotation([-focus.lng,-focus.lat]);},[focus]);
   const drag = useRef<{
     x: number;
     y: number;
@@ -81,6 +88,11 @@ export function FieldGlobe({
   );
   const path = geoPath(projection);
   const move = (event: React.PointerEvent<SVGSVGElement>) => {
+    if(pointers.current.has(event.pointerId)) pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    if(pointers.current.size===2 && pinch.current) {
+      const [a,b]=[...pointers.current.values()];
+      setZoom(Math.max(.72,Math.min(2.35,pinch.current.zoom*Math.hypot(a.x-b.x,a.y-b.y)/pinch.current.distance)));return;
+    }
     if (!drag.current) return;
     const dx = event.clientX - drag.current.x,
       dy = event.clientY - drag.current.y;
@@ -102,13 +114,17 @@ export function FieldGlobe({
         }}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
+          pointers.current.set(event.pointerId,{x:event.clientX,y:event.clientY});
+          if(pointers.current.size===2) {const [a,b]=[...pointers.current.values()];pinch.current={distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom};drag.current=null;return;}
           drag.current = { x: event.clientX, y: event.clientY, rotation };
         }}
         onPointerMove={move}
-        onPointerUp={() => {
+        onPointerUp={(event) => {
+          pointers.current.delete(event.pointerId);pinch.current=null;
           drag.current = null;
         }}
-        onPointerCancel={() => {
+        onPointerCancel={(event) => {
+          pointers.current.delete(event.pointerId);pinch.current=null;
           drag.current = null;
         }}
       >
@@ -158,9 +174,11 @@ export function FieldGlobe({
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => onMarker?.(marker)}
             role="button"
+            tabIndex={0}
+            onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onMarker?.(marker);}}}
             aria-label={`${marker.city}, ${marker.country}: ${marker.count} sounds`}
           >
-            <circle r="10" />
+            <circle r="16" />
             <text textAnchor="middle" dominantBaseline="central">
               {marker.count}
             </text>
@@ -168,7 +186,7 @@ export function FieldGlobe({
         );
       })}
       </svg>
-      <div className="globe-controls" aria-label="Globe zoom">
+      <div className="globe-controls" aria-label={t('map')}>
         <button type="button" onClick={() => setZoom((value) => Math.min(2.35, value * 1.2))} aria-label="Zoom in">+</button>
         <button type="button" onClick={() => setZoom((value) => Math.max(0.72, value / 1.2))} aria-label="Zoom out">−</button>
       </div>

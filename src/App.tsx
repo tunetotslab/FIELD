@@ -16,14 +16,15 @@ import { soundsDb } from "./storage/db";
 import { telegram } from "./telegram";
 import { Dialog } from './components/Dialog';
 import { Donate } from './components/Donate';
-import { publishSound, worldSounds, worldAudio } from './world';
-import { fieldGroups, joinFieldGroup, publishGroupSound, type FieldGroup } from './groups';
+import { uploadWorld, unpublishWorld, retryPendingWorld } from './storage/publication';
+import { WorldMap } from './components/WorldMap';
+import { fieldGroups, joinFieldGroup, publishGroupSound, retryGroupDelivery, type FieldGroup } from './groups';
 import { getThemePreference, setThemePreference, type ThemePreference } from './theme';
 import { AppNavigationProvider, BrandFooter, Shell } from "./components/Shell";
 import { FieldWordmark, Miley } from "./components/Brand";
 import { Waveform } from "./components/Waveform";
 import { ErrorPanel } from "./components/ErrorPanel";
-import { FieldGlobe, FxArtwork } from "./components/FieldArtwork";
+import { FxArtwork } from "./components/FieldArtwork";
 import { Daily } from "./components/Daily";
 import { tasks, type Task } from "./data/tasks";
 import { taskImages } from "./data/taskImages";
@@ -108,9 +109,12 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [playingId, setPlayingId] = useState<string>();
+  const [mapCity, setMapCity] = useState<string>();
+  const [savePhase, setSavePhase] = useState<'preparing'|'uploading'|'groupUpload'>('preparing');
   const settingsReturn = useRef<Screen>("home");
   const workflowReturn = useRef<Screen | undefined>(undefined);
   const pendingChallenge = useRef<string | undefined>(undefined);
+  const reusedRecord = useRef<SoundRecord | undefined>(undefined);
 
   const loadLibrary = useCallback(async () => {
     try {
@@ -128,6 +132,13 @@ export default function App() {
     void loadLibrary();
     return () => { cleanup?.(); player.stop(); };
   }, [loadLibrary]);
+  useEffect(() => {
+    if(!COMMUNITY_PUBLISHING_AVAILABLE) return;
+    let active=true;
+    const retry=()=>{void retryPendingWorld().then(()=>{if(active) void loadLibrary();});};
+    retry(); window.addEventListener('online',retry);
+    return ()=>{active=false;window.removeEventListener('online',retry);};
+  },[loadLibrary]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [screen]);
@@ -182,7 +193,9 @@ export default function App() {
     setNotice("");
     setScreen(next);
   };
-  const update = (patch: Partial<SoundDraft>) =>
+  const update = (patch: Partial<SoundDraft>) => {
+    const newVersion=(!!reusedRecord.current || records.some(record=>record.id===draft?.id)) && ['effect','effectChain','effectMix','pitchSemitones','echoDelayMs','trimStart','trimEnd','fadeIn','fadeOut'].some(key=>key in patch);
+    if(newVersion) reusedRecord.current=undefined;
     setDraft((current) =>
       current
         ? {
@@ -191,49 +204,63 @@ export default function App() {
             processedDuration: undefined,
             processedWaveform: undefined,
             ...patch,
+            ...(newVersion?{id:crypto.randomUUID(),createdAt:Date.now(),visibility:'private' as const}:{}),
           }
         : current,
     );
+  };
 
   const save = async () => {
     if (!draft) return;
     setBusy(true);
+    setSavePhase('preparing');
     setNotice("");
     try {
-      const rendered = await renderDraft(draft);
+      const previous = (await soundsDb.getAll()).find(record=>record.id===draft.id);
+      const rendered = reusedRecord.current ? {blob:reusedRecord.current.audioBlob,duration:reusedRecord.current.duration,waveform:reusedRecord.current.waveform} : await renderDraft(draft);
       const record: SoundRecord = {
+        ...previous,
+        ...reusedRecord.current,
+        originalBlob: reusedRecord.current?.originalBlob || draft.originalBlob,
+        editState: reusedRecord.current?.editState || (({originalBlob: _original, processedBlob: _processed, processedDuration: _duration, processedWaveform: _peaks, ...state}) => state)(draft),
         id: draft.id,
         title: draft.title?.trim() || "Untitled Sound",
         emojis: draft.emojis,
         styleId: draft.styleId || "grotesk",
         duration: rendered.duration,
         createdAt: draft.createdAt,
-        favorite: false,
+        favorite: previous?.favorite || reusedRecord.current?.favorite || false,
         location: draft.location,
         visibility: 'private',
         groupId: draft.groupId,
         groupName: draft.groupName,
-        effect: draft.effect,
-        effectMix: draft.effectMix,
-        echoDelayMs: draft.echoDelayMs,
-        dailyChallenge: draft.dailyChallenge,
+        effect: reusedRecord.current?.effect || draft.effect,
+        effectChain: reusedRecord.current?.effectChain || draft.effectChain,
+        effectMix: reusedRecord.current?.effectMix ?? draft.effectMix,
+        echoDelayMs: reusedRecord.current?.echoDelayMs ?? draft.echoDelayMs,
+        dailyChallenge: reusedRecord.current?.dailyChallenge || draft.dailyChallenge,
         audioBlob: rendered.blob,
         waveform: rendered.waveform,
       };
       await soundsDb.save(record);
       if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
-        try { await publishSound(record); }
+        setSavePhase('uploading');
+        try { const saved = await uploadWorld(record); setMapCity(record.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
         catch { await loadLibrary(); setNotice(t('publishFailed')); return; }
       }
       if (draft.visibility === 'group' && GROUP_PUBLISHING_AVAILABLE && draft.groupId) {
+        setSavePhase('groupUpload');
+        record.groupPublication={state:'pending',groupId:draft.groupId,groupName:draft.groupName};
+        await soundsDb.save(record);
         try {
           const published = await publishGroupSound(draft.groupId, record);
+          await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:published.telegramDeliveryState==='delivered'?'published':'failed',serverId:published.id}});
           if (published.telegramDeliveryState !== 'delivered') {
             await loadLibrary();
             setNotice(published.telegramDeliveryState === 'unconnected' ? t('savedGroupUnconnected') : t('savedGroupDeliveryFailed'));
             return;
           }
-        } catch { await loadLibrary(); setNotice(t('groupPublishFailed')); return; }
+        } catch { await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:'failed'}}); await loadLibrary(); setNotice(t('groupPublishFailed')); return; }
       }
       await loadLibrary();
       telegram.success();
@@ -253,9 +280,7 @@ export default function App() {
             : t("savedPrivate"),
       );
     } catch {
-      setNotice(
-        "Storage full or audio processing failed. Your original recording is still available on this screen.",
-      );
+      setNotice(t('storageFailed'));
     } finally {
       setBusy(false);
     }
@@ -284,6 +309,7 @@ export default function App() {
         return (
           <RecordScreen
             onDone={(value) => {
+              reusedRecord.current=undefined;
               setDraft({ ...value, dailyChallenge: pendingChallenge.current });
               pendingChallenge.current = undefined;
               go("edit");
@@ -377,10 +403,14 @@ export default function App() {
             <ReadyScreen
               draft={draft}
               busy={busy}
+              phase={savePhase}
+              seeMap={() => go('map')}
+              done={() => go('library')}
               notice={notice}
               save={save}
               exportSound={exportDraft}
               fresh={() => {
+                reusedRecord.current=undefined;
                 setDraft(undefined);
                 go("home");
               }}
@@ -393,6 +423,21 @@ export default function App() {
       case "library":
         return (
           <Library
+            editRecord={async (record, destination) => {
+              player.stop();
+              if(destination) {
+                reusedRecord.current=record;
+                setDraft({...newDraft(record.audioBlob,record.duration,record.waveform),...record.editState,id:record.id,originalBlob:record.originalBlob||record.audioBlob,title:record.title,emojis:record.emojis,styleId:record.styleId,location:record.location,createdAt:record.createdAt,processedBlob:record.audioBlob,processedDuration:record.duration,processedWaveform:record.waveform,visibility:destination});
+                go(record.location && destination==='world'?'visibility':destination==='group'?'visibility':'location');
+              } else {
+                reusedRecord.current=undefined;
+                const base=record.originalBlob||record.audioBlob;
+                const analyzed=await analyze(base);
+                setDraft({...newDraft(base,analyzed.duration,analyzed.waveform),...record.editState,title:record.title,emojis:record.emojis,location:record.location,styleId:record.styleId,id:crypto.randomUUID(),originalBlob:base,visibility:'private',createdAt:Date.now()});
+                go('edit');setNotice(t(record.originalBlob?'editVersion':'legacyEdit'));
+              }
+            }}
+            seeMap={record => {setMapCity(record.location?.placeId);go('map');}}
             records={records}
             reload={loadLibrary}
             go={go}
@@ -429,10 +474,8 @@ export default function App() {
       case "map":
         return (
           <WorldMap
-            records={records}
-            go={go}
-            playingId={playingId}
-            setPlayingId={setPlayingId}
+            focusCity={mapCity}
+            player={player}
             back={() =>
               go(
                 draft && workflowReturn.current
@@ -694,7 +737,7 @@ function EditScreen({
       player.pause();
       setPlaying(false);
     } else {
-      const rendered = await renderDraft({ ...draft, effect: "original" });
+      const rendered = await renderDraft({ ...draft, effect: "original",effectChain:[] });
       player.play("draft", rendered.blob, setPlaying, draft.loop);
     }
   };
@@ -820,6 +863,18 @@ export function FxScreen({
   const [rendering, setRendering] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
   const [previewError, setPreviewError] = useState("");
+  const [activeSlot,setActiveSlot]=useState(()=>Math.max(0,draft.effectChain?.findIndex(slot=>slot.effect===draft.effect&&slot.mix===draft.effectMix&&slot.pitchSemitones===draft.pitchSemitones&&slot.echoDelayMs===draft.echoDelayMs)??0));
+  const chain=draft.effectChain || (draft.effect==='original'?[]:[{effect:draft.effect,mix:draft.effectMix,pitchSemitones:draft.pitchSemitones,echoDelayMs:draft.echoDelayMs}]);
+  const chainPatch=(patch:Partial<SoundDraft>):Partial<SoundDraft>=> {
+    if(patch.effectChain) return patch;
+    if(patch.effect==='original') return {...patch,effectChain:[]};
+    if(!Object.keys(patch).length)return patch;
+    const next=chain.slice();
+    const index=Math.min(activeSlot,next.length);
+    const current=next[index] || {effect:'original' as const,mix:70,pitchSemitones:7,echoDelayMs:340};
+    next[index]={...current,...(patch.effect?{effect:patch.effect}:{}),...(patch.effectMix!==undefined?{mix:patch.effectMix}:{}),...(patch.pitchSemitones!==undefined?{pitchSemitones:patch.pitchSemitones}:{}),...(patch.echoDelayMs!==undefined?{echoDelayMs:patch.echoDelayMs}:{})};
+    return {...patch,effectChain:next.slice(0,3)};
+  };
   useEffect(
     () => () => {
       sequence.current++;
@@ -829,6 +884,7 @@ export function FxScreen({
     [],
   );
   const preview = async (patch: Partial<SoundDraft>, dry = false) => {
+    patch=chainPatch(patch);
     const token = ++sequence.current;
     renderController.current?.abort();
     const controller = new AbortController();
@@ -836,7 +892,7 @@ export function FxScreen({
     const nextDraft = {
       ...draft,
       ...patch,
-      ...(dry ? { effect: "original" as const } : {}),
+      ...(dry ? { effect: "original" as const,effectChain:[] } : {}),
     };
     if (!dry) update({ ...patch, processedBlob: undefined });
     setRendering(true);
@@ -870,6 +926,15 @@ export function FxScreen({
   return (
     <Shell variant="fx" title={t("fx")} back={back}>
       <p className="eyebrow">{t("makeWeird")}</p>
+      <div className="fx-chain">
+        {chain.map((slot,index)=><div className={index===activeSlot?'fx-slot active':'fx-slot'} key={index}>
+          <button onClick={()=>{setActiveSlot(index);update({effect:slot.effect,effectMix:slot.mix,pitchSemitones:slot.pitchSemitones,echoDelayMs:slot.echoDelayMs,effectChain:chain});}}>{index+1} · {effectLabel[slot.effect]}</button>
+          <button aria-pressed={!!slot.bypassed} onClick={()=>void preview({effectChain:chain.map((s,i)=>i===index?{...s,bypassed:!s.bypassed}:s)})}>{t('fxBypass')}</button>
+          <button disabled={index===0} onClick={()=>{const next=chain.slice();[next[index-1],next[index]]=[next[index],next[index-1]];setActiveSlot(index-1);void preview({effectChain:next,effect:next[index-1].effect,effectMix:next[index-1].mix,pitchSemitones:next[index-1].pitchSemitones,echoDelayMs:next[index-1].echoDelayMs});}} aria-label={t('fxMove')}>↑</button>
+          <button aria-label={t('fxRemove')} onClick={()=>{const next=chain.filter((_,i)=>i!==index);setActiveSlot(0);void preview({effectChain:next,effect:next[0]?.effect||'original',effectMix:next[0]?.mix||70,pitchSemitones:next[0]?.pitchSemitones||7,echoDelayMs:next[0]?.echoDelayMs||340});}}>×</button>
+        </div>)}
+        <button className="secondary-button" disabled={chain.length>=3} onClick={()=>{setActiveSlot(chain.length);update({effect:'original',effectMix:70,pitchSemitones:7,echoDelayMs:340,effectChain:[...chain,{effect:'original',mix:70,pitchSemitones:7,echoDelayMs:340}]});}}>{t('fxAdd')}</button>
+      </div>
       <div className="effect-grid">
         {EFFECTS.map((effect) => (
           <button
@@ -878,6 +943,7 @@ export function FxScreen({
             aria-pressed={draft.effect === effect}
             onClick={() => {
               telegram.impact();
+              if(effect==='original')setActiveSlot(0);
               void preview({ effect });
             }}
           >
@@ -899,10 +965,10 @@ export function FxScreen({
             step="1"
             value={draft.pitchSemitones}
             onChange={(e) =>
-              update({
+              update(chainPatch({
                 pitchSemitones: Number(e.target.value),
                 processedBlob: undefined,
-              })
+              }))
             }
             onKeyUp={(e) =>
               void preview({ pitchSemitones: Number(e.currentTarget.value) })
@@ -931,7 +997,7 @@ export function FxScreen({
             max="1000"
             step="10"
             value={draft.echoDelayMs}
-            onChange={(e) => update({ echoDelayMs: Number(e.target.value) })}
+            onChange={(e) => update(chainPatch({ echoDelayMs: Number(e.target.value) }))}
             onKeyUp={(e) =>
               void preview({ echoDelayMs: Number(e.currentTarget.value) })
             }
@@ -951,10 +1017,10 @@ export function FxScreen({
           disabled={draft.effect === "original"}
           value={draft.effectMix}
           onChange={(e) =>
-            update({
+            update(chainPatch({
               effectMix: Number(e.target.value),
               processedBlob: undefined,
-            })
+            }))
           }
           onKeyUp={(e) =>
             void preview({ effectMix: Number(e.currentTarget.value) })
@@ -1192,38 +1258,18 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
           )
           .slice(0, 10)
       : [];
-  useEffect(() => {
-    if (
-      !selectedCountry ||
-      cityQuery.trim().length < 2 ||
-      cityQuery === draft.location?.city
-    ) {
-      setResults([]);
-      setPlaceState("idle");
-      return;
-    }
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setPlaceState("loading");
-      try {
-        const found = await searchCities(
-          cityQuery.trim(),
-          selectedCountry,
-          locale,
-          controller.signal,
-        );
-        setResults(found);
-        setPlaceState(found.length ? "idle" : "empty");
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError"))
-          setPlaceState("error");
-      }
-    }, 1100);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [cityQuery, selectedCountry, locale, draft.location?.city]);
+  const searchController = useRef<AbortController | null>(null);
+  useEffect(() => () => searchController.current?.abort(), []);
+  const findCity = async () => {
+    if (!selectedCountry || cityQuery.trim().length < 2) return;
+    searchController.current?.abort();
+    const controller = new AbortController(); searchController.current = controller;
+    setPlaceState('loading'); setResults([]);
+    try {
+      const found = await searchCities(cityQuery.trim(), selectedCountry, locale, controller.signal);
+      if (!controller.signal.aborted) {setResults(found); setPlaceState(found.length ? 'idle' : 'empty');}
+    } catch { if (!controller.signal.aborted) setPlaceState('error'); }
+  };
   return (
     <Shell title={t("chooseLocation")} back={back}>
       <p className="eyebrow">{t("optionalApprox")}</p>
@@ -1235,7 +1281,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
             className="text-input"
             value={countryQuery}
             placeholder={t("countrySearch")}
-            onChange={(event) => setCountryQuery(event.target.value)}
+            onChange={(event) => {searchController.current?.abort();setCountryQuery(event.target.value);setSelectedCountry(undefined);setResults([]);setPlaceState('idle');update({location:undefined});}}
           />
         </label>
         {countryResults.length > 0 && (
@@ -1244,6 +1290,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
               <button
                 key={item.code}
                 onClick={() => {
+                  searchController.current?.abort();setPlaceState('idle');
                   setSelectedCountry(item);
                   setCountryQuery(item.name);
                   setCityQuery("");
@@ -1266,9 +1313,11 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
             placeholder={
               selectedCountry ? t("citySearch") : t("chooseCountryFirst")
             }
-            onChange={(event) => setCityQuery(event.target.value)}
+            onChange={(event) => {searchController.current?.abort();setResults([]);setPlaceState('idle');setCityQuery(event.target.value); update({location:undefined});}}
           />
         </label>
+        <button className="secondary-button" disabled={!selectedCountry || cityQuery.trim().length<2 || placeState==='loading'} onClick={() => void findCity()}>{t('searchCityButton')}</button>
+        <p className="world-privacy">{t('worldPrivacy')}</p>
         {placeState === "loading" && (
           <p className="search-status">{t("searchingPlaces")}</p>
         )}
@@ -1439,6 +1488,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
 }
 
 function ReadyScreen({
+  phase, seeMap, done,
   draft,
   busy,
   notice,
@@ -1449,6 +1499,9 @@ function ReadyScreen({
   playing,
   setPlaying,
 }: {
+  phase: 'preparing'|'uploading'|'groupUpload';
+  seeMap: () => void;
+  done: () => void;
   draft: SoundDraft;
   busy: boolean;
   notice: string;
@@ -1461,6 +1514,7 @@ function ReadyScreen({
 }) {
   const { t } = useI18n();
   const [error, setError] = useState("");
+  const [confirmWorld, setConfirmWorld] = useState(false);
   const play = async () => {
     if (playing) {
       player.stop();
@@ -1528,13 +1582,13 @@ function ReadyScreen({
       <div className="ready-actions">
         <button
           disabled={busy}
-          onClick={() => void save()}
+          onClick={() => draft.visibility==='world' ? setConfirmWorld(true) : void save()}
           aria-label={t("save")}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m5 12 4.2 4.2L19 6.8" />
           </svg>
-          <span>{busy ? "…" : t("save")}</span>
+          <span>{busy ? t(phase) : t("save")}</span>
         </button>
         <button disabled={busy} onClick={() => void exportSound()}>
           ⇧<span>EXPORT WAV</span>
@@ -1552,11 +1606,14 @@ function ReadyScreen({
           ＋<span>NEW</span>
         </button>
       </div>
+      {notice===t('savedWorld') && <div className="world-success"><button className="primary-button" onClick={seeMap}>{t('seeMap')}</button><button className="secondary-button" onClick={done}>{t('done')}</button></div>}
+      {confirmWorld && <Dialog title={t('worldConfirm')} close={() => setConfirmWorld(false)}><p>{t('worldConsent')}</p><p>{draft.location?.city}, {draft.location?.country}</p><button className="primary-button" onClick={() => {setConfirmWorld(false);void save();}}>{t('publish')}</button><button className="secondary-button" onClick={() => setConfirmWorld(false)}>{t('cancel')}</button></Dialog>}
     </Shell>
   );
 }
 
 export function Library({
+  editRecord, seeMap,
   records,
   reload,
   go,
@@ -1566,6 +1623,8 @@ export function Library({
   notice,
   back,
 }: {
+  editRecord: (record:SoundRecord,destination?:'world'|'group') => Promise<void>;
+  seeMap: (record:SoundRecord) => void;
   records: SoundRecord[];
   reload: () => Promise<void>;
   go: (s: Screen) => void;
@@ -1581,6 +1640,17 @@ export function Library({
   const [menuRecord, setMenuRecord] = useState<SoundRecord>();
   const { t } = useI18n();
   const [renameValue, setRenameValue] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
+  const retryGroup = async (r:SoundRecord) => {
+    if(!r.groupPublication||!confirm(t('groupRetryWarning')))return;setActionBusy(true);
+    try {
+      const result=r.groupPublication.serverId?await retryGroupDelivery(r.groupPublication.groupId,r.groupPublication.serverId):await publishGroupSound(r.groupPublication.groupId,r);
+      await soundsDb.save({...r,groupPublication:{...r.groupPublication,serverId:result.id,state:result.telegramDeliveryState==='delivered'?'published':'failed'}});
+      if(result.telegramDeliveryState!=='delivered')setNotice(t('savedGroupDeliveryFailed'));
+    } catch {setNotice(t('groupPublishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}
+  };
+  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch {setNotice(t('publishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}};
+  const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch {setNotice(t('publishFailed'));} finally {setActionBusy(false);}};
   const shown = useMemo(
     () =>
       records
@@ -1592,7 +1662,7 @@ export function Library({
   const play = (r: SoundRecord) =>
     player.play(r.id, r.audioBlob, (v) => setPlayingId(v ? r.id : undefined));
   const remove = async (r: SoundRecord) => {
-    if (confirm(`Delete “${r.title}” permanently?`)) {
+    if (confirm(t('privateDelete'))) {
       player.stop();
       await soundsDb.remove(r.id);
       await reload();
@@ -1675,12 +1745,15 @@ export function Library({
               <div>
                 <strong
                   className={`record-title style-${r.styleId || "grotesk"}`}
+                  onClick={() => play(r)}
+                  role="button" tabIndex={0} onKeyDown={event => {if(event.key==='Enter'||event.key===' ') {event.preventDefault();play(r);}}}
                 >
                   {r.title}
                 </strong>
                 <small>
                   {formatTime(r.duration)} · {r.emojis.join(" ")}
                 </small>
+                <small className="publication-state">{r.worldPublication?t(r.worldPublication.state==='published'?'publishedState':r.worldPublication.state==='pending'?'pendingState':'failedState'):t('localState')}{r.groupPublication?.state==='published'?` · ${t('groupPublishedState')}: ${r.groupPublication.groupName||r.groupName||''}`:''}</small>
               </div>
               <button
                 className={r.favorite ? "favorite active" : "favorite"}
@@ -1698,6 +1771,12 @@ export function Library({
       </div>
       {menuRecord && <Dialog title={menuRecord.title} close={() => setMenuRecord(undefined)}>
         <div className="sound-actions">
+          <button disabled={actionBusy} onClick={() => {void editRecord(menuRecord).catch(()=>setNotice(t('storageFailed')));setMenuRecord(undefined);}}>{t('editSaved')}</button>
+          {COMMUNITY_PUBLISHING_AVAILABLE && !menuRecord.worldPublication && <button onClick={() => {void editRecord(menuRecord,'world');setMenuRecord(undefined);}}>{t('publishWorld')}</button>}
+          {GROUP_PUBLISHING_AVAILABLE && <button onClick={() => {void editRecord(menuRecord,'group');setMenuRecord(undefined);}}>{t('publishGroup')}</button>}
+          {menuRecord.worldPublication?.state==='published' && <><button onClick={() => seeMap(menuRecord)}>{t('seeMap')}</button><button disabled={actionBusy} onClick={() => void removePublication(menuRecord)}>{t('removeWorld')}</button></>}
+          {menuRecord.worldPublication && menuRecord.worldPublication.state!=='published' && <button disabled={actionBusy} onClick={() => void retryWorld(menuRecord)}>{t('retry')}</button>}
+          {menuRecord.groupPublication && menuRecord.groupPublication.state!=='published' && <button disabled={actionBusy} onClick={() => void retryGroup(menuRecord)}>{t('retry')} · {menuRecord.groupPublication.groupName||t('group')}</button>}
           <button onClick={() => { void favorite(menuRecord); setMenuRecord(undefined); }}>{t(menuRecord.favorite ? 'unfavorite' : 'favorite')}</button>
           <button onClick={() => { setRenaming(menuRecord); setRenameValue(menuRecord.title); setMenuRecord(undefined); }}>{t('rename')}</button>
           <button onClick={() => { download(menuRecord.audioBlob, menuRecord.title); setMenuRecord(undefined); }}>{t('exportWav')}</button>
@@ -1729,113 +1808,6 @@ export function Library({
           </div>
         </div>
       )}
-    </Shell>
-  );
-}
-function WorldMap({
-  records,
-  go,
-  playingId,
-  setPlayingId,
-  back,
-}: {
-  records: SoundRecord[];
-  go: (s: Screen) => void;
-  playingId?: string;
-  setPlayingId: (id?: string) => void;
-  back: () => void;
-}) {
-  const { t } = useI18n();
-  const [publicRecords, setPublicRecords] = useState<SoundRecord[]>([]);
-  const [worldError, setWorldError] = useState('');
-  useEffect(() => {
-    if (!COMMUNITY_PUBLISHING_AVAILABLE) return;
-    const controller = new AbortController();
-    void worldSounds(controller.signal).then(setPublicRecords).catch(() => { if (!controller.signal.aborted) setWorldError(t('worldLoadFailed')); });
-    return () => controller.abort();
-  }, [t]);
-  const groups = useMemo(() => {
-    const result = new Map<string, SoundRecord[]>();
-    for (const record of publicRecords) {
-      const key =
-        `${record.location!.city}, ${record.location!.country}`.toLocaleLowerCase();
-      result.set(key, [...(result.get(key) || []), record]);
-    }
-    return result;
-  }, [publicRecords]);
-  const markers = useMemo(
-    () =>
-      [...groups.entries()].flatMap(([key, sounds]) => {
-        const location = sounds[0].location!;
-        if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng))
-          return [];
-        return [
-          {
-            id: key,
-            city: sounds[0].location!.city!,
-            country: sounds[0].location!.country!,
-            lat: location.lat,
-            lng: location.lng,
-            count: sounds.length,
-          },
-        ];
-      }),
-    [groups],
-  );
-  const [selected, setSelected] = useState<string>();
-  const sounds = selected ? groups.get(selected) || [] : [];
-  return (
-    <Shell variant="world" title={t("fieldWorld")} back={back}>
-      {worldError && <p role="alert">{worldError}</p>}
-      <div className="world-composition">
-        <FieldGlobe
-          markers={markers}
-          onMarker={(marker) => setSelected(marker.id)}
-        />
-      </div>
-      <p className="world-privacy">{t("worldPrivacy")}</p>
-      {markers.length === 0 ? (
-        <div className="world-empty">
-          <strong>{t("noPublic")}</strong>
-          <p>
-            {COMMUNITY_PUBLISHING_AVAILABLE
-              ? t("publishFirst")
-              : t("publicationUnavailable")}
-          </p>
-        </div>
-      ) : (
-        sounds.length > 0 && (
-          <section className="world-sounds">
-            <h2>
-              {sounds[0].location?.city}, {sounds[0].location?.country}
-            </h2>
-            {sounds.map((sound) => (
-              <button
-                key={sound.id}
-                onClick={() => { void worldAudio(sound.id).then(blob => player.play(sound.id, blob, value => setPlayingId(value ? sound.id : undefined))).catch(() => setWorldError(t('worldLoadFailed'))); }}
-              >
-                <span>{sound.emojis.join(" ")}</span>
-                <strong
-                  className={`record-title style-${sound.styleId || "grotesk"}`}
-                >
-                  {sound.title}
-                </strong>
-                <i>{playingId === sound.id ? "■" : "▶"}</i>
-              </button>
-            ))}
-          </section>
-        )
-      )}
-      <p className="hand world-manifesto">
-        {t("manifesto")
-          .split("\n")
-          .map((line, index) => (
-            <span key={line}>
-              {index > 0 && <br />}
-              {line}
-            </span>
-          ))}
-      </p>
     </Shell>
   );
 }

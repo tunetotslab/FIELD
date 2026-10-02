@@ -2,6 +2,7 @@ import { renderDraft } from "../audio/processing";
 import { decodeBlob } from "../audio/utils";
 import type { EffectId, SoundDraft } from "../types";
 import { createSoundRepository } from "../storage/db";
+import {createWorldPublisher} from '../storage/publication';
 import {
   EMOJI_COMPATIBILITY_VERSION,
   emojiCategories,
@@ -190,6 +191,7 @@ export async function runAudioChecks(
     "PASS trim 0.50–1.25s → 0.75s · Echo rate changes rendered repeat spacing/tail",
   );
   const name = `field-isolated-qa-${crypto.randomUUID()}`,
+    originalSize=fixture.originalBlob.size,
     repository = createSoundRepository(name);
   const record = {
     id: "disposable-fixture",
@@ -201,6 +203,9 @@ export async function runAudioChecks(
     favorite: false,
     visibility: "private" as const,
     audioBlob: clean.blob,
+    originalBlob:fixture.originalBlob,
+    editState:(({originalBlob:_original,...state})=>state)(fixture),
+    worldPublication:{state:'pending' as const,clientId:'isolated-test'},
     waveform: clean.waveform,
   };
   await repository.save(record);
@@ -209,6 +214,7 @@ export async function runAudioChecks(
     restored.audioBlob.size === clean.blob.size && restored.styleId === "gothic",
     "Blob persistence after DB reopen",
   );
+  assert(restored.originalBlob?.size===originalSize && restored.editState?.trimStart===fixture.trimStart && restored.worldPublication?.state==='pending','Original/edit state/offline intent persistence');
   await repository.save({ ...restored, title: "Renamed", favorite: true });
   const edited = (await repository.getAll())[0];
   assert(
@@ -217,10 +223,44 @@ export async function runAudioChecks(
   );
   await repository.remove(record.id);
   assert((await repository.getAll()).length === 0, "Blob deletion");
+  let isOnline=false, fail=true, calls=0;
+  const archive=new Map<string,string>();
+  const api={publishSound:async(record:import('../types').SoundRecord)=>{calls++;const key=record.worldPublication!.clientId;archive.set(key,'test-server-id');if(fail){fail=false;throw Error('Lost response');}return {id:archive.get(key)!};},removeWorldSound:async()=>({ok:true})};
+  const publisher=createWorldPublisher(repository,api,()=>isOnline,()=>true);
+  const queued=await publisher.uploadWorld({...record,worldPublication:undefined});
+  assert(queued.worldPublication?.state==='pending'&&calls===0,'Offline queue not persisted');
+  isOnline=true;
+  const reopened=createWorldPublisher(createSoundRepository(name),api,()=>isOnline,()=>true);
+  await reopened.retryPendingWorld();
+  const failed=(await repository.getAll())[0];
+  assert(failed.worldPublication?.state==='failed'&&failed.originalBlob?.size===originalSize,'Failed upload lost recording');
+  await Promise.all([reopened.uploadWorld(failed),reopened.uploadWorld(failed)]);
+  const uploaded=(await repository.getAll())[0];
+  assert(uploaded.worldPublication?.state==='published'&&Number(calls)===2&&archive.size===1,'Retry duplicated request or changed idempotency key');
+  await reopened.unpublishWorld(uploaded);
+  const unpublished=(await repository.getAll())[0];assert(!unpublished.worldPublication&&unpublished.audioBlob.size===clean.blob.size,'Unpublish removed local audio');
+  await repository.remove(record.id);
+  report('PASS offline queue · DB reopen / lost response / stable retry key / concurrent deduplication / unpublish keeps audio');
   indexedDB.deleteDatabase(name);
   report(
     "PASS isolated IndexedDB · save / reopen / rename / favorite / delete",
   );
+  const slot=(effect:EffectId)=>({effect,mix:70,pitchSemitones:7,echoDelayMs:340});
+  for(const effects of [['echo','space','resonator'],['flanger','destroy','chorus'],['reverse','pitch','lofi']] as EffectId[][]) {
+    const result=await renderDraft({...fixture,effectChain:effects.map(slot)}),buffer=await decodeBlob(result.blob);
+    let peak=0,sum=0,dc=0;
+    for(let c=0;c<buffer.numberOfChannels;c++){const data=buffer.getChannelData(c);assert(data.every(Number.isFinite),'Chain invalid sample');for(const sample of data) {peak=Math.max(peak,Math.abs(sample));sum+=sample*sample;dc+=sample;}}
+    const count=buffer.length*buffer.numberOfChannels;
+    assert(peak<=.981,'Chain clipping');assert(Math.abs(dc/count)<.05,'Chain DC overload');assert(Math.sqrt(sum/count)<.5,'Chain excessive loudness');assert(result.duration<=60,'Chain over 60s');
+    report(`PASS FX chain ${effects.join(' → ')} · peak ${peak.toFixed(3)} · ${result.duration.toFixed(2)}s`);
+    samples.push({name:`chain-${effects.join('-')}`,blob:result.blob});
+  }
+  const bypassChain=await renderDraft({...fixture,effectChain:[{...slot('echo'),bypassed:true}]});
+  assert(bypassChain.blob.size===clean.blob.size,'Chain bypass length');
+  const dryChain=await decodeBlob(bypassChain.blob);
+  assert(dryChain.getChannelData(0).every((v,i)=>v===dry[i]),'Chain bypass is not original');
+  let tooMany=false;try {await renderDraft({...fixture,effectChain:Array.from({length:4},()=>slot('echo'))});}catch{tooMany=true;}
+  assert(tooMany,'Four effects accepted');
   report(`COMPLETE — ${checks} assertions passed`);
   return samples;
 }

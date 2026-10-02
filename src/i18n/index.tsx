@@ -7,7 +7,9 @@ import {
 } from "react";
 
 export type Locale = "en" | "ru" | "hy" | "zh-TW";
+import {worldEn,worldRu,worldHy,worldZh} from './world';
 const en = {
+  ...worldEn,
   appearance: 'Appearance', lightTheme: 'Light', systemTheme: 'Device / Telegram',
   soundActions: 'Sound actions',
   publishFailed: 'Saved on this device. Publishing failed; try again when online.', worldLoadFailed: 'Could not load FIELD World. Please try again later.',
@@ -157,6 +159,7 @@ const en = {
 } as const;
 type Key = keyof typeof en;
 const ru: Record<Key, string> = {
+  ...worldRu,
   ...en,
   appearance: 'Оформление', lightTheme: 'Светлая', systemTheme: 'Тема устройства / Telegram',
   soundActions: 'Действия с записью',
@@ -302,6 +305,7 @@ const ru: Record<Key, string> = {
   publicationUnavailable: "Общая публикация пока не подключена",
 };
 const hy: Record<Key, string> = {
+  ...worldHy,
   ...en,
   appearance: 'Տեսք', lightTheme: 'Լուսավոր', systemTheme: 'Սարքի / Telegram-ի թեմա', soundActions: 'Ձայնագրության գործողություններ',
   donate: 'Աջակցել', randomDonate: 'Պատահական նվիրատվություն', donateIntro: 'Աջակցեք FIELD-ին և Tune Tots Lab-ին։ Նվիրատվությունը կամավոր է։',
@@ -447,6 +451,7 @@ const hy: Record<Key, string> = {
   publicationUnavailable: "Ընդհանուր հրապարակումը դեռ միացված չէ",
 };
 const zh: Record<Key, string> = {
+  ...worldZh,
   ...en,
   appearance: '外觀', lightTheme: '淺色', systemTheme: '裝置 / Telegram 主題', soundActions: '錄音操作',
   donate: '贊助', randomDonate: '隨機贊助', donateIntro: '支持 FIELD 和 Tune Tots Lab。贊助完全自願。',
