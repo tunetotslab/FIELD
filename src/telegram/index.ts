@@ -21,6 +21,8 @@ type TelegramWebApp = {
   colorScheme?: "light" | "dark";
   openInvoice?: (url: string, callback: (status: string) => void) => void;
   openLink?: (url: string) => void;
+  openTelegramLink?: (url: string) => void;
+  shareMessage?: (id: string, callback?: (sent: boolean) => void) => void;
   ready?: () => void;
   expand?: () => void;
   setHeaderColor?: (color: string) => void;
@@ -100,6 +102,21 @@ export const telegram = {
   },
   openBrowser(url: string) {
     if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
-    else window.open(url, '_blank', 'noopener,noreferrer');
+    else window.open(url, "_blank", "noopener,noreferrer");
+  },
+  openChat(url: string) {
+    if (window.Telegram?.WebApp?.openTelegramLink)
+      window.Telegram.WebApp.openTelegramLink(url);
+    else window.open(url, "_blank", "noopener,noreferrer");
+  },
+  shareFile(id: string) {
+    const app = window.Telegram?.WebApp;
+    if (app?.shareMessage && app.isVersionAtLeast?.("8.0")) {
+      try {
+        app.shareMessage(id);
+      } catch {
+        /* The WAV is already in the private bot chat. */
+      }
+    }
   },
 };

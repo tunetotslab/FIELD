@@ -6,6 +6,7 @@ import { worldRoute, wavDuration } from './world.mjs';
 import { readUploadForm, UploadLimitError } from './upload.mjs';
 import { moderationUpdate, notifyReport } from './moderation.mjs';
 import { serveDownload } from './downloads.mjs';
+import { transferPrivateFile } from './files.mjs';
 import { deliverWorld } from './world-delivery.mjs';
 import { deliverReportOutcomes } from './moderation.mjs';
 import {
@@ -270,6 +271,7 @@ async function route(request, env, ctx) {
   let user;
   try { user = await authenticate((request.headers.get('Authorization') || '').replace(/^tma /,''), env.BOT_TOKEN); }
   catch { return json({error:'Unauthorized'},401); }
+  if(url.pathname==='/files/telegram' && request.method==='POST') return transferPrivateFile(request,env,user);
   if (url.pathname === '/donations' && request.method === 'POST') {
     if (Number(request.headers.get('Content-Length')) > 2048) return json({error:'Too large'},413);
     const {amount} = await request.json();

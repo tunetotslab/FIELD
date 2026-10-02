@@ -1,4 +1,8 @@
 export const worldEn = {
+  telegramFileNotice: 'In Telegram, Export/Share sends the WAV to your private FIELD bot chat. It is not published to World.',
+  fileDelivered: 'The WAV is in your private FIELD bot chat. Save or forward the file there.', fileBotChat: 'Open FIELD bot chat',
+  fileTransferUnknown: 'Delivery is uncertain. Check the private FIELD bot chat before retrying.', fileTransferDenied: 'Allow messages from FIELD: open the bot chat and press Start, then retry.', fileTransferFailed: 'Could not transfer the WAV. Keep this screen open and retry.', transferringFile: 'Transferring WAV…',
+  publicationStorageFailed: 'Could not update the local Library. Keep this screen open and export the sound before closing it.',
   shareWav: 'SHARE WAV', shareFailed: 'Could not open file sharing. Your audio stays on this device.',
   worldTelegramOnly: 'Open FIELD from its Telegram bot to view World. This browser has no Telegram session.',
   emailComposeChoice: 'Choose Gmail in the browser or your default mail app. If no mail app is configured, copy the address above.', defaultMail: 'Default mail app',
@@ -72,6 +76,10 @@ export const worldEn = {
 };
 type Copy = Record<keyof typeof worldEn, string>;
 export const worldRu: Copy = {
+  telegramFileNotice: 'В Telegram Export/Share передаёт WAV в твой личный чат с FIELD-ботом. Это не публикация в World.',
+  fileDelivered: 'WAV уже в твоём личном чате с FIELD-ботом. Там его можно сохранить или переслать.', fileBotChat: 'Открыть чат с FIELD-ботом',
+  fileTransferUnknown: 'Статус доставки неизвестен. Проверь личный чат с FIELD-ботом перед повтором.', fileTransferDenied: 'Разреши сообщения FIELD: открой чат с ботом, нажми Start и повтори.', fileTransferFailed: 'Не удалось передать WAV. Оставь экран открытым и повтори.', transferringFile: 'Передаём WAV…',
+  publicationStorageFailed: 'Не удалось обновить локальную Library. Оставь этот экран открытым и экспортируй звук перед закрытием.',
   shareWav: 'ПОДЕЛИТЬСЯ WAV', shareFailed: 'Не удалось открыть отправку файла. Аудио остаётся на устройстве.',
   worldTelegramOnly: 'Открой FIELD из его Telegram-бота, чтобы увидеть World. В этом браузере нет сессии Telegram.',
   emailComposeChoice: 'Выбери Gmail в браузере или свою почтовую программу. Если она не настроена, скопируй адрес выше.', defaultMail: 'Почтовая программа',
@@ -145,6 +153,10 @@ export const worldRu: Copy = {
     "Повторить загрузку в группу? Если предыдущий запрос успел завершиться до обрыва связи, может отправиться вторая копия.",
 };
 export const worldHy: Copy = {
+  telegramFileNotice: 'Telegram-ում Export/Share-ը WAV-ը փոխանցում է FIELD բոտի հետ քո անձնական չատին։ Սա World-ի հրապարակում չէ։',
+  fileDelivered: 'WAV-ը քո անձնական FIELD բոտի չատում է։ Այնտեղ կարող ես պահել կամ փոխանցել ֆայլը։', fileBotChat: 'Բացել FIELD բոտի չատը',
+  fileTransferUnknown: 'Առաքման կարգավիճակն անհայտ է։ Կրկնելուց առաջ ստուգիր FIELD բոտի անձնական չատը։', fileTransferDenied: 'Թույլատրի՛ր FIELD-ի հաղորդագրությունները․ բացիր բոտի չատը, սեղմիր Start և կրկնիր։', fileTransferFailed: 'WAV-ը չհաջողվեց փոխանցել։ Էջը բաց պահիր և կրկնիր։', transferringFile: 'Փոխանցում ենք WAV-ը…',
+  publicationStorageFailed: 'Տեղական Ձայնադարանը չհաջողվեց թարմացնել։ Պահիր այս էջը բաց և արտահանիր ձայնը մինչև փակելը։',
   shareWav: 'ԿԻՍՎԵԼ WAV-ՈՎ', shareFailed: 'Ֆայլով կիսվելը չհաջողվեց։ Ձայնը մնում է սարքում։',
   worldTelegramOnly: 'World-ը տեսնելու համար բացիր FIELD-ը իր Telegram բոտից։ Այս դիտարկիչում Telegram սեսիա չկա։',
   emailComposeChoice: 'Ընտրիր Gmail-ը դիտարկիչում կամ քո փոստային ծրագիրը։ Եթե ծրագիրը կարգավորված չէ, պատճենիր վերևի հասցեն։', defaultMail: 'Փոստային ծրագիր',
@@ -217,6 +229,10 @@ export const worldHy: Copy = {
     "Կրկի՞ն ուղարկել խումբ։ Եթե նախորդ հարցումն ավարտվել է, կարող է երկրորդ պատճեն ուղարկվել։",
 };
 export const worldZh: Copy = {
+  telegramFileNotice: '在 Telegram 中，Export/Share 會把 WAV 傳送到你與 FIELD 機器人的私人聊天，不會發佈到 World。',
+  fileDelivered: 'WAV 已在你與 FIELD 機器人的私人聊天中。請在那裡儲存或轉傳檔案。', fileBotChat: '開啟 FIELD 機器人聊天',
+  fileTransferUnknown: '傳送狀態不明。重試前請先查看 FIELD 機器人的私人聊天。', fileTransferDenied: '請允許 FIELD 訊息：開啟機器人聊天、按 Start，然後重試。', fileTransferFailed: '無法傳送 WAV。請保持此畫面開啟並重試。', transferringFile: '正在傳送 WAV…',
+  publicationStorageFailed: '無法更新裝置上的聲音庫。請保持此畫面開啟，並在關閉前匯出聲音。',
   shareWav: '分享 WAV', shareFailed: '無法開啟檔案分享。音訊仍保留在裝置上。',
   worldTelegramOnly: '請從 FIELD 的 Telegram 機器人開啟應用程式以查看 World。此瀏覽器沒有 Telegram 工作階段。',
   emailComposeChoice: '選擇在瀏覽器使用 Gmail 或預設郵件程式。若未設定郵件程式，請複製上方地址。', defaultMail: '預設郵件程式',

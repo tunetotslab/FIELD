@@ -2,6 +2,7 @@ import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
 import { preparePublicationAudio, PublicationAudioError } from "./audio/publication";
 import { fetchWithDeadline, NetworkRequestError } from './network';
+import { StorageError } from './storage/errors';
 export type WorldSound = Pick<
   SoundRecord,
   "id" | "title" | "emojis" | "duration" | "createdAt" | "styleId" | "waveform"
@@ -24,7 +25,8 @@ export async function requestError(response: Response): Promise<FieldRequestErro
   try { const body = await response.json(); if (typeof body.error === 'string') reason = body.error.slice(0, 150); } catch {}
   return new FieldRequestError(response.status, reason);
 }
-export function publicationErrorMessage(error: unknown, t: (key: 'sessionExpired' | 'publicationAudioFailed' | 'publicationNetworkFailed' | 'publicationTooLarge' | 'publicationCityFailed' | 'publicationMetadataFailed' | 'publicationAccessFailed' | 'publicationLimitFailed' | 'publicationServiceFailed') => string): string {
+export function publicationErrorMessage(error: unknown, t: (key: 'sessionExpired' | 'publicationStorageFailed' | 'publicationAudioFailed' | 'publicationNetworkFailed' | 'publicationTooLarge' | 'publicationCityFailed' | 'publicationMetadataFailed' | 'publicationAccessFailed' | 'publicationLimitFailed' | 'publicationServiceFailed') => string): string {
+  if (error instanceof StorageError) return `${t('publicationStorageFailed')} [${error.step}:${error.reason}]`;
   if (error instanceof PublicationAudioError) return `${t('publicationAudioFailed')} [${error.step}]`;
   if (error instanceof NetworkRequestError) return `${t('publicationNetworkFailed')} [${error.step}:${error.kind}]`;
   if (!(error instanceof FieldRequestError)) return `${t('publicationServiceFailed')} [LOCAL:${error instanceof Error && /^[a-zA-Z]{1,30}$/.test(error.name) ? error.name : 'Error'}]`;

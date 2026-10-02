@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "node scripts/dsp.test.mjs && node scripts/recorder.test.mjs && node scripts/tasks.test.mjs && node scripts/compatibility.test.mjs && node scripts/cities.test.mjs && node scripts/uploads.test.mjs && node scripts/server.test.mjs && node scripts/world.test.mjs",
+    "test": "node scripts/dsp.test.mjs && node scripts/recorder.test.mjs && node scripts/tasks.test.mjs && node scripts/compatibility.test.mjs && node scripts/cities.test.mjs && node scripts/uploads.test.mjs && node scripts/server.test.mjs && node scripts/world.test.mjs && node scripts/files.test.mjs",
     "dev": "vite --host 0.0.0.0",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",
@@ -30,6 +30,7 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
     "prettier": "^3.9.9"
   }
 }

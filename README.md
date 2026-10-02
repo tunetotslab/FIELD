@@ -15,9 +15,11 @@ GitHub Actions in repository settings, the production URL is
 bot's Main Mini App or as a `web_app` button. The bot/backend is intentionally not part of this frontend;
 private recordings remain in IndexedDB. Authenticated World and Tune Tots Group
 publication use the existing Cloudflare Worker, D1 and private R2 bucket.
-Ready exports/shares the actual WAV through native file sharing, with a browser
-download fallback. Select Telegram in the share sheet to send a private file;
-no metadata-only `sendData` message or cloud upload is used for this action.
+Ready and Library prepare real WAV bytes independently of publication. In Telegram,
+Export sends the WAV to the user's private FIELD bot chat; Share opens Telegram's
+native recipient selector when supported, with the bot copy as the fallback.
+The signed session alone selects the recipient. Other browsers retain system file
+sharing/download. Private transfer stores a delivery receipt, not audio in World/R2.
 World requires a signed Telegram session; the ordinary-browser map explains this.
 
 ## Run

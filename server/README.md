@@ -179,3 +179,32 @@ FIELD home response. Successful payments are recorded by unique Telegram charge
 ID before an owner notification can be claimed, so webhook retries do not count
 or notify twice. Apply `migrations/0001_admin_donations.sql` before deploying the
 Worker version that uses the added nullable donor and notification columns.
+
+## Playable legacy audio / private file actions repair
+
+Local `field-audio` storage now writes ArrayBuffer envelopes and reads both those
+and legacy Blob rows. No database wipe or bulk overwrite is required. Preserve the
+new envelope reader in any rollback; older clients cannot interpret newly saved
+byte envelopes. Existing originals/edit states remain on the user's device.
+
+Before deploying this Worker to an existing production DB, commit/push the code,
+then apply **only** `migrations/0006_private_file_transfers.sql`. This adds receipt
+metadata; it does not change sounds, groups, donations or R2 objects. Fresh installs
+use `schema.sql`. Keep this additive table on rollback.
+
+`POST /files/telegram` requires the existing Origin and signed Telegram session,
+bounded multipart input (25 MB body / 24 MB WAV), a UUID clientId and export/share
+action. It delivers the full valid PCM WAV solely to the authenticated user's own
+bot chat. Recipient fields in submitted metadata are ignored. No R2 writes and no
+World/Group publication occur. Share optionally prepares a cached-document inline
+message for native Telegram `shareMessage` (WebApp 8.0+). Rejected preparation does
+not lose the already delivered private copy; its bot-chat link remains available.
+A blocked/not-started bot produces a visible error instructing the user to start it.
+
+D1 receipts keyed by user/clientId/hash deduplicate successful transfers and claim
+concurrent delivery. Explicit Telegram rejection permits a manual retry; ambiguous
+network/acknowledgement and interrupted `sending` never automatically resend. Check
+the private bot chat first. Requests are limited to ten new receipts per user/minute.
+No initData, bot token, Telegram file ID or private audio is returned in public URLs.
+Regression `scripts/files.test.mjs` uses SQLite plus mocked Telegram; it sends no
+production messages and leaves production World/Group audio untouched.

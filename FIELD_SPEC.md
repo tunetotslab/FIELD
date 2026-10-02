@@ -1848,13 +1848,32 @@ without requiring Web Audio allocation or reapplying FX. Unsupported encodings
 retain the bounded decode fallback; every preparation/network failure has a safe
 stage code. Deadlines cover response bodies as well as headers.
 
-Ready prepares the WAV before the export/share gesture. Share sends actual file
-bytes using the system share sheet (choose Telegram there), never a metadata-only
-sendData message. Keep export available after failed publication; download is the
-fallback when native file sharing is unavailable. No private audio is uploaded
-solely to share it. Outside Telegram, explain the required World session rather
+Ready and Library prepare actual WAV bytes before export/share; neither action
+requires saving or publishing successfully. In ordinary browsers, use native file
+sharing or download. In Telegram WebViews, which may silently ignore blob downloads
+and Web Share, use the existing signed Worker to send the explicitly requested WAV
+only to the authenticated user's private FIELD bot chat. Explain this private
+transfer beside the buttons. Native Telegram shareMessage opens the user's recipient
+selector; if unavailable, the private bot copy remains available for saving/forwarding.
+Never auto-send to other people, World or a course. Private export preserves the full
+file (World/Group still cap public/shared renders at 60 seconds). Store delivery
+receipts only in D1, no exported private audio in R2. Stable per-session transfer IDs
+prevent duplicate delivery on retry; ambiguous Telegram delivery must require checking
+the bot chat rather than automatic resending. Outside Telegram, explain the required World session rather
 than implying that an empty map is the global archive. Mail offers copy, a browser
 Gmail composer and an explicit default-mail option with consistent pink controls.
 About contains a soft link to the existing voluntary donation screen.
+
+## Local UnknownError and private WAV repair — October 2, 2026
+
+A playable historical Blob must not be re-put into IndexedDB as a file-backed Blob
+handle. Persist render/original ArrayBuffer bytes and their MIME types in the
+versioned __fieldAudioData storage envelope. Materialize fresh Blobs at the centralized
+repository read boundary. Read legacy Blob rows in place and upgrade only on explicit
+save; preserve original/render samples, metadata, editor and publication state.
+Read audio before starting a transaction and resolve saves only after commit. Failures
+leave the old row intact and report a safe DB_OPEN/READ/WRITE or AUDIO_READ/FORMAT
+stage with exception name. Never clear storage to recover. Rollback must retain the
+byte-envelope reader, since explicitly saved rows now use it.
 
 **END OF FIELD_SPEC.md**

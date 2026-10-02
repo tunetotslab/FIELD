@@ -5,7 +5,7 @@ import { removeWorldDelivery } from "./world-delivery.mjs";
 // City-level archive only. Never copy arbitrary client metadata into public rows.
 const json = (body, status = 200) => Response.json(body, { status });
 export const REPORT_REASONS = ["privacy", "abuse", "copyright", "other"];
-export function wavDuration(bytes) {
+export function wavDuration(bytes, maximumSeconds = 60) {
   const view = new DataView(bytes);
   const text = (offset) =>
     new TextDecoder().decode(bytes.slice(offset, offset + 4));
@@ -56,7 +56,7 @@ export function wavDuration(bytes) {
     size % block ||
     !Number.isFinite(duration) ||
     duration <= 0 ||
-    duration > 60
+    duration > maximumSeconds
   )
     throw Error("Maximum 60 seconds");
   return duration;

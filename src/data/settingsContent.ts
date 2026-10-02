@@ -33,7 +33,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "Личные записи",
           "paragraphs": [
-            "Аудио и карточки Library хранятся на этом устройстве. Сохранение не публикует запись. Удаление локальной копии не удаляет её публикацию: сначала убери её из World, если она больше не должна быть публичной."
+            "Аудио и карточки Library хранятся на этом устройстве. Если нажать Export/Share внутри Telegram, WAV передаётся через FIELD в твой личный чат с ботом — его можно сохранить или переслать оттуда. Это не публикация в World или Group. Сохранение не публикует запись. Удаление локальной копии не удаляет её публикацию: сначала убери её из World, если она больше не должна быть публичной."
           ]
         },
         {
@@ -110,7 +110,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "Private recordings",
           "paragraphs": [
-            "Library audio and cards stay on this device. Saving does not publish them. Deleting a local copy does not remove a publication; remove it from World first if it should no longer be public."
+            "Library audio and cards stay on this device. Tapping Export/Share inside Telegram transfers the WAV through FIELD to your own private bot chat, where you can save or forward it. This does not publish to World or Group. Saving does not publish them. Deleting a local copy does not remove a publication; remove it from World first if it should no longer be public."
           ]
         },
         {
@@ -187,7 +187,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "Անձնական ձայնագրություններ",
           "paragraphs": [
-            "Ձայնադարանի ֆայլերը պահվում են այս սարքում։ Պահելը չի հրապարակում։ Տեղական պատճենը ջնջելը չի հեռացնում հրապարակումը․ անհրաժեշտության դեպքում նախ հեռացրու այն World-ից։"
+            "Ձայնադարանի ֆայլերը պահվում են այս սարքում։ Telegram-ում Export/Share սեղմելիս WAV-ը FIELD-ի միջոցով ուղարկվում է բոտի հետ քո անձնական չատին՝ պահելու կամ փոխանցելու համար։ Սա World կամ Group-ի հրապարակում չէ։ Պահելը չի հրապարակում։ Տեղական պատճենը ջնջելը չի հեռացնում հրապարակումը․ անհրաժեշտության դեպքում նախ հեռացրու այն World-ից։"
           ]
         },
         {
@@ -264,7 +264,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "私人錄音",
           "paragraphs": [
-            "聲音庫的音訊與卡片存於此裝置。儲存不會發佈。刪除本機副本不會移除公開發佈；若不再希望公開，請先從 World 移除。"
+            "聲音庫的音訊與卡片存於此裝置。在 Telegram 中按 Export/Share，WAV 會透過 FIELD 傳送到你與機器人的私人聊天，供你儲存或轉傳。這不會發佈到 World 或 Group。儲存不會發佈。刪除本機副本不會移除公開發佈；若不再希望公開，請先從 World 移除。"
           ]
         },
         {

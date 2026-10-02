@@ -28,13 +28,15 @@ export async function fetchWithDeadline(
     typeof location === "undefined" ? "https://field.invalid" : location.href,
   ).pathname;
   const step =
-    path === "/cities/resolve"
-      ? "CITY_RESOLVE"
-      : path === "/world" && options.method === "POST"
-        ? "WORLD_UPLOAD"
-        : path.includes("/groups/") && path.endsWith("/sounds")
-          ? "GROUP_UPLOAD"
-          : "FIELD_REQUEST";
+    path === "/files/telegram"
+      ? "FILE_TRANSFER"
+      : path === "/cities/resolve"
+        ? "CITY_RESOLVE"
+        : path === "/world" && options.method === "POST"
+          ? "WORLD_UPLOAD"
+          : path.includes("/groups/") && path.endsWith("/sounds")
+            ? "GROUP_UPLOAD"
+            : "FIELD_REQUEST";
   const timer = setTimeout(() => {
     expired = true;
     cancel();

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import {existsSync} from 'node:fs';
 import { transformWithOxc } from 'vite';
 import { wavDuration } from '../server/world.mjs';
+import { indexedDB, IDBObjectStore } from 'fake-indexeddb';
 
 // Load the actual client modules, replacing only build-time configuration.
 const modules = new Map();
@@ -11,7 +13,8 @@ async function moduleUrl(path) {
   let {code} = await transformWithOxc(await readFile(new URL(path, import.meta.url), 'utf8'), path);
   const imports = [...code.matchAll(/from ["'](\.[^"']+)["']/g)];
   for (const match of imports) {
-    const resolved = new URL(match[1] + '.ts', new URL(path, import.meta.url));
+    let resolved = new URL(match[1] + '.ts', new URL(path, import.meta.url));
+    if(!existsSync(resolved)) resolved=new URL(match[1]+'/index.ts',new URL(path,import.meta.url));
     const next = await moduleUrl(resolved.href);
     code = code.replace(match[0], `from ${JSON.stringify(next)}`);
   }
@@ -240,3 +243,78 @@ assert.equal(recovered.worldPublication.state,'published');assert.equal(recovere
 assert.equal(recovered.audioBlob,savedPcm);assert.equal(recovered.originalBlob,saved);
 crypto.randomUUID=originalRandomUUID;
 console.log('PASS recording/publication UUIDs when Safari randomUUID is absent; real upload queue preserves bytes and idempotency across failure/retry');
+
+// Reproduce the WebKit Blob re-put failure at the real repository boundary.
+// The isolated in-memory database never opens the user's field-audio database.
+globalThis.indexedDB=indexedDB;
+const {createSoundRepository}=await load('../src/storage/db.ts');
+const {StorageError}=await load('../src/storage/errors.ts');
+const storageName='field-storage-regression';
+const testDb=await new Promise((resolve,reject)=>{
+ const open=indexedDB.open(storageName,1);open.onupgradeneeded=()=>open.result.createObjectStore('sounds',{keyPath:'id'});open.onsuccess=()=>resolve(open.result);open.onerror=()=>reject(open.error);
+});
+const rawWrite = record=>new Promise((resolve,reject)=>{
+ const transaction=testDb.transaction('sounds','readwrite');
+ try {transaction.objectStore('sounds').put(record);} catch(error){reject(error);return;}
+ transaction.oncomplete=resolve;transaction.onabort=()=>reject(transaction.error);
+});
+const legacyRow={...pcmRecord,worldPublication:undefined,unknownMetadata:{keep:true},editState:{effect:'echo',trimStart:.1,trimEnd:.8},groupPublication:{state:'failed',groupId:'course'}};
+await rawWrite(legacyRow);
+const nativePut=IDBObjectStore.prototype.put;
+const hasBlob = value=>value instanceof Blob || (value && typeof value==='object' && !(value instanceof ArrayBuffer) && Object.values(value).some(hasBlob));
+IDBObjectStore.prototype.put=function(value,...args){if(hasBlob(value))throw new DOMException('Error preparing Blob/File data to be stored in object store','UnknownError');return nativePut.call(this,value,...args);};
+await assert.rejects(rawWrite(legacyRow),{name:'UnknownError'});
+const byteRepository=createSoundRepository(storageName);
+const legacyRestored=(await byteRepository.getAll())[0];
+assert.deepEqual(await legacyRestored.audioBlob.arrayBuffer(),pcmBytes);
+await byteRepository.save({...legacyRestored,title:'Preserved rename'});
+const rawStored=await new Promise((resolve,reject)=>{const transaction=testDb.transaction('sounds','readonly');const get=transaction.objectStore('sounds').get(legacyRow.id);get.onsuccess=()=>resolve(get.result);get.onerror=()=>reject(get.error);});
+assert.equal(hasBlob(rawStored),false);
+assert.deepEqual(rawStored.__fieldAudioData.render.bytes,pcmBytes);
+assert.deepEqual(rawStored.__fieldAudioData.original.bytes,await saved.arrayBuffer());
+const migrated=(await byteRepository.getAll())[0];
+assert.equal(migrated.title,'Preserved rename');assert.deepEqual(migrated.editState,legacyRow.editState);assert.deepEqual(migrated.groupPublication,legacyRow.groupPublication);assert.deepEqual(migrated.unknownMetadata,legacyRow.unknownMetadata);
+assert.deepEqual(await migrated.audioBlob.arrayBuffer(),pcmBytes);assert.deepEqual(await migrated.originalBlob.arrayBuffer(),await saved.arrayBuffer());
+const bytePublisher=createWorldPublisher(byteRepository,{publishSound:async record=>{assert.deepEqual(await record.audioBlob.arrayBuffer(),pcmBytes);return {id:'real-client-server',location:current.location};},removeWorldSound:async()=>{}},()=>true,()=>true);
+const bytePublished=await bytePublisher.uploadWorld(migrated);
+assert.equal(bytePublished.worldPublication.state,'published');
+await byteRepository.save({...bytePublished,groupPublication:{...bytePublished.groupPublication,state:'published'}});
+assert.equal((await byteRepository.getAll())[0].groupPublication.state,'published');
+assert.match(publicationErrorMessage(new StorageError('DB_WRITE',new DOMException('Private details','UnknownError')),key=>key),/publicationStorageFailed \[DB_WRITE:UnknownError\]/);
+IDBObjectStore.prototype.put=function(){throw new DOMException('Full','QuotaExceededError');};
+await assert.rejects(byteRepository.save({...bytePublished,title:'Must not overwrite'}),error=>error instanceof StorageError && error.reason==='QuotaExceededError');
+IDBObjectStore.prototype.put=nativePut;
+assert.equal((await byteRepository.getAll())[0].title,'Preserved rename');
+assert.deepEqual(await (await byteRepository.getAll())[0].audioBlob.arrayBuffer(),pcmBytes);
+testDb.close();
+console.log('PASS reproduced WebKit UnknownError on Blob put; byte storage repairs legacy save/World/Group state, preserves render/original/FX/unknown metadata and keeps row after quota failure');
+
+// Exercise the actual private-file client with signed Telegram and native SDK.
+const {prepareWavFile,runFileAction,FileTransferError,fileActionErrorMessage}=await load('../src/audio/fileActions.ts');
+const fullRender=audioBufferToWav(new TestBuffer({length:8000*61,numberOfChannels:1,sampleRate:8000}));
+const fullBytes=await fullRender.arrayBuffer();
+const preparedFile=await prepareWavFile(new Blob([fullBytes],{type:'application/octet-stream'}),'Legacy export');
+assert.equal(wavDuration(await preparedFile.arrayBuffer(),Infinity),61);assert.deepEqual(await preparedFile.arrayBuffer(),fullBytes);
+const relayRequests=[];const nativeShares=[];
+window.Telegram={WebApp:{initData:'signed-session',isVersionAtLeast:()=>true,shareMessage:id=>nativeShares.push(id)}};
+let transferFailure=false;
+globalThis.fetch=async(url,options)=>{
+ assert.equal(url,'https://field.test/files/telegram');assert.equal(options.headers.Authorization,'tma signed-session');
+ const metadata=JSON.parse(options.body.get('metadata'));relayRequests.push(metadata);
+ assert.equal(metadata.user_id,undefined);assert.equal(metadata.chat_id,undefined);
+ assert.deepEqual(await options.body.get('audio').arrayBuffer(),fullBytes);
+ return Response.json(transferFailure?{code:'FILE_UNCERTAIN'}:{delivered:true,botUrl:'https://t.me/FIELDtestbot',preparedMessageId:'prepared-client'}, {status:transferFailure?409:200});
+};
+assert.deepEqual(await runFileAction(preparedFile,'export'),{destination:'telegram',botUrl:'https://t.me/FIELDtestbot'});
+const recreated=await prepareWavFile(fullRender,'Legacy export');
+await runFileAction(recreated,'share');assert.equal(relayRequests[0].clientId,relayRequests[1].clientId);assert.deepEqual(nativeShares,['prepared-client']);
+transferFailure=true;await assert.rejects(runFileAction(recreated,'share'),error=>error instanceof FileTransferError && error.code==='FILE_UNCERTAIN');
+assert.equal(relayRequests[2].clientId,relayRequests[0].clientId);
+assert.match(fileActionErrorMessage(new FileTransferError('FILE_UNCERTAIN',409),key=>key),/fileTransferUnknown.*FILE_UNCERTAIN/);
+assert.match(fileActionErrorMessage(new FileTransferError('FILE_TELEGRAM_REJECTED',403),key=>key),/fileTransferDenied/);
+// Outside Telegram, native browser sharing still starts within the click.
+window.Telegram=undefined;let nativeBrowserShare=false;
+Object.defineProperty(globalThis,'navigator',{configurable:true,value:{canShare:()=>true,share:({files})=>{assert.equal(files[0],preparedFile);nativeBrowserShare=true;return Promise.resolve();}}});
+const browserSharing=runFileAction(preparedFile,'share');assert.equal(nativeBrowserShare,true);await browserSharing;
+Object.defineProperty(globalThis,'navigator',{configurable:true,value:realNavigator});
+console.log('PASS actual export/share client: full legacy WAV without decode/storage, signed Telegram relay, stable retry identity, native Telegram selector, visible ambiguous/rejected errors and synchronous browser sharing');

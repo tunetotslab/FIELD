@@ -383,3 +383,39 @@ World включается для контрольного теста польз
   новых upload stages, secure ID fallback, Share WAV, авторского имени, donation
   и session/contact текста. Worker/D1/R2 и их данные в этом follow-up не менялись;
   рабочий Worker остаётся `bc85632f-c616-46a1-812e-d83454f6888b`.
+
+
+### Новый путь после LOCAL:UnknownError — 2 октября 2026
+
+- Пользователь подтвердил: проблемная старая запись проигрывается, но World/Group
+  отказывают мгновенно с `LOCAL:UnknownError`, Export/Share молчат. Второй iPhone
+  уже видит чужие World записи. Production read-only D1: 4 World, 6 Group; все 6
+  Group доставки отмечены delivered. Это не доказывает успешность проблемного файла.
+- Воспроизведён отказ IndexedDB put с Blob (WebKit class of failure). Реальный
+  repository теперь сохраняет байты ArrayBuffer вместо временных Blob handles.
+  Старые строки читаются без изменения; явное сохранение переносит render/original
+  и все edit/publication/unknown поля. Проверены byte equality и сохранность строки
+  при ошибке quota. Журнал iPhone недоступен, поэтому причина именно его внутреннего
+  WebKit сбоя не объявляется подтверждённой.
+- Export/Share получили другой путь для Telegram: по явному нажатию полный WAV
+  отправляется в личный чат пользователя с FIELD-ботом; Share вызывает native
+  shareMessage с cached document. Получатель определяется только signed initData.
+  Рядом с кнопками указано, куда передаётся файл. На World/в группу этот export
+  ничего не публикует, в R2 его не сохраняет; D1 хранит только delivery receipt.
+  Повторное действие использует прежний transfer ID; uncertain не рассылается вновь.
+  Браузер сохраняет прежнее системное Share/download. Это заменяет неподтверждённый
+  Web Share/blob-anchor путь предыдущего Telegram выпуска.
+- Исправлен finally Library retry: ошибка обновления списка больше не оставляет
+  действия навсегда заблокированными. Export/Share независимы от failed publication.
+- Регрессии используют реальный storage/client/Worker, isolated IndexedDB и SQLite;
+  Telegram замокан. Проверены auth/origin, payload bytes, private recipient,
+  full 61-second export, public 60-second cap, concurrency/idempotency,
+  explicit rejection/manual retry, ambiguous no-resend, rate limits и migration.
+- Физическая проверка ещё нужна: именно эта старая запись → World и Group;
+  Export → WAV в личном FIELD bot чате; Share → выбор чата/пересылка того же WAV.
+  Новая World запись должна воспроизводиться на втором телефоне после обновления.
+- Полный `npm test`, typecheck, lint и production build прошли. Браузерная QA
+  завершила 169 assertions: все FX/dry bypass, цепочки, trim, offline queue,
+  реальный IndexedDB save/reopen/rename/favorite и сохранность аудио при unpublish.
+  Использована только изолированная тестовая база; пользовательская Library не
+  открывалась, production Telegram сообщения не отправлялись.

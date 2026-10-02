@@ -11,7 +11,7 @@ import type {
 import { FieldRecorder } from "./audio/recorder";
 import { analyze, effectLabel, renderDraft } from "./audio/processing";
 import { changesAudio, patchDraft } from './audio/draft';
-import { wavFile, downloadWav, shareWav } from './audio/export';
+import { prepareWavFile, runFileAction, fileActionErrorMessage } from './audio/fileActions';
 import { newId } from './id';
 import { formatTime } from "./audio/utils";
 import { PlaybackManager } from "./audio/player";
@@ -298,21 +298,10 @@ export default function App() {
               ? t("savedGroup")
             : t("savedPrivate"),
       );
-    } catch {
-      setNotice(t('storageFailed'));
+    } catch (error) {
+      setNotice(publicationErrorMessage(error,t));
     } finally {
       setBusy(false);
-    }
-  };
-
-  const exportDraft = (blob: Blob) => {
-    if (!draft) return;
-    try {
-      void shareWav(wavFile(blob, draft.title || 'Untitled Sound')).catch(error => {
-        if (!(error instanceof Error && error.name === 'AbortError')) setNotice(t('shareFailed'));
-      });
-    } catch {
-      setNotice(t('shareFailed'));
     }
   };
 
@@ -423,7 +412,6 @@ export default function App() {
               done={() => go('library')}
               notice={notice}
               save={save}
-              exportSound={exportDraft}
               prepared={cacheReady}
               fresh={() => {
                 reusedRecord.current=undefined;
@@ -1546,7 +1534,7 @@ export function ReadyScreen({
   busy: boolean;
   notice: string;
   save: () => void;
-  exportSound: (blob: Blob) => void;
+  exportSound?: (blob: Blob) => void;
   prepared?: (source: SoundDraft, result: {blob:Blob;duration:number;waveform:number[]}) => void;
   fresh: () => void;
   back: () => void;
@@ -1557,14 +1545,25 @@ export function ReadyScreen({
   const [error, setError] = useState("");
   const [confirmWorld, setConfirmWorld] = useState(false);
   const [file, setFile] = useState<File>();
+  const [fileBusy,setFileBusy] = useState(false);
+  const [fileStatus,setFileStatus] = useState('');
+  const [botUrl,setBotUrl] = useState<string>();
   useEffect(() => {
     let active = true;
     setFile(undefined); setError('');
     void (draft.processedBlob ? Promise.resolve({blob:draft.processedBlob,duration:draft.processedDuration ?? draft.duration,waveform:draft.processedWaveform ?? draft.waveform}) : renderDraft(draft))
-      .then(result => {if (active) {setFile(wavFile(result.blob,draft.title || 'Untitled Sound'));if (!draft.processedBlob) prepared?.(draft,result);}})
-      .catch(() => {if (active) setError(`${t('publicationAudioFailed')} [EXPORT_PREPARE]`);});
+      .then(async result => {const preparedFile=await prepareWavFile(result.blob,draft.title || 'Untitled Sound');if (active) {setFile(preparedFile);if (!draft.processedBlob) prepared?.(draft,result);}})
+      .catch(error => {if (active) setError(fileActionErrorMessage(error,t));});
     return () => {active=false;};
   }, [draft, t, prepared]);
+  const fileAction = async (action:'share'|'export') => {
+    if(!file || fileBusy) return;
+    if(action==='export' && exportSound) {exportSound(file);return;}
+    setFileBusy(true);setFileStatus('');setError('');
+    try {const result=await runFileAction(file,action);if(result.destination==='telegram') {setFileStatus(t('fileDelivered'));setBotUrl(result.botUrl);}}
+    catch(error) {if(!(error instanceof Error && error.name==='AbortError')) setError(fileActionErrorMessage(error,t));}
+    finally {setFileBusy(false);}
+  };
   const play = async () => {
     if (playing) {
       player.stop();
@@ -1640,16 +1639,12 @@ export function ReadyScreen({
           </svg>
           <span>{busy ? t(phase) : !file ? t('preparing') : t("save")}</span>
         </button>
-        <button disabled={!file} onClick={() => file && exportSound(file)}>
+        <button disabled={!file || fileBusy} onClick={() => void fileAction('export')}>
           ⇧<span>EXPORT WAV</span>
         </button>
         <button
-          disabled={!file}
-          onClick={() => {
-            if (!file) return;
-            try {void shareWav(file).catch(error => {if (!(error instanceof Error && error.name === 'AbortError')) setError(t('shareFailed'));});}
-            catch {setError(t('shareFailed'));}
-          }}
+          disabled={!file || fileBusy}
+          onClick={() => void fileAction('share')}
         >
           ↗<span>{t('shareWav')}</span>
         </button>
@@ -1657,6 +1652,10 @@ export function ReadyScreen({
           ＋<span>NEW</span>
         </button>
       </div>
+      {telegram.isTelegram && <p className="notice">{t('telegramFileNotice')}</p>}
+      {fileBusy && <p className="notice" role="status">{t('transferringFile')}</p>}
+      {fileStatus && <p className="notice" role="status">{fileStatus}</p>}
+      {botUrl && <button className="secondary-button" onClick={() => telegram.openChat(botUrl)}>{t('fileBotChat')}</button>}
       {!file && !error && <p className="notice" role="status">{t('preparing')}</p>}
       {draft.visibility!=='private' && <p className="notice">{t('publicationLengthNotice')}</p>}
       {notice===t('savedWorld') && <div className="world-success"><button className="primary-button" onClick={seeMap}>{t('seeMap')}</button><button className="secondary-button" onClick={done}>{t('done')}</button></div>}
@@ -1692,6 +1691,14 @@ export function Library({
   const [renaming, setRenaming] = useState<SoundRecord>();
   const [menuRecord, setMenuRecord] = useState<SoundRecord>();
   const { t } = useI18n();
+  const [menuFile,setMenuFile] = useState<File>();
+  const [fileStatus,setFileStatus] = useState('');
+  const [fileBotUrl,setFileBotUrl] = useState<string>();
+  useEffect(() => {
+    let active=true;setMenuFile(undefined);setFileStatus('');setFileBotUrl(undefined);
+    if(menuRecord) void prepareWavFile(menuRecord.audioBlob,menuRecord.title).then(file=>{if(active)setMenuFile(file);}).catch(error=>{if(active)setFileStatus(fileActionErrorMessage(error,t));});
+    return () => {active=false;};
+  },[menuRecord,t]);
   const [renameValue, setRenameValue] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
   const retryGroup = async (r:SoundRecord) => {
@@ -1700,9 +1707,9 @@ export function Library({
       const result=r.groupPublication.serverId?await retryGroupDelivery(r.groupPublication.groupId,r.groupPublication.serverId):await publishGroupSound(r.groupPublication.groupId,r);
       await soundsDb.save({...r,groupPublication:{...r.groupPublication,serverId:result.id,state:result.telegramDeliveryState==='delivered'?'published':'failed'}});
       if(result.telegramDeliveryState!=='delivered')setNotice(t('savedGroupDeliveryFailed'));
-    } catch (error) {setNotice(publicationErrorMessage(error, t));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}
+    } catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);setMenuRecord(undefined);try {await reload();} catch(error) {setNotice(publicationErrorMessage(error,t));}}
   };
-  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}};
+  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);setMenuRecord(undefined);try {await reload();} catch(error) {setNotice(publicationErrorMessage(error,t));}}};
   const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);}};
   const shown = useMemo(
     () =>
@@ -1734,25 +1741,15 @@ export function Library({
     setRenaming(undefined);
     await reload();
   };
-  const share = async (r: SoundRecord) => {
+  const fileAction = async (action:'share'|'export') => {
+    if(!menuFile || actionBusy) return;
+    setActionBusy(true);setFileStatus('');
     try {
-      const file = new File([r.audioBlob], `${r.title}.wav`, {
-        type: "audio/wav",
-      });
-      if (
-        navigator.share &&
-        (!navigator.canShare || navigator.canShare({ files: [file] }))
-      )
-        await navigator.share({
-          title: r.title,
-          text: `${r.title} — FIELD by Tune Tots Lab`,
-          files: [file],
-        });
-      else setNotice("Sharing is unavailable here. Use Export WAV instead.");
+      const result=await runFileAction(menuFile,action);
+      if(result.destination==='telegram') {setFileStatus(t('fileDelivered'));setFileBotUrl(result.botUrl);}
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError"))
-        setNotice("Sharing failed. Your sound remains in the library.");
-    }
+      if (!(error instanceof Error && error.name === "AbortError")) setFileStatus(fileActionErrorMessage(error,t));
+    } finally {setActionBusy(false);}
   };
   return (
     <Shell title="LIBRARY" back={back}>
@@ -1832,11 +1829,16 @@ export function Library({
           {menuRecord.groupPublication && menuRecord.groupPublication.state!=='published' && <button disabled={actionBusy} onClick={() => void retryGroup(menuRecord)}>{t('retry')} · {menuRecord.groupPublication.groupName||t('group')}</button>}
           <button onClick={() => { void favorite(menuRecord); setMenuRecord(undefined); }}>{t(menuRecord.favorite ? 'unfavorite' : 'favorite')}</button>
           <button onClick={() => { setRenaming(menuRecord); setRenameValue(menuRecord.title); setMenuRecord(undefined); }}>{t('rename')}</button>
-          <button onClick={() => { download(menuRecord.audioBlob, menuRecord.title); setMenuRecord(undefined); }}>{t('exportWav')}</button>
-          <button onClick={() => { void share(menuRecord); setMenuRecord(undefined); }}>{t('share')}</button>
+          <button disabled={!menuFile || actionBusy} onClick={() => void fileAction('export')}>{t('exportWav')}</button>
+          <button disabled={!menuFile || actionBusy} onClick={() => void fileAction('share')}>{t('share')}</button>
           <button className="danger-text" onClick={() => { void remove(menuRecord); setMenuRecord(undefined); }}>{t('delete')}</button>
           <button onClick={() => setMenuRecord(undefined)}>{t('cancel')}</button>
         </div>
+        {telegram.isTelegram && <p className="notice">{t('telegramFileNotice')}</p>}
+        {!menuFile && !fileStatus && <p role="status">{t('preparing')}</p>}
+        {actionBusy && <p role="status">{t('transferringFile')}</p>}
+        {fileStatus && <p className="notice" role="status">{fileStatus}</p>}
+        {fileBotUrl && <button className="secondary-button" onClick={() => telegram.openChat(fileBotUrl)}>{t('fileBotChat')}</button>}
       </Dialog>}
       {renaming && (
         <div className="modal-backdrop">
@@ -2138,8 +2140,4 @@ function Links({ go }: { go: (s: Screen) => void }) {
       <EmailContact />
     </Shell>
   );
-}
-
-function download(blob: Blob, title: string) {
-  downloadWav(wavFile(blob,title));
 }
