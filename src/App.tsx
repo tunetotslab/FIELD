@@ -1733,7 +1733,7 @@ export function Library({
           </div>
         ) : (
           shown.map((r) => (
-            <article key={r.id}>
+            <article key={r.id} onClick={event=>{if(!(event.target as Element).closest('button,[role="button"]'))play(r);}}>
               <button
                 className="row-play"
                 onClick={() => play(r)}
