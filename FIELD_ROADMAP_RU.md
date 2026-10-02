@@ -20,14 +20,15 @@
 2. ⚠️ Проверить запись, playback, waveform, FX, Library, Daily, Map и Settings на реальных телефонах.
 3. ✅ Подключить базовый backend: Telegram-авторизация, D1 и права доступа.
 4. ✅ Подключить приватный Cloudflare R2 для аудиофайлов.
-5. 🚧 Реализовать Tune Tots Group с кодами и Telegram chat/topic binding — см. `FIELD_WORLD_GROUPS_PLAN_RU.md`.
-6. 🚧 Довести Field World: upload/map/playback уже написаны; до публичного включения нужны retry и moderation.
+5. ✅ Tune Tots Group с кодами и Telegram binding работает; архив/фильтр группы на карте — отдельное продолжение.
+6. 🚧 Stage 5 реализует World, retry, жалобы/модерацию, Library editing и цепочки FX; реальные проверки двух аккаунтов завершаются пользователем — см. `FIELD_WORLD_GROUPS_PLAN_RU.md`.
 7. Протестировать offline-запись, загрузку и приватность.
 8. Упаковать общую кодовую базу через Capacitor в iOS и Android.
 9. Провести TestFlight/Google Play testing и подготовить релиз.
 
 Telegram-бот, меню, Telegram Stars, проверенная оплата и приватная статистика
-владельца уже подключены. Production FIELD World пока намеренно выключен.
+владельца уже подключены. Stage 5 нельзя отмечать завершённым до реального
+прохождения публикации, playback, жалобы и удаления на двух телефонах.
 
 ## Главное правило
 

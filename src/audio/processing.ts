@@ -82,6 +82,24 @@ export async function renderDraft(
   draft: SoundDraft,
   signal?: AbortSignal,
 ): Promise<{ blob: Blob; waveform: number[]; duration: number }> {
+  if(draft.effectChain) {
+    if(draft.effectChain.length>3) throw Error('Maximum three effects');
+    const slots=draft.effectChain.filter(slot=>!slot.bypassed && slot.effect!=='original');
+    let source=draft.originalBlob;
+    let start=draft.trimStart,end=draft.trimEnd;
+    let result;
+    for(let index=0;index<Math.max(1,slots.length);index++) {
+      if(signal?.aborted) throw new DOMException('Preview cancelled','AbortError');
+      const slot=slots[index];
+      result=await renderSingle({...draft,effectChain:undefined,originalBlob:source,trimStart:start,trimEnd:end,effect:slot?.effect||'original',effectMix:slot?.mix||0,pitchSemitones:slot?.pitchSemitones||0,echoDelayMs:slot?.echoDelayMs||340,fadeIn:index===Math.max(1,slots.length)-1 && draft.fadeIn,fadeOut:index===Math.max(1,slots.length)-1 && draft.fadeOut},signal);
+      source=result.blob;start=0;end=result.duration;
+    }
+    return result!;
+  }
+  return renderSingle(draft,signal);
+}
+
+async function renderSingle(draft:SoundDraft,signal?:AbortSignal):Promise<{blob:Blob;waveform:number[];duration:number}> {
   const original = await decodeBlob(draft.originalBlob),
     sampleRate = original.sampleRate;
   const start = Math.max(0, Math.round(draft.trimStart * sampleRate)),
@@ -113,7 +131,7 @@ export async function renderDraft(
       : original.numberOfChannels;
   const context = new OfflineAudioContext(
     outputChannels,
-    frameCount + Math.ceil(tailSeconds * sampleRate),
+    Math.min(Math.round(60*sampleRate),frameCount + Math.ceil(tailSeconds * sampleRate)),
     sampleRate,
   );
   const dryBuffer = context.createBuffer(
@@ -324,8 +342,7 @@ export async function renderDraft(
     { length: rendered.numberOfChannels },
     (_, channel) => rendered.getChannelData(channel),
   );
-  if (mix > 0 || draft.fadeIn || draft.fadeOut)
-    finishSamples(
+  finishSamples(
       channels,
       sampleRate,
       draft.fadeIn,

@@ -54,6 +54,7 @@ export interface SoundLocation {
 }
 
 export interface SoundDraft {
+  effectChain?: EffectSlot[];
   id: string;
   originalBlob: Blob;
   processedBlob?: Blob;
@@ -82,6 +83,23 @@ export interface SoundDraft {
 }
 
 export interface SoundRecord {
+  effectChain?: EffectSlot[];
+  originalBlob?: Blob;
+  editState?: Omit<
+    SoundDraft,
+    "originalBlob" | "processedBlob" | "processedDuration" | "processedWaveform"
+  >;
+  worldPublication?: {
+    state: "pending" | "published" | "failed";
+    serverId?: string;
+    clientId: string;
+  };
+  groupPublication?: {
+    state: "pending" | "published" | "failed";
+    serverId?: string;
+    groupId: string;
+    groupName?: string;
+  };
   id: string;
   title: string;
   emojis: string[];
@@ -99,4 +117,11 @@ export interface SoundRecord {
   effectMix?: number;
   echoDelayMs?: number;
   dailyChallenge?: string;
+}
+export interface EffectSlot {
+  effect: EffectId;
+  mix: number;
+  pitchSemitones: number;
+  echoDelayMs: number;
+  bypassed?: boolean;
 }

@@ -1,4 +1,4 @@
-# FIELD API — deployment pending
+# FIELD API — GitHub / Cloudflare
 
 This Worker belongs to the FIELD GitHub repository. GitHub Pages remains the
 frontend. No OpenAI hosting or storage is used.
@@ -48,19 +48,55 @@ break FIELD World before its D1 schema is ready.
 
 ## FIELD World launch gate
 
-Set Worker variable `WORLD_ENABLED=true` and GitHub variable
-`FIELD_WORLD_ENABLED=true` only after testing upload, playback from a second
-Telegram account, owner-only deletion, offline retry and city-level privacy.
-Implement content reporting/moderation before a broad public launch. Private
-recordings remain local; group sharing and cloud private-library sync are not
-implemented. World currently returns the latest 200 recordings.
+Worker variable `WORLD_ENABLED=true` and GitHub variable
+`FIELD_WORLD_ENABLED=true` enable the controlled acceptance build after automated
+and isolated browser checks. The owner is testing on a second account/phone.
+Do not declare Stage 5 complete or announce a broad release until real upload,
+second-account playback, owner removal, reports and offline retry are confirmed.
+Reporting/moderation and group sharing are implemented. Private recordings
+remain local; cloud private-library sync is not implemented. Apply
+`migrations/0003_world.sql` to the existing D1 database before this Worker deploy.
+Do not execute the updated fresh-install `schema.sql` as a migration.
+Never deploy a Worker referencing moderation columns before this migration.
 
-World upload accepts WAV up to 24 MB / declared 60 seconds and resolves the city
-server-side; client coordinates are ignored. Nominatim requires a deployment
-with a suitable geocoding quota/cache or replacement provider before scaling.
+World upload accepts PCM WAV up to 24 MB / **actual** 60 seconds, including FX
+tails. `/cities?q=...&country=AM&language=ru` is explicitly user-triggered;
+autocomplete is prohibited. D1 caches results for 30 days and atomically limits
+all application geocoder requests to one per 1.1 seconds. `GEOCODER_URL` allows
+replacing the compatible search provider without updating frontend. The existing
+Nominatim integration is subject to its [usage policy](https://operations.osmfoundation.org/policies/nominatim/):
+modest traffic, identifiable User-Agent, OSM attribution, no autocomplete and
+replacement on growth/provider request. No confidential data is sent there.
+Only cached server city IDs are accepted for publication; client coordinates
+are ignored.
+
+`GET /world/cities` returns complete visible city counts. `GET /world?city=ID`
+returns `{items,nextCursor}` (20 items). Cursor ordering uses `(created_at,id)`.
+World POST retries are idempotent per user/client ID; removed publications need
+a new key. Owner-only `DELETE /world/:id` cannot target group audio. Report POST
+`/world/:id/reports` accepts privacy/abuse/copyright/other, deduplicates by
+reporter/sound and limits reports per day. Hidden audio is denied even through
+direct `/audio/:id`. Owner-only private `/reports` and `mod:*` callbacks provide
+listen/keep/hide/delete with confirmation; notification failure never loses the
+report. Human moderation, no automatic keyword deletion.
+
+IndexedDB publication intent retries while FIELD is open and authenticated,
+including reopening after offline. Failed uploads offer manual Retry. Private
+originals and non-destructive editor settings remain local. Editing saves a new
+version; unpublishing never deletes local audio. Legacy recordings without saved
+originals cannot recover pre-render audio. Group upload has per-user/group/client
+idempotency and owner-only `/groups/:id/sounds/:sound/retry` for failed delivery.
+Telegram does not provide exactly-once document delivery on ambiguous timeout;
+the UI warns before manual retry. A `pending` delivery after a Worker interruption
+requires owner review rather than blind resending.
 R2 stays private; requests require signed Telegram initData no older than 1 hour.
 Users reopen FIELD to refresh an expired session. No authenticated API response
 may be cached by the service worker.
+
+Regression verification: `npm run typecheck`, `npm test`, `npm run build`, plus
+dev-only `/qa.html` for audio/IndexedDB/three-FX and isolated World UI. Do not
+publish QA fixtures. World rollback: disable frontend and Worker flags without
+deleting D1/R2 or resetting the user's IndexedDB. Keep the additive migration.
 
 ## Amounts
 

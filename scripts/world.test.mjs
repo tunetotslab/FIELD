@@ -1,0 +1,432 @@
+import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
+import { readFileSync } from "node:fs";
+import { createHmac } from "node:crypto";
+import worker from "../server/worker.mjs";
+import { wavDuration } from "../server/world.mjs";
+const database = new DatabaseSync(":memory:");
+const migrationDb = new DatabaseSync(':memory:');
+migrationDb.exec("CREATE TABLE sounds(id TEXT PRIMARY KEY,user_id INTEGER,metadata TEXT,published INTEGER DEFAULT 0,created_at INTEGER,group_id TEXT,telegram_delivery_state TEXT)");
+migrationDb.prepare('INSERT INTO sounds(id,user_id,metadata,published,created_at) VALUES (?,?,?,1,?)').run('legacy',1,JSON.stringify({location:{placeId:'osm:legacy',city:'Legacy city',country:'Country',countryCode:'AM',lat:40,lng:44}}),1);
+migrationDb.exec(readFileSync(new URL('../server/migrations/0003_world.sql',import.meta.url),'utf8'));
+assert.equal(migrationDb.prepare('SELECT city_key FROM sounds').get().city_key,'osm:legacy');
+assert.equal(migrationDb.prepare('SELECT COUNT(*) n FROM world_cities').get().n,1);
+migrationDb.close();
+database.exec(
+  readFileSync(new URL("../server/schema.sql", import.meta.url), "utf8"),
+);
+const DB = {
+  prepare(sql) {
+    return {
+      bind(...args) {
+        return {
+          first: async () => database.prepare(sql).get(...args) || null,
+          all: async () => ({ results: database.prepare(sql).all(...args) }),
+          run: async () => ({
+            meta: {
+              changes: Number(database.prepare(sql).run(...args).changes),
+            },
+          }),
+        };
+      },
+      first: async () => database.prepare(sql).get() || null,
+      all: async () => ({ results: database.prepare(sql).all() }),
+    };
+  },
+  async batch(statements) {
+    return Promise.all(statements.map((statement) => statement.run()));
+  },
+};
+const stored = new Map();
+const AUDIO = {
+  async put(id, stream) {
+    stored.set(id, await new Response(stream).arrayBuffer());
+  },
+  async get(id) {
+    const bytes = stored.get(id);
+    return bytes ? { body: bytes, arrayBuffer: async () => bytes } : null;
+  },
+  async delete(id) {
+    stored.delete(id);
+  },
+};
+const env = {
+  DB,
+  AUDIO,
+  WORLD_ENABLED: "true",
+  GROUPS_ENABLED: "true",
+  APP_ORIGIN: "https://tunetotslab.github.io",
+  BOT_TOKEN: "test-world-token",
+  ADMIN_TELEGRAM_ID: "9",
+  WEBHOOK_SECRET: "test-world-webhook",
+  SUPPORT_EMAIL: "test@example.invalid",
+};
+function auth(user) {
+  const params = new URLSearchParams({
+    auth_date: String(Math.floor(Date.now() / 1000)),
+    user: JSON.stringify({ id: user }),
+  });
+  const data = [...params]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\n");
+  params.set(
+    "hash",
+    createHmac(
+      "sha256",
+      createHmac("sha256", "WebAppData").update(env.BOT_TOKEN).digest(),
+    )
+      .update(data)
+      .digest("hex"),
+  );
+  return `tma ${params}`;
+}
+async function request(
+  path,
+  user = 1,
+  { method = "GET", body, ...options } = {},
+) {
+  const headers = { Origin: env.APP_ORIGIN, Authorization: auth(user) };
+  if (body instanceof FormData) {
+    const temp = new Request("https://field.test", { method: "POST", body });
+    const bytes = await temp.arrayBuffer();
+    headers["Content-Type"] = temp.headers.get("Content-Type");
+    headers["Content-Length"] = String(bytes.byteLength);
+    body = bytes;
+  } else if (body) {
+    headers["Content-Type"] = "application/json";
+    headers["Content-Length"] = String(body.length);
+  }
+  return worker.fetch(
+    new Request(`https://field.test${path}`, {
+      method,
+      headers,
+      body,
+      ...options,
+    }),
+    env,
+  );
+}
+function wav(seconds = 1) {
+  const bytes = new ArrayBuffer(44 + Math.round(seconds * 8000) * 2),
+    v = new DataView(bytes),
+    u = new Uint8Array(bytes);
+  const text = (offset, string) =>
+    u.set(new TextEncoder().encode(string), offset);
+  text(0, "RIFF");
+  v.setUint32(4, bytes.byteLength - 8, true);
+  text(8, "WAVE");
+  text(12, "fmt ");
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true);
+  v.setUint32(28, 16000, true);
+  v.setUint16(32, 2, true);
+  v.setUint16(34, 16, true);
+  text(36, "data");
+  v.setUint32(40, bytes.byteLength - 44, true);
+  return bytes;
+}
+const metadata = {
+  id: "client-one",
+  title: "Rain",
+  emojis: ["🌧️", "🌧️", "🌧️"],
+  duration: 1,
+  styleId: "bubble",
+  effect: "echo",
+  waveform: [0.2, 0.5],
+  location: {
+    placeId: "osm:relation:1",
+    city: "Yerevan",
+    countryCode: "AM",
+    lat: 0,
+    lng: 0,
+  },
+  user_id: 999,
+  phone: "private",
+  originalBlob: "never-public",
+};
+function form(data = metadata, audio = wav()) {
+  const f = new FormData();
+  f.set("metadata", JSON.stringify(data));
+  f.set("audio", new Blob([audio], { type: "audio/wav" }), "test.wav");
+  return f;
+}
+const originalFetch = globalThis.fetch;
+let geocoderCalls = 0,
+  notifications = 0;
+globalThis.fetch = async (url, options) => {
+  if (String(url).includes("nominatim")) {
+    geocoderCalls++;
+    return Response.json([
+      {
+        osm_type: "relation",
+        osm_id: 1,
+        lat: "40.177",
+        lon: "44.503",
+        address: { city: "Yerevan", country: "Armenia", country_code: "am" },
+      },
+    ]);
+  }
+  if (String(url).includes("api.telegram.org")) {
+    notifications++;
+    return Response.json({ ok: true, result: true });
+  }
+  throw Error(`Unexpected fetch ${url}`);
+};
+try {
+  assert.equal(wavDuration(wav(60)), 60);
+  assert.throws(() => wavDuration(wav(60.1)));
+  assert.throws(() => wavDuration(new ArrayBuffer(44)));
+  const malformed = wav();
+  new DataView(malformed).setUint32(40, 999999, true);
+  assert.throws(() => wavDuration(malformed));
+  const city = await request("/cities?q=Yerevan&country=AM");
+  assert.equal(city.status, 200);
+  const [canonical] = await city.json();
+  assert.equal(canonical.placeId, "osm:relation:1");
+  assert.equal((await request("/cities?q=Yerevan&country=AM")).status, 200);
+  assert.equal(geocoderCalls, 1);
+  assert.equal((await request("/cities?q=Dilijan&country=AM")).status, 503);
+  assert.equal(geocoderCalls, 1);
+  const response = await request("/world", 1, { method: "POST", body: form() });
+  assert.equal(response.status, 201);
+  const published = await response.json(),
+    id = published.id;
+  assert.equal(stored.size, 1);
+  assert.equal(published.location.lat, 40.177);
+  assert.equal(published.location.lng, 44.503);
+  assert.equal(published.effect, "echo");
+  assert.equal(published.styleId, "bubble");
+  assert.deepEqual(published.waveform, [0.2, 0.5]);
+  for (const secret of [
+    "user_id",
+    "phone",
+    "originalBlob",
+    "audioBlob",
+    "favorite",
+    "groupId",
+  ])
+    assert.ok(!(secret in published));
+  assert.equal(
+    (await request("/world", 1, { method: "POST", body: form() })).status,
+    200,
+  );
+  assert.equal(stored.size, 1);
+  assert.equal(
+    (
+      await request("/world", 2, {
+        method: "POST",
+        body: form({ ...metadata, id: "too-long", duration: 1 }, wav(61)),
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/world", 2, {
+        method: "POST",
+        body: form({
+          ...metadata,
+          id: "wrong-city",
+          location: { ...metadata.location, placeId: "arbitrary" },
+        }),
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request("/world", 2, {
+        method: "POST",
+        body: form({ ...metadata, id: "bad-duration", duration: 2 }),
+      })
+    ).status,
+    400,
+  );
+  assert.equal((await request(`/audio/${id}`, 2)).status, 200);
+  assert.equal(
+    (await request(`/world/${id}`, 2, { method: "DELETE" })).status,
+    404,
+  );
+  assert.equal(
+    (await request("/world?city=osm%3Arelation%3A1&cursor=bad")).status,
+    400,
+  );
+  // Stable keyset pagination: equal timestamps, no overlap, city count independent of page.
+  for (let i = 0; i < 45; i++)
+    database
+      .prepare(
+        "INSERT INTO sounds (id,user_id,metadata,published,created_at,city_key) VALUES (?,?,?,1,?,?)",
+      )
+      .run(
+        `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`,
+        3,
+        JSON.stringify({ ...published, title: `Fixture ${i}` }),
+        1000,
+        canonical.placeId,
+      );
+  const cities = await (await request("/world/cities", 2)).json();
+  assert.equal(cities[0].count, 46);
+  let cursor = null;
+  const ids = [];
+  do {
+    const page = await (
+      await request(
+        `/world?city=${encodeURIComponent(canonical.placeId)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+        2,
+      )
+    ).json();
+    assert.ok(page.items.length <= 20);
+    ids.push(...page.items.map((s) => s.id));
+    cursor = page.nextCursor;
+  } while (cursor);
+  assert.equal(ids.length, 46);
+  assert.equal(new Set(ids).size, 46);
+  const reports = () =>
+    request(`/world/${id}/reports`, 2, {
+      method: "POST",
+      body: JSON.stringify({ reason: "privacy" }),
+    });
+  assert.equal((await reports()).status, 201);
+  const sent = notifications;
+  assert.equal((await reports()).status, 201);
+  assert.equal(notifications, sent);
+  assert.equal(
+    database.prepare("SELECT COUNT(*) n FROM sound_reports").get().n,
+    1,
+  );
+  async function moderation(user, action) {
+    return worker.fetch(
+      new Request("https://field.test/telegram/webhook", {
+        method: "POST",
+        headers: { "X-Telegram-Bot-Api-Secret-Token": env.WEBHOOK_SECRET },
+        body: JSON.stringify({
+          callback_query: {
+            id: "test",
+            from: { id: user },
+            data: `mod:${action}:${id}`,
+            message: { chat: { id: user, type: "private" } },
+          },
+        }),
+      }),
+      env,
+    );
+  }
+  await moderation(2, "hide");
+  assert.equal((await request(`/audio/${id}`, 2)).status, 200);
+  await moderation(9, "hide");
+  assert.equal((await request(`/audio/${id}`, 2)).status, 404);
+  assert.equal((await (await request("/world/cities", 2)).json())[0].count, 45);
+  await moderation(9, "delete");
+  assert.ok(!stored.has(id));
+  assert.equal(
+    (await request("/world", 1, { method: "POST", body: form() })).status,
+    409,
+  );
+  const second = await (
+    await request("/world", 1, {
+      method: "POST",
+      body: form({ ...metadata, id: "client-two" }),
+    })
+  ).json();
+  assert.equal(
+    (await request(`/world/${second.id}`, 1, { method: "DELETE" })).status,
+    200,
+  );
+  assert.equal((await request(`/audio/${second.id}`, 2)).status, 404);
+  assert.ok(!stored.has(second.id));
+  // World delete can never remove a closed-course record.
+  database
+    .prepare(
+      "INSERT INTO sounds(id,user_id,metadata,group_id,created_at) VALUES (?,?,?,?,?)",
+    )
+    .run("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", 1, "{}", "group-one", 1);
+  assert.equal(
+    (
+      await request("/world/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", 1, {
+        method: "DELETE",
+      })
+    ).status,
+    404,
+  );
+  assert.equal(
+    (
+      await worker.fetch(
+        new Request("https://field.test/world/cities", {
+          headers: { Origin: env.APP_ORIGIN },
+        }),
+        env,
+      )
+    ).status,
+    401,
+  );
+  console.log(
+    "PASS World real SQLite/R2 adapter: signed auth, PCM duration, city privacy/cache/throttle, idempotency, 46-row pagination, second-user playback, owner removal, reports, moderator ACL, hidden audio, course isolation",
+  );
+  const groupId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  database
+    .prepare(
+      "INSERT INTO field_groups (id,name,owner_user_id,join_code,created_at,updated_at) VALUES (?,?,?,?,?,?)",
+    )
+    .run(groupId, "Test course", 1, "TESTCODE1", 1, 1);
+  database
+    .prepare(
+      "INSERT INTO field_group_members (group_id,user_id,role,joined_at) VALUES (?,?,?,?)",
+    )
+    .run(groupId, 1, "owner", 1);
+  database
+    .prepare(
+      "INSERT INTO field_group_members (group_id,user_id,role,joined_at) VALUES (?,?,?,?)",
+    )
+    .run(groupId, 2, "member", 1);
+  assert.equal((await request(`/groups/${groupId}/sounds`, 4)).status, 404);
+  const group = await (
+    await request(`/groups/${groupId}/sounds`, 1, {
+      method: "POST",
+      body: form({ ...metadata, id: "course-test" }),
+    })
+  ).json();
+  assert.equal(group.telegramDeliveryState, "unconnected");
+  assert.ok(stored.has(group.id));
+  assert.equal((await request(`/audio/${group.id}`, 2)).status, 200);
+  assert.equal((await request(`/audio/${group.id}`, 4)).status, 404);
+  const duplicate = await (
+    await request(`/groups/${groupId}/sounds`, 1, {
+      method: "POST",
+      body: form({ ...metadata, id: "course-test" }),
+    })
+  ).json();
+  assert.equal(duplicate.id, group.id);
+  database
+    .prepare(
+      "INSERT INTO telegram_group_bindings(group_id,chat_id,connected_by,connected_at) VALUES (?,?,?,?)",
+    )
+    .run(groupId, -100, 1, 1);
+  assert.equal(
+    (
+      await request(`/groups/${groupId}/sounds/${group.id}/retry`, 2, {
+        method: "POST",
+      })
+    ).status,
+    404,
+  );
+  const retried = await (
+    await request(`/groups/${groupId}/sounds/${group.id}/retry`, 1, {
+      method: "POST",
+    })
+  ).json();
+  assert.equal(retried.telegramDeliveryState, "delivered");
+  const alreadySent = notifications;
+  await request(`/groups/${groupId}/sounds/${group.id}/retry`, 1, {
+    method: "POST",
+  });
+  assert.equal(notifications, alreadySent);
+  console.log(
+    "PASS course regression: member-only audio, outsider rejected, idempotent upload, owner-only Telegram retry, delivered document never resent",
+  );
+} finally {
+  globalThis.fetch = originalFetch;
+  database.close();
+}

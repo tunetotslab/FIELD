@@ -5,6 +5,12 @@ import { AppNavigationProvider } from "../components/Shell";
 import { I18nProvider } from "../i18n";
 import { makeFixture } from "./fixture";
 import { runAudioChecks } from "./diagnostics";
+import {WorldMap} from '../components/WorldMap';
+import {PlaybackManager} from '../audio/player';
+import type {WorldCity,WorldSound} from '../world';
+const qaPlayer=new PlaybackManager();
+const qaCity:WorldCity={id:'qa-city',placeId:'qa-city',city:'Yerevan · QA fixture',country:'Armenia',countryCode:'AM',lat:40.177,lng:44.503,count:21};
+const qaApi={worldCities:async()=>[qaCity],worldSounds:async(_city:string,cursor:string|null)=>({items:Array.from({length:cursor?1:20},(_,index):WorldSound=>({id:`qa-${cursor?20:index}`,title:`QA sample ${cursor?20:index} — never published`,emojis:['🌧️','🌱','✨'],duration:2,createdAt:0,styleId:'grotesk',waveform:makeFixture().waveform,location:qaCity})),nextCursor:cursor?null:'page-two'}),worldAudio:async()=>makeFixture().originalBlob,reportWorldSound:async()=>({ok:true})};
 import "@fontsource-variable/caveat";
 import "@fontsource-variable/fraunces";
 import "@fontsource/unifrakturcook/700.css";
@@ -19,7 +25,8 @@ function QA() {
   const [lines, setLines] = useState<string[]>([]);
   const [samples, setSamples] = useState<{ name: string; url: string }[]>([]);
   const [running, setRunning] = useState(false);
-  if (mode === 'library') return <div className="viewport"><Library records={[{...draft, id:'qa-only-not-saved',title:'A very long recording title — QA fixture',styleId:'grotesk',favorite:false,audioBlob:draft.originalBlob}]} reload={async () => {}} go={() => setMode('menu')} back={() => setMode('menu')} setPlayingId={() => {}} setNotice={() => {}} notice="QA fixture — no real recording" /></div>;
+  if(mode==='world') return <div className="viewport"><p>QA ONLY · synthetic recordings, isolated backend fixture, no production uploads</p><WorldMap player={qaPlayer} api={qaApi} back={()=>setMode('menu')}/></div>;
+  if (mode === 'library') return <div className="viewport"><Library editRecord={async () => setMode('fx')} seeMap={() => setMode('app')} records={[{...draft, id:'qa-only-not-saved',title:'A very long recording title — QA fixture',styleId:'grotesk',favorite:false,audioBlob:draft.originalBlob}]} reload={async () => {}} go={() => setMode('menu')} back={() => setMode('menu')} setPlayingId={() => {}} setNotice={() => {}} notice="QA fixture — no real recording" /></div>;
   if (mode === "fx")
     return (
       <div className="viewport">
@@ -73,6 +80,7 @@ function QA() {
       <button className="secondary-button" onClick={() => setMode("fx")}>
         OPEN FX FIXTURE
       </button>{" "}
+      <button className="secondary-button" onClick={() => setMode('world')}>OPEN WORLD FIXTURE</button>
       <button className="secondary-button" onClick={() => setMode("emoji")}>
         OPEN EMOJI FIXTURE
       </button>{" "}

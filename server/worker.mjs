@@ -2,6 +2,8 @@
 import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
 import { isAdmin, sendAdminPaymentNotification, sendAdminStats, sendAdminTransactions } from './admin.mjs';
+import { worldRoute, wavDuration } from './world.mjs';
+import { moderationUpdate, notifyReport } from './moderation.mjs';
 import {
   connectTelegramDestination,
   createFieldGroup,
@@ -131,6 +133,7 @@ async function handleBotUpdate(update, env) {
   let locale = await storedLocale(env, user.id) || localeFromCode(user.language_code);
   const data = callback?.data || '';
   if (callback) await answerCallback(env, callback.id);
+  if (await moderationUpdate(update, env, telegramFor(env))) return;
   const command = data.startsWith('bot:') ? data.slice(4) : (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
   const adminAction = data.startsWith('admin:') ? data.slice(6) : command;
   if (adminAction === 'stats' || adminAction === 'transactions') {
@@ -277,6 +280,23 @@ async function route(request, env) {
     const group = await joinFieldGroup(env, user, code);
     return group ? json(group,201) : json({error:'Invalid group code'},404);
   }
+  const retryMatch=url.pathname.match(/^\/groups\/([0-9a-f-]+)\/sounds\/([0-9a-f-]+)\/retry$/i);
+  if(retryMatch && request.method==='POST') {
+    if(env.GROUPS_ENABLED!=='true') return json({error:'Groups unavailable'},503);
+    const [,groupId,id]=retryMatch;
+    if(!await isGroupMember(env,groupId,user))return json({error:'Not found'},404);
+    const row=await env.DB.prepare('SELECT metadata,telegram_delivery_state FROM sounds WHERE id=? AND group_id=? AND user_id=?').bind(id,groupId,user).first();
+    if(!row)return json({error:'Not found'},404);
+    if(['delivered','pending'].includes(row.telegram_delivery_state))return json({id,telegramDeliveryState:row.telegram_delivery_state});
+    const binding=await env.DB.prepare('SELECT chat_id,message_thread_id FROM telegram_group_bindings WHERE group_id=?').bind(groupId).first();
+    if(!binding)return json({id,telegramDeliveryState:'unconnected'});
+    const claim=await env.DB.prepare("UPDATE sounds SET telegram_delivery_state='pending' WHERE id=? AND telegram_delivery_state IN ('failed','unconnected')").bind(id).run();
+    if(!claim.meta?.changes)return json({id,telegramDeliveryState:'pending'});
+    let state='failed';
+    try {const object=await env.AUDIO.get(id);if(!object)throw Error('Not found');const data=JSON.parse(row.metadata);await telegramAudioDocument(env,{chatId:binding.chat_id,messageThreadId:binding.message_thread_id,audio:new Blob([await object.arrayBuffer()],{type:'audio/wav'}),caption:`${data.emojis.join(' ')}  ${data.title}\nFIELD · Tune Tots Group`});state='delivered';} catch { /* An ambiguous Telegram timeout requires human review before retry. */ }
+    await env.DB.prepare('UPDATE sounds SET telegram_delivery_state=? WHERE id=?').bind(state,id).run();
+    return json({id,telegramDeliveryState:state});
+  }
   const groupSoundMatch = url.pathname.match(/^\/groups\/([0-9a-f-]+)\/sounds$/i);
   if (groupSoundMatch && request.method === 'GET') {
     if (env.GROUPS_ENABLED !== 'true') return json({error:'Groups unavailable'},503);
@@ -292,20 +312,24 @@ async function route(request, env) {
     const groupId = groupSoundMatch[1];
     if (!await isGroupMember(env, groupId, user)) return json({error:'Not found'},404);
     if (!Number(request.headers.get('Content-Length')) || Number(request.headers.get('Content-Length')) > 25000000) return json({error:'Maximum upload 25 MB'},413);
-    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM sounds WHERE user_id=? AND group_id=? AND created_at>?').bind(user,groupId,Date.now()-86400000).first();
-    if (recent.n >= 20) return json({error:'Daily upload limit'},429);
     const form = await request.formData();
     const audio = form.get('audio');
     let data;
     try { data = JSON.parse(String(form.get('metadata'))); } catch { return json({error:'Invalid metadata'},400); }
+    if(!/^[-a-zA-Z0-9]{1,100}$/.test(data?.id||''))return json({error:'Invalid client ID'},400);
+    const existing=await env.DB.prepare('SELECT id,telegram_delivery_state FROM sounds WHERE user_id=? AND group_id=? AND client_id=?').bind(user,groupId,data.id).first();
+    if(existing)return json({id:existing.id,telegramDeliveryState:existing.telegram_delivery_state});
+    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM sounds WHERE user_id=? AND group_id=? AND created_at>?').bind(user,groupId,Date.now()-86400000).first();
+    if (recent.n >= 20) return json({error:'Daily upload limit'},429);
     if (!(audio instanceof File) || audio.size > 24000000 || audio.size < 44 || typeof data.title !== 'string' || data.title.length > 80 || !Array.isArray(data.emojis) || data.emojis.length !== 3 || data.emojis.some(x => typeof x !== 'string' || x.length > 32) || !Number.isFinite(data.duration) || data.duration <= 0 || data.duration > 60) return json({error:'Invalid sound'},400);
     const header = new TextDecoder().decode(await audio.slice(0,12).arrayBuffer());
     if (!header.startsWith('RIFF') || header.slice(8) !== 'WAVE') return json({error:'WAV required'},400);
+    try {if(Math.abs(wavDuration(await audio.arrayBuffer())-data.duration)>.1)throw Error('Duration mismatch');}catch{return json({error:'Valid WAV up to 60 seconds required'},400);}
     const metadata = {title:data.title,emojis:data.emojis,duration:data.duration,createdAt:Date.now(),visibility:'group',favorite:false,effect:data.effect || 'original',effectMix:Number(data.effectMix)||0,styleId:data.styleId || 'grotesk',waveform:[],groupId};
     const id = crypto.randomUUID();
     await env.AUDIO.put(id,audio.stream(),{httpMetadata:{contentType:'audio/wav'}});
-    try { await env.DB.prepare("INSERT INTO sounds (id,user_id,metadata,published,created_at,group_id,telegram_delivery_state) VALUES (?,?,?,0,?,?, 'pending')").bind(id,user,JSON.stringify(metadata),Date.now(),groupId).run(); }
-    catch (error) { await env.AUDIO.delete(id); throw error; }
+    try { await env.DB.prepare("INSERT INTO sounds (id,user_id,metadata,published,created_at,group_id,telegram_delivery_state,client_id) VALUES (?,?,?,0,?,?, 'pending',?)").bind(id,user,JSON.stringify(metadata),Date.now(),groupId,data.id).run(); }
+    catch (error) { await env.AUDIO.delete(id);const race=await env.DB.prepare('SELECT id,telegram_delivery_state FROM sounds WHERE user_id=? AND group_id=? AND client_id=?').bind(user,groupId,data.id).first();if(race)return json({id:race.id,telegramDeliveryState:race.telegram_delivery_state});throw error; }
     let telegramDeliveryState = 'unconnected';
     const binding = await env.DB.prepare('SELECT chat_id,message_thread_id FROM telegram_group_bindings WHERE group_id=?').bind(groupId).first();
     if (binding) {
@@ -317,55 +341,17 @@ async function route(request, env) {
     await env.DB.prepare('UPDATE sounds SET telegram_delivery_state=? WHERE id=?').bind(telegramDeliveryState,id).run();
     return json({id,...metadata,telegramDeliveryState},201);
   }
-  // All world reads are authenticated; R2 is private, served only through this worker.
-  if (url.pathname === '/world' && request.method === 'POST') {
-    if (env.WORLD_ENABLED !== 'true') return json({error:'Publishing unavailable'},503);
-    if (!Number(request.headers.get('Content-Length')) || Number(request.headers.get('Content-Length')) > 25000000) return json({error:'Maximum upload 25 MB'},413);
-    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM sounds WHERE user_id = ? AND created_at > ?').bind(user,Date.now()-86400000).first();
-    if (recent.n >= 20) return json({error:'Daily upload limit'},429);
-    const form = await request.formData();
-    const audio = form.get('audio');
-    const data = JSON.parse(String(form.get('metadata')));
-    if (!(audio instanceof File) || audio.size > 24000000 || audio.size < 44 || typeof data.title !== 'string' || data.title.length > 80 || !Array.isArray(data.emojis) || data.emojis.length !== 3 || data.emojis.some(x => typeof x !== 'string' || x.length > 32) || !Number.isFinite(data.duration) || data.duration <= 0 || data.duration > 60) return json({error:'Invalid sound'},400);
-    const header = new TextDecoder().decode(await audio.slice(0,12).arrayBuffer());
-    if (!header.startsWith('RIFF') || header.slice(8) !== 'WAVE') return json({error:'WAV required'},400);
-    // Resolve a named city on the server: never accept client GPS coordinates.
-    const location = data.location;
-    if (!location || typeof location.city !== 'string' || location.city.length > 100 || !/^[A-Z]{2}$/.test(location.countryCode)) return json({error:'City required'},400);
-    const geocode = new URL('https://nominatim.openstreetmap.org/search');
-    geocode.search = new URLSearchParams({city:location.city,countrycodes:location.countryCode.toLowerCase(),format:'jsonv2',addressdetails:'1',limit:'1'}).toString();
-    const cityResponse = await fetch(geocode,{headers:{'User-Agent':`FIELD/1.0 (${env.SUPPORT_EMAIL})`}});
-    if (!cityResponse.ok) return json({error:'City lookup unavailable'},503);
-    const [city] = await cityResponse.json();
-    if (!city) return json({error:'City not found'},400);
-    const metadata = {title:data.title,emojis:data.emojis,duration:data.duration,createdAt:Date.now(),visibility:'world',favorite:false,effect:'original',effectMix:0,styleId:'grotesk',waveform:[],location:{city:city.address.city || city.address.town || city.address.village || location.city,country:city.address.country,countryCode:location.countryCode,lat:Number(city.lat),lng:Number(city.lon),placeId:`osm:${city.place_id}`}};
-    const id = crypto.randomUUID();
-    await env.AUDIO.put(id,audio.stream(),{httpMetadata:{contentType:'audio/wav'}});
-    try { await env.DB.prepare('INSERT INTO sounds (id,user_id,metadata,published,created_at) VALUES (?,?,?,1,?)').bind(id,user,JSON.stringify(metadata),Date.now()).run(); }
-    catch (error) { await env.AUDIO.delete(id); throw error; }
-    return json({id,...metadata},201);
-  }
-  if (url.pathname.startsWith('/world/') && request.method === 'DELETE') {
-    const id = url.pathname.slice(7);
-    const row = await env.DB.prepare('SELECT id FROM sounds WHERE id = ? AND user_id = ?').bind(id,user).first();
-    if (!row) return json({error:'Not found'},404);
-    await env.DB.prepare('UPDATE sounds SET published = 0 WHERE id = ?').bind(id).run();
-    await env.AUDIO.delete(id);
-    return json({ok:true});
-  }
-  if (url.pathname === '/world' && request.method === 'GET') {
-    const {results} = await env.DB.prepare('SELECT id, metadata FROM sounds WHERE published = 1 ORDER BY created_at DESC LIMIT 200').all();
-    return json(results.map(row => ({...JSON.parse(row.metadata),id:row.id})));
-  }
+  const worldResponse = await worldRoute(request, env, user, (id, reason) => notifyReport(env, telegramFor(env), id, reason));
+  if (worldResponse) return worldResponse;
   if (url.pathname.startsWith('/audio/') && request.method === 'GET') {
     const id = url.pathname.slice(7);
     const row = env.GROUPS_ENABLED === 'true'
       ? await env.DB.prepare(
         `SELECT s.id FROM sounds s
          LEFT JOIN field_group_members m ON m.group_id=s.group_id AND m.user_id=?
-         WHERE s.id=? AND (s.published=1 OR s.user_id=? OR m.user_id IS NOT NULL)`,
+         WHERE s.id=? AND s.moderation_state='visible' AND (s.published=1 OR s.user_id=? OR m.user_id IS NOT NULL)`,
       ).bind(user,id,user).first()
-      : await env.DB.prepare('SELECT id FROM sounds WHERE id=? AND (published=1 OR user_id=?)').bind(id,user).first();
+      : await env.DB.prepare("SELECT id FROM sounds WHERE id=? AND moderation_state='visible' AND (published=1 OR user_id=?)").bind(id,user).first();
     if (!row) return json({error:'Not found'},404);
     const object = await env.AUDIO.get(id);
     return object ? new Response(object.body,{headers:{'Content-Type':'audio/wav','Cache-Control':'private, no-store'}}) : json({error:'Not found'},404);

@@ -1711,4 +1711,45 @@ Keep the product focused.
 
 ---
 
+# 66. STAGE 5 IMPLEMENTATION CONTRACT
+
+World is an authenticated city-level archive, not a social network. Public rows
+contain no Telegram identity, precise device coordinates, private source blobs,
+group membership or authentication data. The Worker resolves and caches named
+settlements; publication uses the canonical server city, never client GPS.
+
+Audio remains in private R2. PCM WAV duration is checked from actual sample data
+(maximum 60 seconds), not trusted from the submitted duration field. FX tails
+are included in this maximum. World pages use a stable date + ID cursor and
+city markers count the complete visible city archive, not only the first page.
+
+Publication requires explicit consent. IndexedDB retains the audio, original,
+editor settings and publication intent before upload. Repeated World requests
+share an idempotency key. Pending World uploads resume while the authenticated
+app is open; there is no claim of background uploading after the app closes.
+Failed requests remain visible with manual Retry. Removing a World publication
+does not delete the local original. Local Delete does not silently remove public
+copies; users must unpublish first if they want that outcome.
+
+Editing a Library recording creates a new local version, preserving previous
+publications. New recordings keep the canonical original and all trim/FX state.
+Legacy recordings without originals can only be edited from their saved render;
+the app must explain this limitation. FX chains contain at most three ordered
+slots with independent mix/parameters, bypass, removal and reorder, using the
+same rendering path for preview/export/publication and linked-channel peak
+protection. Original remains recoverable.
+
+Reports are persisted and sent to the FIELD owner in the private bot chat.
+The owner listens to WAV and chooses Keep, Hide or Delete (with confirmation).
+There is no automatic irreversible speech/keyword moderation. `/reports` recovers
+the pending queue if notifications fail. Hidden/removed audio is not publicly
+accessible. Private course groups stay independent of World and retain old codes.
+Telegram delivery retry is explicit: a timeout may be ambiguous at Telegram,
+so the app warns about possible duplicate chat delivery instead of promising
+exactly-once Telegram messages.
+
+Stage 5 is not declared complete until the real two-account Telegram/mobile
+publish → globe → playback → report → owner removal acceptance is recorded.
+Native applications (Stage 6) remain out of scope.
+
 **END OF FIELD_SPEC.md**

@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS sounds (
   published INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   group_id TEXT,
-  telegram_delivery_state TEXT
+  telegram_delivery_state TEXT,
+  city_key TEXT,
+  client_id TEXT,
+  moderation_state TEXT NOT NULL DEFAULT 'visible'
 );
 
 CREATE TABLE IF NOT EXISTS field_groups (
@@ -61,3 +64,15 @@ CREATE TABLE IF NOT EXISTS telegram_group_bindings (
 CREATE UNIQUE INDEX IF NOT EXISTS telegram_group_destination
   ON telegram_group_bindings(chat_id, COALESCE(message_thread_id, 0));
 CREATE INDEX IF NOT EXISTS sounds_group_date ON sounds(group_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS sounds_world_client ON sounds(user_id, client_id) WHERE group_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS sounds_group_client ON sounds(user_id, group_id, client_id) WHERE group_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS sounds_world_city_date ON sounds(city_key, created_at DESC, id DESC) WHERE published=1 AND moderation_state='visible' AND group_id IS NULL;
+CREATE TABLE IF NOT EXISTS world_cities (id TEXT PRIMARY KEY, location TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS city_search_cache (id TEXT PRIMARY KEY, results TEXT NOT NULL, expires_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS service_limits (id TEXT PRIMARY KEY, last_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS sound_reports (
+  id TEXT PRIMARY KEY, sound_id TEXT NOT NULL, reporter_id INTEGER NOT NULL,
+  reason TEXT NOT NULL, created_at INTEGER NOT NULL, resolved_at INTEGER,
+  notified_at INTEGER, UNIQUE(sound_id, reporter_id)
+);
+CREATE INDEX IF NOT EXISTS sound_reports_pending ON sound_reports(resolved_at, created_at);

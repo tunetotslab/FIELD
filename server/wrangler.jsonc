@@ -7,6 +7,7 @@
 		"APP_URL": "https://tunetotslab.github.io/FIELD/",
 		"ADMIN_TELEGRAM_ID": "5232786567",
 		"GROUPS_ENABLED": "true",
+		"WORLD_ENABLED": "true",
 		"SUPPORT_EMAIL": "tunetotslab@gmail.com"
 	},
 	"d1_databases": [
