@@ -1,3 +1,5 @@
+import { downloadTicket } from "./downloads.mjs";
+import { removeWorldDelivery } from "./world-delivery.mjs";
 // City-level archive only. Never copy arbitrary client metadata into public rows.
 const json = (body, status = 200) => Response.json(body, { status });
 export const REPORT_REASONS = ["privacy", "abuse", "copyright", "other"];
@@ -138,7 +140,49 @@ export async function searchCity(env, query, country, language = "en") {
     .run();
   return locations;
 }
-const publicRow = (row) => ({ ...JSON.parse(row.metadata), id: row.id });
+const publicRow = (row) => ({
+  ...JSON.parse(row.metadata),
+  id: row.id,
+  likes: row.likes || 0,
+  liked: Boolean(row.liked),
+});
+export async function resolveCity(env, data) {
+  if (!data || typeof data.placeId !== "string" || data.placeId.length > 100)
+    throw Error("City required");
+  const cached = await env.DB.prepare(
+    "SELECT location FROM world_cities WHERE id=?",
+  )
+    .bind(data.placeId)
+    .first();
+  if (cached) return JSON.parse(cached.location);
+  // Legacy osm:<place_id> is unstable. Resolve its named settlement afresh;
+  // never import the old client coordinates into the server city directory.
+  const language = ["en", "ru", "hy", "zh-TW"].includes(data.language)
+    ? data.language
+    : "en";
+  const locations = await searchCity(
+    env,
+    data.city,
+    data.countryCode,
+    language,
+  );
+  if (locations.length === 1) return locations[0];
+  const normalized = (value) =>
+    String(value || "")
+      .normalize("NFKC")
+      .trim()
+      .toLocaleLowerCase();
+  const matches = locations.filter(
+    (location) => normalized(location.city) === normalized(data.city),
+  );
+  if (matches.length === 1) return matches[0];
+  const regionMatches = matches.filter(
+    (location) =>
+      data.region && normalized(location.region) === normalized(data.region),
+  );
+  if (regionMatches.length === 1) return regionMatches[0];
+  throw Error("Choose a city from search results");
+}
 export async function worldRoute(request, env, user, notify) {
   const url = new URL(request.url),
     path = url.pathname,
@@ -157,6 +201,21 @@ export async function worldRoute(request, env, user, notify) {
       );
     } catch {
       return json({ error: "City lookup unavailable; try again" }, 503);
+    }
+  }
+  if (path === "/cities/resolve" && method === "POST") {
+    if (Number(request.headers.get("Content-Length")) > 2048)
+      return json({ error: "Too large" }, 413);
+    let data;
+    try {
+      data = await request.json();
+    } catch {
+      return json({ error: "Invalid city" }, 400);
+    }
+    try {
+      return json(await resolveCity(env, data));
+    } catch {
+      return json({ error: "Please choose the city again" }, 400);
     }
   }
   if (!path.startsWith("/world")) return null;
@@ -315,9 +374,10 @@ export async function worldRoute(request, env, user, notify) {
     )
       return json({ error: "Invalid cursor" }, 400);
     const { results } = await env.DB.prepare(
-      "SELECT id,metadata,created_at FROM sounds WHERE city_key=? AND published=1 AND moderation_state='visible' AND group_id IS NULL AND (created_at<? OR (created_at=? AND id<?)) ORDER BY created_at DESC,id DESC LIMIT 21",
+      "SELECT id,metadata,created_at,(SELECT COUNT(*) FROM sound_likes WHERE sound_id=sounds.id) AS likes,EXISTS(SELECT 1 FROM sound_likes WHERE sound_id=sounds.id AND user_id=?) AS liked FROM sounds WHERE city_key=? AND published=1 AND moderation_state='visible' AND group_id IS NULL AND (created_at<? OR (created_at=? AND id<?)) ORDER BY created_at DESC,id DESC LIMIT 21",
     )
       .bind(
+        user,
         city,
         cursor?.time || Number.MAX_SAFE_INTEGER,
         cursor?.time || Number.MAX_SAFE_INTEGER,
@@ -334,6 +394,41 @@ export async function worldRoute(request, env, user, notify) {
           : null,
     });
   }
+  const extra = path.match(/^\/world\/([0-9a-f-]{36})\/(likes|download)$/i);
+  if (extra) {
+    const id = extra[1];
+    if (
+      !(await env.DB.prepare(
+        "SELECT id FROM sounds WHERE id=? AND group_id IS NULL AND published=1 AND moderation_state='visible'",
+      )
+        .bind(id)
+        .first())
+    )
+      return json({ error: "Not found" }, 404);
+    if (extra[2] === "download" && method === "POST")
+      return downloadTicket(request, env, id);
+    if (extra[2] === "likes" && ["POST", "DELETE"].includes(method)) {
+      if (method === "POST")
+        await env.DB.prepare(
+          "INSERT INTO sound_likes(sound_id,user_id) VALUES (?,?) ON CONFLICT DO NOTHING",
+        )
+          .bind(id, user)
+          .run();
+      else
+        await env.DB.prepare(
+          "DELETE FROM sound_likes WHERE sound_id=? AND user_id=?",
+        )
+          .bind(id, user)
+          .run();
+      return json(
+        await env.DB.prepare(
+          "SELECT COUNT(*) AS likes,EXISTS(SELECT 1 FROM sound_likes WHERE sound_id=? AND user_id=?) AS liked FROM sound_likes WHERE sound_id=?",
+        )
+          .bind(id, user, id)
+          .first(),
+      );
+    }
+  }
   const match = path.match(/^\/world\/([0-9a-f-]{36})(\/reports)?$/i);
   if (match && method === "DELETE" && !match[2]) {
     const row = await env.DB.prepare(
@@ -346,6 +441,7 @@ export async function worldRoute(request, env, user, notify) {
       .bind(row.id)
       .run();
     await env.AUDIO.delete(row.id);
+    await removeWorldDelivery(env, row.id);
     return json({ ok: true });
   }
   if (match && method === "POST" && match[2]) {
@@ -372,9 +468,18 @@ export async function worldRoute(request, env, user, notify) {
       .first();
     if (count.n >= 10) return json({ error: "Daily report limit" }, 429);
     const inserted = await env.DB.prepare(
-      "INSERT INTO sound_reports (id,sound_id,reporter_id,reason,created_at) VALUES (?,?,?,?,?) ON CONFLICT(sound_id,reporter_id) DO NOTHING",
+      "INSERT INTO sound_reports (id,sound_id,reporter_id,reason,created_at,reporter_language) VALUES (?,?,?,?,?,?) ON CONFLICT(sound_id,reporter_id) DO NOTHING",
     )
-      .bind(crypto.randomUUID(), sound.id, user, data.reason, Date.now())
+      .bind(
+        crypto.randomUUID(),
+        sound.id,
+        user,
+        data.reason,
+        Date.now(),
+        ["en", "ru", "hy", "zh-TW"].includes(data.language)
+          ? data.language
+          : "en",
+      )
       .run();
     // Report durability never depends on Telegram delivery. /reports recovers failures.
     if (inserted.meta?.changes)

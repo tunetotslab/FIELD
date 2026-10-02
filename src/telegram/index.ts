@@ -1,4 +1,4 @@
-import { initTheme } from '../theme';
+import { initTheme } from "../theme";
 type ThemeParams = Partial<{
   bg_color: string;
   secondary_bg_color: string;
@@ -13,7 +13,12 @@ type ThemeParams = Partial<{
 type TelegramWebApp = {
   initData?: string;
   platform?: string;
-  colorScheme?: 'light' | 'dark';
+  isVersionAtLeast?: (version: string) => boolean;
+  downloadFile?: (
+    params: { url: string; file_name: string },
+    callback?: (accepted: boolean) => void,
+  ) => void;
+  colorScheme?: "light" | "dark";
   openInvoice?: (url: string, callback: (status: string) => void) => void;
   ready?: () => void;
   expand?: () => void;
@@ -44,17 +49,41 @@ declare global {
 let activeBackHandler: (() => void) | undefined;
 
 export const telegram = {
-  get isTelegram() { return Boolean(window.Telegram?.WebApp?.initData); },
+  get isTelegram() {
+    return Boolean(window.Telegram?.WebApp?.initData);
+  },
   init() {
     const webApp = window.Telegram?.WebApp;
     const cleanup = initTheme();
-    if (!webApp) return cleanup;
+    const resize = () => {
+      const viewport = window.visualViewport;
+      if (!viewport || viewport.scale === 1)
+        document.documentElement.style.setProperty(
+          "--field-viewport-height",
+          `${viewport?.height || window.innerHeight}px`,
+        );
+    };
+    resize();
+    window.visualViewport?.addEventListener("resize", resize);
+    window.addEventListener("resize", resize);
+    webApp?.onEvent?.("viewportChanged", resize);
+    const dispose = () => {
+      cleanup();
+      window.visualViewport?.removeEventListener("resize", resize);
+      window.removeEventListener("resize", resize);
+      webApp?.offEvent?.("viewportChanged", resize);
+    };
+    if (!webApp) return dispose;
     webApp.ready?.();
     webApp.expand?.();
-    return cleanup;
+    return dispose;
   },
-  impact(style: 'light' | 'medium' | 'heavy' = 'light') { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.(style); },
-  success() { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('success'); },
+  impact(style: "light" | "medium" | "heavy" = "light") {
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.(style);
+  },
+  success() {
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+  },
   setBackButton(visible: boolean, onBack: () => void) {
     const backButton = window.Telegram?.WebApp?.BackButton;
     if (!backButton) return;
@@ -70,7 +99,9 @@ export const telegram = {
   },
   sendSound(meta: object) {
     if (!window.Telegram?.WebApp?.sendData) return false;
-    window.Telegram.WebApp.sendData(JSON.stringify({ type: 'field-sound', ...meta }));
+    window.Telegram.WebApp.sendData(
+      JSON.stringify({ type: "field-sound", ...meta }),
+    );
     return true;
-  }
+  },
 };

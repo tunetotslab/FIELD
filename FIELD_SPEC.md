@@ -1752,4 +1752,36 @@ Stage 5 is not declared complete until the real two-account Telegram/mobile
 publish → globe → playback → report → owner removal acceptance is recorded.
 Native applications (Stage 6) remain out of scope.
 
+## October 2026 World feedback extension
+
+Entering Map never automatically opens a city/sound sheet, even after publication.
+Markers and city buttons explicitly open the archive. Existing Library audio can
+be published without deleting/re-recording it: resolve legacy city IDs by name
+and country on the server, normalize the public audio to PCM WAV and derive its
+duration from samples. Never overwrite the saved local original or reapply FX.
+The public copy is at most 60 seconds; disclose this before publishing.
+
+World cards offer WAV download and a shared like count. Likes are unique per
+authenticated account/sound, reversible and idempotent; no rankings, profiles or
+follower features. Download tickets expire after five minutes, are signed and
+scoped to a visible public World recording; private/course files never qualify.
+Recheck publication visibility on every download, including previously issued
+tickets. Use Telegram native download where supported and a direct browser file
+link otherwise. Never claim that a file was saved merely because download was
+requested.
+
+All visible public World WAVs also go to the owner-selected @Fieldapp Telegram
+destination, including existing World publications at rollout. Private Library
+and course groups are excluded. Record delivery/message IDs durably, retry
+explicit Telegram rejection, never blindly resend uncertain network results.
+Background recovery runs every five minutes. Removal/hiding attempts to remove
+the bot's Telegram message too, but downloaded/forwarded copies cannot be recalled;
+publishing consent explains downloading and Telegram distribution.
+
+Report decisions are private messages to the reporter in their chosen language.
+The moderation queue/actions remain restricted to the owner in the private bot
+chat. Persist outcomes and delivery state; retry failures without losing the
+decision. Users must allow bot messages/start the bot; do not claim delivery to
+blocked or unreachable accounts. Human Keep/Hide/Delete remain the only decisions.
+
 **END OF FIELD_SPEC.md**

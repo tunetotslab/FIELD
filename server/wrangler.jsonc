@@ -2,12 +2,14 @@
 	"name": "field-api",
 	"main": "worker.mjs",
 	"compatibility_date": "2026-09-01",
+	"triggers": { "crons": ["*/5 * * * *"] },
 	"vars": {
 		"APP_ORIGIN": "https://tunetotslab.github.io",
 		"APP_URL": "https://tunetotslab.github.io/FIELD/",
 		"ADMIN_TELEGRAM_ID": "5232786567",
 		"GROUPS_ENABLED": "true",
 		"WORLD_ENABLED": "true",
+		"WORLD_TELEGRAM_CHAT": "@Fieldapp",
 		"SUPPORT_EMAIL": "tunetotslab@gmail.com"
 	},
 	"d1_databases": [

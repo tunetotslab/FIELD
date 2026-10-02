@@ -4,6 +4,9 @@ import { helpText, linksText } from './bot-help.mjs';
 import { isAdmin, sendAdminPaymentNotification, sendAdminStats, sendAdminTransactions } from './admin.mjs';
 import { worldRoute, wavDuration } from './world.mjs';
 import { moderationUpdate, notifyReport } from './moderation.mjs';
+import { serveDownload } from './downloads.mjs';
+import { deliverWorld } from './world-delivery.mjs';
+import { deliverReportOutcomes } from './moderation.mjs';
 import {
   connectTelegramDestination,
   createFieldGroup,
@@ -249,10 +252,11 @@ async function webhook(request, env) {
   return json({ok:true});
 }
 
-async function route(request, env) {
+async function route(request, env, ctx) {
   const url = new URL(request.url);
   if (url.pathname === '/telegram/webhook' && request.method === 'POST') return webhook(request,env);
   if (url.pathname === '/health') return json({ok:true});
+  if (url.pathname.startsWith('/download/') && ['GET','HEAD'].includes(request.method) && env.WORLD_ENABLED==='true') return serveDownload(request,env);
   if (request.headers.get('Origin') !== env.APP_ORIGIN) return json({error:'Forbidden'},403);
   if (request.method === 'OPTIONS') return new Response(null,{status:204});
   let user;
@@ -342,7 +346,10 @@ async function route(request, env) {
     return json({id,...metadata,telegramDeliveryState},201);
   }
   const worldResponse = await worldRoute(request, env, user, (id, reason) => notifyReport(env, telegramFor(env), id, reason));
-  if (worldResponse) return worldResponse;
+  if (worldResponse) {
+    if(url.pathname==='/world' && request.method==='POST' && worldResponse.ok)ctx?.waitUntil(deliverWorld(env));
+    return worldResponse;
+  }
   if (url.pathname.startsWith('/audio/') && request.method === 'GET') {
     const id = url.pathname.slice(7);
     const row = env.GROUPS_ENABLED === 'true'
@@ -358,9 +365,11 @@ async function route(request, env) {
   }
   return json({error:'Not found'},404);
 }
-export default { async fetch(request,env) {
+export default { async scheduled(_event,env,ctx) {
+  ctx.waitUntil(Promise.all([deliverWorld(env),deliverReportOutcomes(env,telegramFor(env))]));
+}, async fetch(request,env,ctx) {
   let response;
-  try { response = await route(request,env); } catch { response = json({error:'Service unavailable'},503); }
+  try { response = await route(request,env,ctx); } catch { response = json({error:'Service unavailable'},503); }
   const headers = new Headers(response.headers);
   headers.set('Cache-Control','no-store');
   if (request.headers.get('Origin') === env.APP_ORIGIN) {

@@ -98,6 +98,41 @@ dev-only `/qa.html` for audio/IndexedDB/three-FX and isolated World UI. Do not
 publish QA fixtures. World rollback: disable frontend and Worker flags without
 deleting D1/R2 or resetting the user's IndexedDB. Keep the additive migration.
 
+### World sharing extension
+
+For an existing Stage 5 database, apply **only** additive migrations
+`0004_report_outcomes.sql` and `0005_world_sharing.sql` before this Worker deploy.
+Do not reapply the fresh-install schema or old migrations. Commit and push the
+repository before executing production migrations/deployment.
+
+`POST /cities/resolve` repairs saved legacy city IDs using a canonical cached city
+or named settlement lookup; ambiguous locations require selecting a city again.
+The client converts the saved render (without applying effects again) to PCM WAV
+and recalculates duration. Full local files are preserved; shared copies cap at
+60 seconds with a short fade and explicit notice.
+
+`POST/DELETE /world/:id/likes` are per-account idempotent. World listing returns
+aggregate `likes` and requester `liked`, never the identities of voters.
+`POST /world/:id/download` issues a five-minute HMAC ticket signed with the existing
+Worker webhook secret under a download-specific purpose string. `GET/HEAD
+/download/:id` validates the ticket and current World visibility, serves WAV as
+an attachment, and permits Telegram Web download CORS. No course/private audio
+or initData/credentials enter download URLs. R2 remains private.
+
+`WORLD_TELEGRAM_CHAT=@Fieldapp` configures the public mirror, independent of
+course bindings. Add the existing FIELD bot with document-sending rights (channel:
+posting administrator). New publications trigger delivery; a five-minute Worker
+cron recovers queued/rejected deliveries and backfills existing visible World
+sounds. `world_telegram_deliveries` records destination, status, message ID and
+sanitized Telegram rejection. Delivered messages are not resent. `uncertain` or
+interrupted `sending` requires manual review: check Telegram before changing the
+row back to queued. Exactly-once delivery is not promised. Removal/hide tries to
+delete the bot message; external downloads/forwards cannot be recalled.
+
+Report outcomes retain locale/resolution/notification state. Reporter messages
+are private and retry through the Worker cron; blocked/not-started bots may reject
+delivery. Administration remains private and owner-only.
+
 ## Amounts
 
 Presets: 5, 10, 25, 50, 75, 100, 1000, 10000, 100000 XTR. Random amounts:
