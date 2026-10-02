@@ -15,7 +15,7 @@ import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
 import { hasResolvableCity, publicationStart } from './storage/normalize';
 import { subscribeForeground } from './lifecycle';
-import { isAuthenticationError } from './world';
+import { isAuthenticationError, publicationErrorMessage } from './world';
 import { telegram } from "./telegram";
 import { Dialog } from './components/Dialog';
 import { Donate } from './components/Donate';
@@ -23,10 +23,11 @@ import { uploadWorld, unpublishWorld, retryPendingWorld } from './storage/public
 import { WorldMap } from './components/WorldMap';
 import { fieldGroups, joinFieldGroup, publishGroupSound, retryGroupDelivery, type FieldGroup } from './groups';
 import { getThemePreference, setThemePreference, type ThemePreference } from './theme';
-import { AppNavigationProvider, BrandFooter, Shell } from "./components/Shell";
+import { AppNavigationProvider, Shell } from "./components/Shell";
 import { FieldWordmark, Miley } from "./components/Brand";
 import { Waveform } from "./components/Waveform";
 import { ErrorPanel } from "./components/ErrorPanel";
+import { EmailContact } from './components/EmailContact';
 import { FxArtwork } from "./components/FieldArtwork";
 import { Daily } from "./components/Daily";
 import { tasks, type Task } from "./data/tasks";
@@ -260,7 +261,7 @@ export default function App() {
       if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
         setSavePhase('uploading');
         try { const saved = await uploadWorld(record); setMapCity(saved.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
-        catch (error) { await loadLibrary(); setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'publishFailed')); return; }
+        catch (error) { await loadLibrary(); setNotice(publicationErrorMessage(error, t)); return; }
       }
       if (draft.visibility === 'group' && GROUP_PUBLISHING_AVAILABLE && draft.groupId) {
         setSavePhase('groupUpload');
@@ -274,7 +275,7 @@ export default function App() {
             setNotice(published.telegramDeliveryState === 'unconnected' ? t('savedGroupUnconnected') : t('savedGroupDeliveryFailed'));
             return;
           }
-        } catch (error) { await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:'failed'}}); await loadLibrary(); setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupPublishFailed')); return; }
+        } catch (error) { await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:'failed'}}); await loadLibrary(); setNotice(publicationErrorMessage(error, t)); return; }
       }
       await loadLibrary();
       telegram.success();
@@ -546,7 +547,6 @@ function Home({ go }: { go: (s: Screen) => void }) {
         </button>
         <strong>{t("record")}</strong>
       </div>
-      <BrandFooter />
     </Shell>
   );
 }
@@ -1686,10 +1686,10 @@ export function Library({
       const result=r.groupPublication.serverId?await retryGroupDelivery(r.groupPublication.groupId,r.groupPublication.serverId):await publishGroupSound(r.groupPublication.groupId,r);
       await soundsDb.save({...r,groupPublication:{...r.groupPublication,serverId:result.id,state:result.telegramDeliveryState==='delivered'?'published':'failed'}});
       if(result.telegramDeliveryState!=='delivered')setNotice(t('savedGroupDeliveryFailed'));
-    } catch (error) {setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupPublishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}
+    } catch (error) {setNotice(publicationErrorMessage(error, t));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}
   };
-  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch (error) {setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'publishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}};
-  const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch (error) {setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'publishFailed'));} finally {setActionBusy(false);}};
+  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}};
+  const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);}};
   const shown = useMemo(
     () =>
       records
@@ -1901,11 +1901,15 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
           </button>
         )}
       </div>
-      <BrandFooter />
     </Shell>
   );
 }
-function ArticleBody({ article }: { article: SettingsArticle }) {
+function ArticleBody({ article, emailAfterLastSection = false }: { article: SettingsArticle; emailAfterLastSection?: boolean }) {
+  const linkedParagraph = (text: string) => text.split(/(Tune Tots Lab|TuneTots Lab|Николай Чен|Николаем Ченом|Никола Чен|Nikola Chen|Նիկոլա Չեն)/g).map((part, index) => {
+    const studio = part === 'Tune Tots Lab' || part === 'TuneTots Lab';
+    const author = ['Николай Чен', 'Николаем Ченом', 'Никола Чен', 'Nikola Chen', 'Նիկոլա Չեն'].includes(part);
+    return studio || author ? <a key={index} href={studio ? EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM : EXTERNAL_LINKS.NIKOLA_INSTAGRAM} target="_blank" rel="noopener noreferrer">{part}</a> : part;
+  });
   return (
     <article className="information-article">
       {article.intro && <p className="article-intro">{article.intro}</p>}
@@ -1913,15 +1917,16 @@ function ArticleBody({ article }: { article: SettingsArticle }) {
         <section key={`${section.heading || "section"}-${index}`}>
           {section.heading && <h2>{section.heading}</h2>}
           {section.paragraphs.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
+            <p key={paragraph}>{linkedParagraph(paragraph)}</p>
           ))}
+          {emailAfterLastSection && index === article.sections.length - 1 && <EmailContact />}
         </section>
       ))}
     </article>
   );
 }
 
-function ContactLinks() {
+function ContactLinks({includeEmail = true}: {includeEmail?: boolean}) {
   const { t } = useI18n();
   const links = [
     ["Tune Tots Lab · Instagram", EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM],
@@ -1940,10 +1945,7 @@ function ContactLinks() {
           <span>↗</span>
         </a>
       ))}
-      <a href={EXTERNAL_LINKS.SUPPORT_EMAIL}>
-        {t("emailUs")}
-        <small>tunetotslab@gmail.com</small>
-      </a>
+      {includeEmail && <EmailContact />}
     </section>
   );
 }
@@ -1959,8 +1961,8 @@ function InformationScreen({
   const article = settingsContent(locale)[kind];
   return (
     <Shell title={article.title} back={() => go("settings")}>
-      <ArticleBody article={article} />
-      {(kind === "about" || kind === "help") && <ContactLinks />}
+      <ArticleBody article={article} emailAfterLastSection={kind === 'help'} />
+      {(kind === "about" || kind === "help") && <ContactLinks includeEmail={kind !== 'help'} />}
     </Shell>
   );
 }
@@ -2117,13 +2119,8 @@ function Links({ go }: { go: (s: Screen) => void }) {
           <small>@nikolachenmusic</small>
           <b>›</b>
         </a>
-        <a href={EXTERNAL_LINKS.SUPPORT_EMAIL}>
-          <strong>{t("emailUs")}</strong>
-          <small>tunetotslab@gmail.com</small>
-          <b>›</b>
-        </a>
       </div>
-      <BrandFooter />
+      <EmailContact />
     </Shell>
   );
 }

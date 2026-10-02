@@ -1,7 +1,7 @@
 import { fetchWithDeadline } from "./network";
 import { API_URL } from "./config";
 import type { SoundRecord } from "./types";
-import { publicMetadata, FieldRequestError } from "./world";
+import { publicMetadata, requestError } from "./world";
 import { preparePublicationAudio } from "./audio/publication";
 
 export interface FieldGroup {
@@ -23,7 +23,7 @@ export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
     headers: auth(),
     signal,
   });
-  if (!response.ok) throw new FieldRequestError(response.status);
+  if (!response.ok) throw await requestError(response);
   return response.json();
 }
 
@@ -33,7 +33,7 @@ export async function joinFieldGroup(code: string): Promise<FieldGroup> {
     headers: { ...auth(), "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
   }, 15000);
-  if (!response.ok) throw new FieldRequestError(response.status);
+  if (!response.ok) throw await requestError(response);
   return response.json();
 }
 
@@ -53,7 +53,7 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
       body: form,
     },
   );
-  if (!response.ok) throw new FieldRequestError(response.status);
+  if (!response.ok) throw await requestError(response);
   return response.json() as Promise<{
     id: string;
     telegramDeliveryState: "delivered" | "failed" | "unconnected" | "pending";
@@ -64,7 +64,7 @@ export async function retryGroupDelivery(groupId: string, id: string) {
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds/${encodeURIComponent(id)}/retry`,
     { method: "POST", headers: auth(),  },
   );
-  if (!response.ok) throw new FieldRequestError(response.status);
+  if (!response.ok) throw await requestError(response);
   return response.json() as Promise<{
     id: string;
     telegramDeliveryState: "delivered" | "failed" | "unconnected" | "pending";

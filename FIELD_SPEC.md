@@ -1822,4 +1822,21 @@ Settings information links are ordered About FIELD, Links, Privacy, Help,
 Microphone. About explains FIELD, field recordings, Tune Tots Lab, keep/share
 and free access without repeated biographies or obsolete service status.
 
+## Saved-publication and educational identity follow-up
+
+Multipart uploads in both destinations must accept browser requests with no
+Content-Length and enforce the 25 MB body limit by counting actual stream bytes.
+Do not tell users a server/format/permission failure is merely an offline issue.
+Distinguish audio preparation, network, city, metadata, access, session expiry,
+size/rate limits and service failures; preserve local audio in every case.
+
+About FIELD foregrounds Tune Tots Lab's electronic-music education from scratch,
+original creation, classroom sketch exchange and use in tracks, alongside FIELD's
+open worldwide sound community. Credit Nikola Chen and the Lab teachers; author
+and studio names link to their configured Instagram pages. Retain field-recording
+explanation, World/private Group distinction, free access and light humour.
+Every Shell provides one footer after content with breathing space. Help's contact
+section offers a selectable/copyable email, optional default mail app and Gmail;
+copy must not require launching a mail application.
+
 **END OF FIELD_SPEC.md**

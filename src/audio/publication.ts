@@ -1,6 +1,7 @@
 import type { SoundRecord } from "../types";
 import { audioBufferToWav, decodeBlob, peaksFromBuffer } from "./utils";
 import { normalizeRecording } from '../storage/normalize';
+export class PublicationAudioError extends Error {}
 
 /** Normalize the *public copy*, never replace or reapply FX to saved audio. */
 export async function preparePublicationAudio(
@@ -8,8 +9,10 @@ export async function preparePublicationAudio(
 ): Promise<SoundRecord> {
   record = normalizeRecording(record);
   if (!(record.audioBlob instanceof Blob) || !record.audioBlob.size)
-    throw Error('Saved audio is unavailable; the local record has been preserved');
-  const source = await decodeBlob(record.audioBlob);
+    throw new PublicationAudioError('Saved audio is unavailable; the local record has been preserved');
+  let source: AudioBuffer;
+  try { source = await decodeBlob(record.audioBlob); }
+  catch { throw new PublicationAudioError('Saved audio could not be decoded; the local record has been preserved'); }
   const length = Math.min(source.length, Math.round(source.sampleRate * 60));
   if (!length) throw Error("Empty saved audio");
   const audio = new AudioBuffer({

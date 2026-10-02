@@ -1,6 +1,6 @@
 import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
-import { preparePublicationAudio } from "./audio/publication";
+import { preparePublicationAudio, PublicationAudioError } from "./audio/publication";
 import { fetchWithDeadline } from './network';
 export type WorldSound = Pick<
   SoundRecord,
@@ -15,9 +15,20 @@ export const reportReasons = [
   "other",
 ] as const;
 export class FieldRequestError extends Error {
-  constructor(public readonly status: number) {
+  constructor(public readonly status: number, public readonly reason = '') {
     super(`FIELD request failed (${status})`);
   }
+}
+export async function requestError(response: Response): Promise<FieldRequestError> {
+  let reason = '';
+  try { const body = await response.json(); if (typeof body.error === 'string') reason = body.error.slice(0, 150); } catch {}
+  return new FieldRequestError(response.status, reason);
+}
+export function publicationErrorMessage(error: unknown, t: (key: 'sessionExpired' | 'publicationAudioFailed' | 'publicationNetworkFailed' | 'publicationTooLarge' | 'publicationCityFailed' | 'publicationMetadataFailed' | 'publicationAccessFailed' | 'publicationLimitFailed' | 'publicationServiceFailed') => string): string {
+  if (error instanceof PublicationAudioError) return t('publicationAudioFailed');
+  if (!(error instanceof FieldRequestError)) return t('publicationNetworkFailed');
+  const key = error.status === 401 ? 'sessionExpired' : error.status === 413 ? 'publicationTooLarge' : error.status === 429 ? 'publicationLimitFailed' : error.status === 403 ? 'publicationAccessFailed' : error.reason.toLowerCase().includes('city') ? 'publicationCityFailed' : error.status === 400 ? 'publicationMetadataFailed' : 'publicationServiceFailed';
+  return `${t(key)} (${error.status})`;
 }
 export const isAuthenticationError = (error: unknown) =>
   error instanceof FieldRequestError && error.status === 401;
@@ -46,7 +57,7 @@ export async function worldRequest<T>(
     },
   });
   if (!response.ok)
-    throw new FieldRequestError(response.status);
+    throw await requestError(response);
   return response.json();
 }
 export async function publishSound(record: SoundRecord) {

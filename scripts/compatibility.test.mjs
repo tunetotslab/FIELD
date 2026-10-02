@@ -143,9 +143,17 @@ console.log('PASS legacy publication repairs required metadata before requesting
 const {settingsContent}=await load('../src/data/settingsContent.ts');
 for(const locale of ['ru','en','hy','zh-TW']) {
  const content=settingsContent(locale);
- assert.equal(content.about.sections.length,5);
+ assert.equal(content.about.sections.length,6);
  assert.ok(!JSON.stringify(content).includes('Nominatim'));
  assert.ok(JSON.stringify(content.privacy).includes('GeoNames'));
  assert.ok(JSON.stringify(content.about).includes('Tune Tots Lab'));
 }
 console.log('PASS current localized About, Privacy and Help in all four languages');
+
+const {FieldRequestError, publicationErrorMessage} = await load('../src/world.ts');
+const {PublicationAudioError}=await load('../src/audio/publication.ts');
+assert.match(publicationErrorMessage(new FieldRequestError(413), key=>key),/publicationTooLarge.*413/);
+assert.match(publicationErrorMessage(new FieldRequestError(400,'Please choose the city again'), key=>key),/publicationCityFailed.*400/);
+assert.match(publicationErrorMessage(new FieldRequestError(401), key=>key),/sessionExpired.*401/);
+assert.equal(publicationErrorMessage(new PublicationAudioError('Unsupported format'), key=>key),'publicationAudioFailed');
+console.log('PASS publication failures distinguish size, city, expired session, local decode and network');

@@ -66,7 +66,7 @@ export function Shell({
         <div className="header-side header-right">{right}</div>
       </header>
       {title && <h1 className="screen-title">{title}</h1>}
-      <section className="screen-content">{children}</section>
+      <section className="screen-content">{children}<BrandFooter /></section>
       {nav ??
         (showBottomNavigation ? (
           <BottomNav go={navigation.go} active={navigation.screen} />

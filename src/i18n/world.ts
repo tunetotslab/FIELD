@@ -1,4 +1,13 @@
 export const worldEn = {
+  publicationAudioFailed: 'Cannot process this saved audio. Keep it; try downloading it from Library.',
+  publicationNetworkFailed: 'Could not reach FIELD. Check your connection and retry. Your recording remains local.',
+  publicationTooLarge: 'The upload exceeds the size limit. Your recording remains local.',
+  publicationCityFailed: 'Choose the city again from suggestions and retry.',
+  publicationMetadataFailed: 'Check the title, three emoji and audio format.',
+  publicationAccessFailed: 'This account does not have access to the destination.',
+  publicationLimitFailed: 'Daily upload limit reached. Try tomorrow.',
+  publicationServiceFailed: 'FIELD could not accept the publication. Your recording remains local; retry later.',
+  copyEmail: 'Copy email', emailCopied: 'Email copied', emailCopyFailed: 'Select the email address and copy it.',
   worldSaveFile: "Save file · if downloading did not start",
   worldDownload: "Download WAV",
   worldLike: "Like",
@@ -60,6 +69,15 @@ export const worldEn = {
 };
 type Copy = Record<keyof typeof worldEn, string>;
 export const worldRu: Copy = {
+  publicationAudioFailed: 'Не удалось обработать этот звук. Сохрани его; попробуй скачать из Library.',
+  publicationNetworkFailed: 'Не удалось связаться с FIELD. Проверь подключение и повтори. Запись остаётся на устройстве.',
+  publicationTooLarge: 'Размер загрузки превышает лимит. Запись остаётся на устройстве.',
+  publicationCityFailed: 'Выбери город заново из подсказок и повтори.',
+  publicationMetadataFailed: 'Проверь название, три emoji и формат аудио.',
+  publicationAccessFailed: 'У этого аккаунта нет доступа к выбранному месту публикации.',
+  publicationLimitFailed: 'Дневной лимит публикаций достигнут. Попробуй завтра.',
+  publicationServiceFailed: 'FIELD не смог принять публикацию. Запись остаётся на устройстве; повтори позже.',
+  copyEmail: 'Скопировать почту', emailCopied: 'Адрес скопирован', emailCopyFailed: 'Выдели адрес почты и скопируй его.',
   worldSaveFile: "Сохранить файл · если загрузка не началась",
   worldDownload: "Скачать WAV",
   worldLike: "Нравится",
@@ -121,6 +139,15 @@ export const worldRu: Copy = {
     "Повторить загрузку в группу? Если предыдущий запрос успел завершиться до обрыва связи, может отправиться вторая копия.",
 };
 export const worldHy: Copy = {
+  publicationAudioFailed: 'Այս ձայնը չհաջողվեց մշակել։ Պահպանիր այն, փորձիր ներբեռնել Ձայնադարանից։',
+  publicationNetworkFailed: 'FIELD-ի հետ կապ չհաստատվեց։ Ստուգիր կապը և կրկնիր․ ձայնը սարքում է։',
+  publicationTooLarge: 'Վերբեռնումը գերազանցում է չափի սահմանը։ Ձայնը սարքում է։',
+  publicationCityFailed: 'Կրկին ընտրիր քաղաքը հուշումներից։',
+  publicationMetadataFailed: 'Ստուգիր անունը, երեք էմոջին և ձայնի ձևաչափը։',
+  publicationAccessFailed: 'Այս հաշիվը չունի ընտրված վայրի հասանելիությունը։',
+  publicationLimitFailed: 'Օրվա սահմանը լրացել է։ Փորձիր վաղը։',
+  publicationServiceFailed: 'FIELD-ը չընդունեց հրապարակումը։ Ձայնը սարքում է․ կրկնիր ավելի ուշ։',
+  copyEmail: 'Պատճենել էլ․ փոստը', emailCopied: 'Հասցեն պատճենված է', emailCopyFailed: 'Ընտրիր հասցեն և պատճենիր այն։',
   worldSaveFile: "Պահպանել ֆայլը · եթե ներբեռնումը չի սկսվել",
   worldDownload: "Ներբեռնել WAV",
   worldLike: "Հավանել",
@@ -181,6 +208,15 @@ export const worldHy: Copy = {
     "Կրկի՞ն ուղարկել խումբ։ Եթե նախորդ հարցումն ավարտվել է, կարող է երկրորդ պատճեն ուղարկվել։",
 };
 export const worldZh: Copy = {
+  publicationAudioFailed: '無法處理此音訊。請保留錄音，並嘗試從聲音庫下載。',
+  publicationNetworkFailed: '無法連接 FIELD。請檢查網路並重試，錄音仍留在裝置。',
+  publicationTooLarge: '上傳超過大小限制。錄音仍留在裝置。',
+  publicationCityFailed: '請重新從建議中選擇城市。',
+  publicationMetadataFailed: '請檢查標題、三個 emoji 與音訊格式。',
+  publicationAccessFailed: '此帳號無權存取所選目的地。',
+  publicationLimitFailed: '已達每日上傳上限，請明天再試。',
+  publicationServiceFailed: 'FIELD 無法接受發佈。錄音仍留在裝置，請稍後重試。',
+  copyEmail: '複製電子郵件', emailCopied: '已複製地址', emailCopyFailed: '請選取地址並複製。',
   worldSaveFile: "儲存檔案 · 若下載未開始",
   worldDownload: "下載 WAV",
   worldLike: "喜歡",

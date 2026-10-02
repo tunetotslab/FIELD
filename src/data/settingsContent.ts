@@ -1,7 +1,8 @@
 import type { Locale } from "../i18n";
+import { aboutContent } from './about';
 export interface ArticleSection { heading?: string; paragraphs: string[]; }
 export interface SettingsArticle { title: string; intro?: string; sections: ArticleSection[]; }
-const content: Record<Locale, Record<'privacy' | 'microphone' | 'help' | 'about', SettingsArticle>> = {
+const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', SettingsArticle>> = {
   "ru": {
     "microphone": {
       "title": "Микрофон: впускаем звуки",
@@ -22,41 +23,6 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help' | 'about'
           "heading": "Не получилось?",
           "paragraphs": [
             "Проверьте доступ к микрофону в настройках браузера или приложения, через которое открыт FIELD, и попробуйте ещё раз."
-          ]
-        }
-      ]
-    },
-    "about": {
-      "title": "О FIELD",
-      "sections": [
-        {
-          "heading": "Что такое FIELD",
-          "paragraphs": [
-            "FIELD — бесплатное приложение для записи и исследования звуков. Запиши находку, обрежь фрагмент, попробуй эффекты и сохрани её в Library. В Daily каждый день появляется задание с другой иллюстрацией."
-          ]
-        },
-        {
-          "heading": "Field recordings",
-          "paragraphs": [
-            "Полевые записи — звуки вне студии: птицы, улица, шаги, вода или скрип двери. Из них получаются сэмплы, композиции и звуковые воспоминания. Музыкальная подготовка не нужна."
-          ]
-        },
-        {
-          "heading": "Tune Tots Lab",
-          "paragraphs": [
-            "FIELD создан Николой Ченом — музыкантом, композитором и преподавателем Tune Tots Lab, экспериментальной музыкальной лаборатории для детей. Play · Improvise · Create: исследуем музыку через игру и собственное творчество."
-          ]
-        },
-        {
-          "heading": "Сохранить или поделиться",
-          "paragraphs": [
-            "Library хранит личные записи на этом устройстве. World — общая карта звуков по городам. Tune Tots Group — закрытая учебная группа. Публикация происходит только после твоего подтверждения; запись можно оставить приватной."
-          ]
-        },
-        {
-          "heading": "Бесплатно",
-          "paragraphs": [
-            "Запись, редактирование и доступные функции FIELD бесплатны. Добровольная поддержка помогает развивать проект. Официальные контакты находятся в разделе «Ссылки»."
           ]
         }
       ]
@@ -138,41 +104,6 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help' | 'about'
         }
       ]
     },
-    "about": {
-      "title": "About FIELD",
-      "sections": [
-        {
-          "heading": "What is FIELD?",
-          "paragraphs": [
-            "FIELD is a free app for recording and exploring sounds. Capture a find, trim it, try effects and keep it in Library. Daily offers a recording prompt with a different illustration each day."
-          ]
-        },
-        {
-          "heading": "Field recordings",
-          "paragraphs": [
-            "Field recordings capture sound outside a studio: birds, streets, footsteps, water or a creaking door. They can become samples, compositions and sound memories. No musical training is needed."
-          ]
-        },
-        {
-          "heading": "Tune Tots Lab",
-          "paragraphs": [
-            "FIELD was created by Nikola Chen, musician, composer and teacher at Tune Tots Lab, an experimental music laboratory for children. Play · Improvise · Create: explore music through play and making your own work."
-          ]
-        },
-        {
-          "heading": "Keep or share",
-          "paragraphs": [
-            "Library keeps private recordings on this device. World is a shared city sound map. Tune Tots Group is a private learning group. Publishing requires your confirmation; you can always keep a recording private."
-          ]
-        },
-        {
-          "heading": "Free",
-          "paragraphs": [
-            "Recording, editing and the available FIELD features are free. Optional donations support the project. Official contacts are in Links."
-          ]
-        }
-      ]
-    },
     "privacy": {
       "title": "Your sounds, your choice",
       "sections": [
@@ -246,41 +177,6 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help' | 'about'
           "heading": "Չստացվե՞ց",
           "paragraphs": [
             "Ստուգեք միկրոֆոնի թույլտվությունը դիտարկիչի կամ FIELD-ը բացած հավելվածի կարգավորումներում։"
-          ]
-        }
-      ]
-    },
-    "about": {
-      "title": "FIELD-ի մասին",
-      "sections": [
-        {
-          "heading": "Ի՞նչ է FIELD-ը",
-          "paragraphs": [
-            "FIELD-ն անվճար հավելված է ձայներ գրանցելու և ուսումնասիրելու համար։ Ձայնագրիր, կտրիր, փորձիր էֆեկտները և պահիր Ձայնադարանում։ Ամեն օր առաջադրանքն ունի այլ նկար։"
-          ]
-        },
-        {
-          "heading": "Field recordings",
-          "paragraphs": [
-            "Դաշտային ձայնագրությունները ստուդիայից դուրս լսվող ձայներն են՝ թռչուններ, փողոց, քայլեր, ջուր կամ դռան ճռռոց։ Դրանք կարող են դառնալ սեմփլներ, ստեղծագործություններ և հիշողություններ։ Երաժշտական կրթություն պետք չէ։"
-          ]
-        },
-        {
-          "heading": "Tune Tots Lab",
-          "paragraphs": [
-            "FIELD-ը ստեղծել է երաժիշտ, կոմպոզիտոր և մանկավարժ Նիկոլա Չենը՝ Tune Tots Lab մանկական փորձարարական երաժշտական լաբորատորիայի հիմնադիրը։ Play · Improvise · Create՝ սովորել խաղի և սեփական ստեղծագործության միջոցով։"
-          ]
-        },
-        {
-          "heading": "Պահել կամ կիսվել",
-          "paragraphs": [
-            "Ձայնադարանը պահում է անձնական ձայներն այս սարքում։ World-ը քաղաքների ընդհանուր ձայնային քարտեզ է։ Tune Tots Group-ը փակ ուսումնական խումբ է։ Հրապարակումը պահանջում է քո հաստատումը։"
-          ]
-        },
-        {
-          "heading": "Անվճար",
-          "paragraphs": [
-            "Ձայնագրումը, խմբագրումը և FIELD-ի հասանելի գործառույթներն անվճար են։ Կամավոր աջակցությունը օգնում է նախագծին։ Կոնտակտները՝ Հղումներ բաժնում։"
           ]
         }
       ]
@@ -362,41 +258,6 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help' | 'about'
         }
       ]
     },
-    "about": {
-      "title": "關於 FIELD",
-      "sections": [
-        {
-          "heading": "FIELD 是什麼？",
-          "paragraphs": [
-            "FIELD 是免費的聲音錄製與探索應用程式。錄下發現、裁切、試用效果，再存到聲音庫。每日挑戰每天提供不同的插圖與錄音任務。"
-          ]
-        },
-        {
-          "heading": "Field recordings",
-          "paragraphs": [
-            "田野錄音捕捉錄音室以外的聲音：鳥、街道、腳步、水或門的吱呀聲。它們能成為取樣、作品與聲音記憶，無須音樂訓練。"
-          ]
-        },
-        {
-          "heading": "Tune Tots Lab",
-          "paragraphs": [
-            "FIELD 由音樂家、作曲家及教師 Nikola Chen 創作。他創辦了兒童實驗音樂實驗室 Tune Tots Lab。Play · Improvise · Create：透過遊戲和自己的創作探索音樂。"
-          ]
-        },
-        {
-          "heading": "保留或分享",
-          "paragraphs": [
-            "聲音庫保留此裝置的私人錄音。World 是共享的城市聲音地圖。Tune Tots Group 是私人學習群組。發佈需要你的確認，也可以只保留私人錄音。"
-          ]
-        },
-        {
-          "heading": "免費",
-          "paragraphs": [
-            "錄音、編輯與 FIELD 的現有功能免費。自願贊助支持專案發展。官方聯絡方式在「連結」。"
-          ]
-        }
-      ]
-    },
     "privacy": {
       "title": "你的聲音，由你決定",
       "sections": [
@@ -451,4 +312,4 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help' | 'about'
     }
   }
 };
-export const settingsContent = (locale: Locale) => content[locale];
+export const settingsContent = (locale: Locale) => ({...content[locale], about: aboutContent[locale]});
