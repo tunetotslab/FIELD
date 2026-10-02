@@ -1876,4 +1876,18 @@ leave the old row intact and report a safe DB_OPEN/READ/WRITE or AUDIO_READ/FORM
 stage with exception name. Never clear storage to recover. Rollback must retain the
 byte-envelope reader, since explicitly saved rows now use it.
 
+## Owner acceptance and earliest test-recording scope
+
+After release 2318d77, the owner confirmed on a real phone that recordings saved
+in private Library can be published to World and sent to a private Tune Tots Group
+after closing and reopening FIELD. This confirms that workflow on the tested
+phone; broader multi-device/mobile acceptance remains separate.
+
+At the owner's explicit request, stop further repair of the owner's few earliest
+personal test recordings which still fail publication. Preserve those rows and
+all audio; no deletion, storage reset or automatic filtering is authorized. Do
+not generalize this exception to other users or all legacy recordings. Keep the
+centralized compatibility and byte-storage readers. No native app work or new
+feature development is authorized by this acceptance update.
+
 **END OF FIELD_SPEC.md**
