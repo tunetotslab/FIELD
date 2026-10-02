@@ -215,7 +215,8 @@ production messages and leaves production World/Group audio untouched.
 Apply `migrations/0007_native_auth.sql` from this committed/pushed repository
 before setting `NATIVE_AUTH_ENABLED=true`. It adds only challenge/session tables
 and indexes; existing recordings, R2, groups, Telegram identities and donations
-are untouched. Defaults off. Allowed native Origin is exactly `capacitor://localhost`;
+are untouched. The flag defaults off when absent; the iOS development branch
+now configures it on for the verified rollout. Allowed native Origin is exactly `capacitor://localhost`;
 web Origin remains `APP_ORIGIN`. Native session authentication is enabled only
 behind the same flag. Revoking the flag disables native tokens without rewriting
 Telegram sessions or group ACLs.

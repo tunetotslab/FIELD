@@ -35,7 +35,7 @@
    Одноразовый exchange, hashed D1 session, срок 30 дней, server logout/revoke.
    ID и членство в Group те же, что у Telegram пользователя. World/Group запросы
    используют эту сессию. Автоповтор публикаций привязан к аккаунту владельца.
-6. Additive migration 0007; native auth выключена до отдельного включения.
+6. Additive migration 0007; native auth включается в Worker после применения migration и проверок.
    Web/Telegram signed initData авторизация и Stars не заменяются.
 7. GitHub iOS workflow: все frontend/backend тесты, типы, текущая lint-проверка,
    реальная Swift SQLite/file проверка, Xcode simulator и unsigned iPhone builds.
@@ -57,7 +57,10 @@ Content-addressed orphan files после отменённой/заменённ�
 1. Проверить зелёный GitHub Xcode build, затем запустить на Simulator.
 2. Поставить полный Xcode на Mac (сейчас установлены только Command Line Tools).
    Проверить микрофон/FX/фон/export/share/offline/relaunch на настоящем iPhone.
-   Полная Xcode-сборка не запускается локально без полного Xcode.
+   На текущем Mac macOS 14.4.1: Xcode 26 требует минимум macOS 15.6, а
+   используемый GitHub Xcode 26.6 — macOS 26.2+. ОС не обновляется агентом.
+   Подписанную CI-сборку/TestFlight можно подготовить после Developer enrollment
+   без локального обновления Mac; для локального Xcode нужен совместимый macOS.
 3. Владелец: Apple Developer enrollment, затем App Store Connect, team/signing,
    регистрация окончательного bundle ID. Apple ID есть, membership пока нет.
    GitHub сборка без подписи не устанавливается на телефон и не является IPA.
@@ -94,3 +97,19 @@ Content-addressed orphan files после отменённой/заменённ�
 https://capacitorjs.com/docs/ios/spm,
 https://developer.apple.com/app-store/review/guidelines/,
 https://core.telegram.org/bots/features#deep-linking.
+
+
+## Проверенный backend rollout / окружение
+
+2026-10-03: additive migration 0007 применена к существующему production D1.
+До/после: 15 sounds, 1 Group, 2 members, 24 donations — без изменений.
+Подготовлена активация `NATIVE_AUTH_ENABLED=true` в GitHub ветке `feat/ios-app`;
+результат фактического Worker deploy фиксируется отдельно после команды deploy.
+Бот для pairing проверен: `@field_sound_bot`, FIELD by Tune Tots.
+
+Xcode 26.6 в GitHub действительно скомпилировал Simulator и unsigned iPhone
+приложение. Simulator проверяет React UI → Capacitor → реальные файлы/SQLite и
+Keychain; для Simulator нужна ad-hoc подпись, она не требует Developer аккаунта.
+Обычный git transport сначала обрывался HTTP 408; первые три коммита отправлены
+официальным GitHub Git Database API с подтверждением идентичных SHA, следующие
+обычным git push. Не создано другого репозитория или иной истории.

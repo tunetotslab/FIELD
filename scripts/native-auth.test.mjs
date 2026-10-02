@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import worker from "../server/worker.mjs";
-import { nativeBotUpdate, nativeUser, digest } from "../server/native-auth.mjs";
+import {
+  nativeBotUpdate,
+  nativeUser,
+  digest,
+  purgeExpiredNativeAuth,
+} from "../server/native-auth.mjs";
 const db = new DatabaseSync(":memory:");
 db.exec(readFileSync(new URL("../server/schema.sql", import.meta.url), "utf8"));
 const DB = {
@@ -234,6 +239,51 @@ assert.equal(
   db.prepare("SELECT COUNT(*) n FROM field_group_members").get().n,
   1,
 );
+
+// Scheduled cleanup removes only old auth receipts, never user content/ACL/payments.
+db.prepare(
+  "INSERT INTO sounds(id,user_id,metadata,created_at) VALUES ('keep-audio',7,'{}',?)",
+).run(Date.now());
+db.prepare(
+  "INSERT INTO donations(id,user_id,amount,created_at) VALUES ('keep-payment',7,5,?)",
+).run(Date.now());
+db.prepare(
+  "INSERT INTO native_sessions(token_hash,user_id,created_at,expires_at) VALUES ('stale-session',7,1,1)",
+).run();
+db.prepare("UPDATE native_challenges SET expires_at=1 WHERE id=?").run(
+  expired.id,
+);
+await purgeExpiredNativeAuth(env);
+assert.equal(
+  db
+    .prepare(
+      "SELECT COUNT(*) n FROM native_sessions WHERE token_hash='stale-session'",
+    )
+    .get().n,
+  0,
+);
+assert.equal(
+  db
+    .prepare("SELECT COUNT(*) n FROM native_challenges WHERE id=?")
+    .get(expired.id).n,
+  0,
+);
+assert.equal(
+  db.prepare("SELECT COUNT(*) n FROM native_sessions").get().n,
+  1,
+  "Recently revoked session receipt retains its grace period",
+);
+for (const table of [
+  "sounds",
+  "donations",
+  "field_groups",
+  "field_group_members",
+])
+  assert.equal(
+    db.prepare(`SELECT COUNT(*) n FROM ${table}`).get().n,
+    1,
+    `${table} must survive auth cleanup`,
+  );
 console.log(
-  "PASS actual SQLite native login: private approval, identity lock, proof secrecy, atomic one-use exchange, hashed/expiring/revocable sessions, same group ACL, CORS, expiry/cancel, webhook/body/rate protection, Telegram donations isolation",
+  "PASS actual SQLite native login: private approval, identity lock, proof secrecy, atomic one-use exchange, hashed/expiring/revocable sessions, same group ACL, CORS, expiry/cancel, webhook/body/rate protection, Telegram donations isolation and auth cleanup preserves user audio/ACL/payments",
 );

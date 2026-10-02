@@ -1888,9 +1888,9 @@ personal test recordings which still fail publication. Preserve those rows and
 all audio; no deletion, storage reset or automatic filtering is authorized. Do
 not generalize this exception to other users or all legacy recordings. Keep the
 centralized compatibility and byte-storage readers. No native app work or new
-feature development is authorized by this acceptance update.
+feature development was authorized by that acceptance update. The subsequent
+Stage 6 authorization below supersedes the earlier native exclusion.
 
-**END OF FIELD_SPEC.md**
 
 
 ## Stage 6 — iOS authorized by owner (2026-10-03)
@@ -1925,3 +1925,5 @@ World or private-group ACLs. See `FIELD_IOS_PLAN_RU.md` for actual progress.
 - Apple Developer membership is not enrolled yet (owner confirmed). Signing,
   App Store agreements, tax/payment details and Store submission require the
   owner's account; never invent credentials or accept agreements for the owner.
+
+**END OF FIELD_SPEC.md**
