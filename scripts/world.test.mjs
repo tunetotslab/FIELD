@@ -92,14 +92,14 @@ function auth(user) {
 async function request(
   path,
   user = 1,
-  { method = "GET", body, ...options } = {},
+  { method = "GET", body, omitLength = false, ...options } = {},
 ) {
   const headers = { Origin: env.APP_ORIGIN, Authorization: auth(user) };
   if (body instanceof FormData) {
     const temp = new Request("https://field.test", { method: "POST", body });
     const bytes = await temp.arrayBuffer();
     headers["Content-Type"] = temp.headers.get("Content-Type");
-    headers["Content-Length"] = String(bytes.byteLength);
+    if (!omitLength) headers["Content-Length"] = String(bytes.byteLength);
     body = bytes;
   } else if (body) {
     headers["Content-Type"] = "application/json";
@@ -204,7 +204,7 @@ try {
   assert.equal((await translatedLegacy.json()).placeId,canonical.placeId,'English legacy name resolves while UI/results are Russian and multiple prefixes match');
   assert.equal((await request("/cities?q=Dilijan&country=AM",2)).status, 200);
   assert.equal(geocoderCalls, 1);
-  const response = await request("/world", 1, { method: "POST", body: form() });
+  const response = await request("/world", 1, { method: "POST", body: form(), omitLength: true });
   assert.equal(response.status, 201);
   const published = await response.json(),
     id = published.id;
@@ -433,6 +433,7 @@ try {
     await request(`/groups/${groupId}/sounds`, 1, {
       method: "POST",
       body: form({ ...metadata, id: "course-test" }),
+      omitLength: true,
     })
   ).json();
   assert.equal(group.telegramDeliveryState, "unconnected");
@@ -443,6 +444,7 @@ try {
     await request(`/groups/${groupId}/sounds`, 1, {
       method: "POST",
       body: form({ ...metadata, id: "course-test" }),
+      omitLength: true,
     })
   ).json();
   assert.equal(duplicate.id, group.id);

@@ -1,4 +1,5 @@
 import { directorySearch, normalizeCitySearch } from "./city-directory.mjs";
+import { readUploadForm, UploadLimitError } from './upload.mjs';
 import { downloadTicket } from "./downloads.mjs";
 import { removeWorldDelivery } from "./world-delivery.mjs";
 // City-level archive only. Never copy arbitrary client metadata into public rows.
@@ -170,14 +171,12 @@ export async function worldRoute(request, env, user, notify) {
   if (env.WORLD_ENABLED !== "true")
     return json({ error: "World unavailable" }, 503);
   if (path === "/world" && method === "POST") {
-    const length = Number(request.headers.get("Content-Length"));
-    if (!length || length > 25000000)
-      return json({ error: "Maximum upload 25 MB" }, 413);
     let form, data, duration;
     try {
-      form = await request.formData();
+      form = await readUploadForm(request);
       data = JSON.parse(String(form.get("metadata")));
-    } catch {
+    } catch (error) {
+      if (error instanceof UploadLimitError) return json({error: 'Maximum upload 25 MB'}, 413);
       return json({ error: "Invalid metadata" }, 400);
     }
     const audio = form.get("audio");

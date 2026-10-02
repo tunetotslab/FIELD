@@ -3,6 +3,7 @@ import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
 import { isAdmin, sendAdminPaymentNotification, sendAdminStats, sendAdminTransactions } from './admin.mjs';
 import { worldRoute, wavDuration } from './world.mjs';
+import { readUploadForm, UploadLimitError } from './upload.mjs';
 import { moderationUpdate, notifyReport } from './moderation.mjs';
 import { serveDownload } from './downloads.mjs';
 import { deliverWorld } from './world-delivery.mjs';
@@ -322,8 +323,9 @@ async function route(request, env, ctx) {
     if (env.GROUPS_ENABLED !== 'true') return json({error:'Groups unavailable'},503);
     const groupId = groupSoundMatch[1];
     if (!await isGroupMember(env, groupId, user)) return json({error:'Not found'},404);
-    if (!Number(request.headers.get('Content-Length')) || Number(request.headers.get('Content-Length')) > 25000000) return json({error:'Maximum upload 25 MB'},413);
-    const form = await request.formData();
+    let form;
+    try { form = await readUploadForm(request); }
+    catch (error) { return json({error: error instanceof UploadLimitError ? 'Maximum upload 25 MB' : 'Invalid metadata'}, error instanceof UploadLimitError ? 413 : 400); }
     const audio = form.get('audio');
     let data;
     try { data = JSON.parse(String(form.get('metadata'))); } catch { return json({error:'Invalid metadata'},400); }

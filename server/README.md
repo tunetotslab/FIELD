@@ -60,7 +60,12 @@ Do not execute the updated fresh-install `schema.sql` as a migration.
 Never deploy a Worker referencing moderation columns before this migration.
 
 World upload accepts PCM WAV up to 24 MB / **actual** 60 seconds, including FX
-tails. `/cities?q=...&country=AM&language=ru` now searches the versioned GeoNames
+tails. Multipart requests do not require `Content-Length`: both World and Group
+count actual incoming bytes before parsing, cancel bodies above 25 MB, and reject
+oversized files independently. Missing or understated size headers cannot bypass
+the cap. Regression tests include browser-style requests without the header.
+
+`/cities?q=...&country=AM&language=ru` now searches the versioned GeoNames
 country catalogue after two characters (450ms frontend debounce). Nominatim is
 no longer used: its global lease blocked concurrent users and its policy does not
 permit autocomplete. D1 caches results for 30 days under a new namespace; the
