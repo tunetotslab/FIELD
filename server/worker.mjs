@@ -1,4 +1,4 @@
-import {allowedOrigin, nativeUser, nativeRoute, nativeBotUpdate} from './native-auth.mjs';
+import {allowedOrigin, nativeUser, nativeRoute, nativeBotUpdate, purgeExpiredNativeAuth} from './native-auth.mjs';
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
 import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
@@ -382,7 +382,7 @@ async function route(request, env, ctx) {
   return json({error:'Not found'},404);
 }
 export default { async scheduled(_event,env,ctx) {
-  ctx.waitUntil(Promise.all([deliverWorld(env),deliverReportOutcomes(env,telegramFor(env))]));
+  ctx.waitUntil(Promise.all([deliverWorld(env),deliverReportOutcomes(env,telegramFor(env)),purgeExpiredNativeAuth(env)]));
 }, async fetch(request,env,ctx) {
   let response;
   try { response = await route(request,env,ctx); } catch { response = json({error:'Service unavailable'},503); }

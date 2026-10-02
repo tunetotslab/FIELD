@@ -1432,7 +1432,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const [groupError, setGroupError] = useState('');
   const [joining, setJoining] = useState(false);
   const loadGroups = useCallback(async (signal?: AbortSignal) => {
-    if (!GROUP_PUBLISHING_AVAILABLE || (isNativeApp()&&!isAuthenticated())) return;
+    if (!GROUP_PUBLISHING_AVAILABLE || (isNativeApp()&&!isAuthenticated())) {setGroups([]);return;}
     try { setGroups(await fieldGroups(signal)); setGroupError(''); }
     catch (error) { if (!signal?.aborted) setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupsLoadFailed')); }
   }, [t]);
@@ -1517,7 +1517,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
           {groupError && <p role="alert" className="search-status">{groupError}</p>}
         </section>
       )}
-      <button className="primary-button" disabled={(draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
+      <button className="primary-button" disabled={(isNativeApp() && draft.visibility !== "private" && !isAuthenticated()) || (draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
         {t("continue")}
       </button>
     </Shell>

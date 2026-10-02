@@ -111,6 +111,12 @@ export async function nativeRoute(request, env) {
       .bind(key, Date.now() - 600000)
       .first();
     if (count.n >= 10) return json({ error: "Please wait" }, 429);
+    const globalCount = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM native_challenges WHERE created_at>?",
+    )
+      .bind(Date.now() - 600000)
+      .first();
+    if (globalCount.n >= 500) return json({ error: "Please wait" }, 429);
     const id = crypto.randomUUID().replace(/-/g, ""),
       proof = random(),
       code = String(
@@ -254,4 +260,18 @@ export async function nativeBotUpdate(update, env, telegram) {
       : "FIELD iOS: this login is no longer available. / Начните вход заново.",
   });
   return true;
+}
+
+export async function purgeExpiredNativeAuth(env) {
+  if (env.NATIVE_AUTH_ENABLED !== "true") return;
+  // Authentication receipts only. Never touches audio, groups or donations.
+  const cutoff = Date.now() - 86400000;
+  await env.DB.prepare("DELETE FROM native_challenges WHERE expires_at<?")
+    .bind(cutoff)
+    .run();
+  await env.DB.prepare(
+    "DELETE FROM native_sessions WHERE expires_at<? OR revoked_at<?",
+  )
+    .bind(cutoff, cutoff)
+    .run();
 }

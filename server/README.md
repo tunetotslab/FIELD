@@ -208,3 +208,33 @@ the private bot chat first. Requests are limited to ten new receipts per user/mi
 No initData, bot token, Telegram file ID or private audio is returned in public URLs.
 Regression `scripts/files.test.mjs` uses SQLite plus mocked Telegram; it sends no
 production messages and leaves production World/Group audio untouched.
+
+
+## Standalone iOS authentication (Stage 6)
+
+Apply `migrations/0007_native_auth.sql` from this committed/pushed repository
+before setting `NATIVE_AUTH_ENABLED=true`. It adds only challenge/session tables
+and indexes; existing recordings, R2, groups, Telegram identities and donations
+are untouched. Defaults off. Allowed native Origin is exactly `capacitor://localhost`;
+web Origin remains `APP_ORIGIN`. Native session authentication is enabled only
+behind the same flag. Revoking the flag disables native tokens without rewriting
+Telegram sessions or group ACLs.
+
+POST `/auth/native/challenge` creates a ten-minute device-flow challenge. Public
+ID goes to the bot link; secret proof stays in the app. Bot approval works solely
+through a verified webhook in the user's own private chat, with a matching six-digit
+code and explicit action. First approval locks the Telegram identity. POST
+`/auth/native/status` never returns a token. After confirmation of the account
+in the app, POST `/auth/native/exchange` atomically consumes the proof once and
+issues a 30-day token; only its SHA-256 hash is stored in D1. POST
+`/auth/native/logout` revokes it. Expired/revoked auth receipts are purged by the
+existing scheduled Worker after a one-day grace period; no audio is purged.
+
+Native requests to World and Groups use `Authorization: Bearer field_…` and retain
+all existing owner/membership restrictions. Native donation requests are denied;
+web/bot Stars stay on the existing Telegram path. No tokens/proofs in URLs or logs.
+Regression `scripts/native-auth.test.mjs` uses real SQLite and mocked bot delivery.
+No production user or group messages are sent by the test.
+
+Apple login/deletion/blocking gates remain documented in `FIELD_IOS_PLAN_RU.md`;
+this device flow is not an assertion of App Store approval.

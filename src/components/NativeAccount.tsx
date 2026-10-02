@@ -72,6 +72,11 @@ type Challenge = {
   expiresAt: number;
   url: string;
 };
+class NativeLoginError extends Error {
+  constructor(readonly status: number) {
+    super("Native login unavailable");
+  }
+}
 async function request<T>(
   path: string,
   body: object,
@@ -92,7 +97,7 @@ async function request<T>(
     },
     15000,
   );
-  if (!response.ok) throw Error("Native login unavailable");
+  if (!response.ok) throw new NativeLoginError(response.status);
   return response.json();
 }
 export function NativeAccount() {
@@ -143,8 +148,16 @@ export function NativeAccount() {
           setApproved(status);
           return;
         }
-      } catch {
+      } catch (error) {
         if (controller.signal.aborted) return;
+        if (
+          error instanceof NativeLoginError &&
+          [400, 410, 503].includes(error.status)
+        ) {
+          setChallenge(undefined);
+          setError(c.failed);
+          return;
+        }
       }
       timer = setTimeout(() => void check(), 4000);
     };
@@ -206,7 +219,12 @@ export function NativeAccount() {
     setBusy(true);
     setError("");
     try {
-      await request("logout", {}, undefined, true);
+      try {
+        await request("logout", {}, undefined, true);
+      } catch (error) {
+        if (!(error instanceof NativeLoginError) || error.status !== 401)
+          throw error;
+      }
       await setNativeSession(undefined);
     } catch {
       setError(c.failed);

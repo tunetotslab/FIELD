@@ -29,8 +29,12 @@ export async function setNativeSession(value: NativeSession | undefined) {
     if (
       !/^field_[A-Za-z0-9_-]{43}$/.test(value.token) ||
       !Number.isSafeInteger(value.userId) ||
-      !value.userId ||
-      !Number.isFinite(value.expiresAt)
+      value.userId <= 0 ||
+      value.provider !== "telegram" ||
+      typeof value.displayName !== "string" ||
+      value.displayName.length > 100 ||
+      !Number.isFinite(value.expiresAt) ||
+      value.expiresAt <= Date.now()
     )
       throw Error("Invalid session");
     await device.sessionWrite({ value: JSON.stringify(value) });
@@ -47,7 +51,10 @@ export async function restoreNativeSession() {
     if (
       /^field_[A-Za-z0-9_-]{43}$/.test(data.token) &&
       Number.isSafeInteger(data.userId) &&
-      data.userId &&
+      data.userId > 0 &&
+      data.provider === "telegram" &&
+      typeof data.displayName === "string" &&
+      data.displayName.length <= 100 &&
       data.expiresAt > Date.now()
     )
       session = data;

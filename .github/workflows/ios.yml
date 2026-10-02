@@ -34,6 +34,8 @@ jobs:
           set -o pipefail
           xcodebuild -version
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/FieldBuild" CODE_SIGNING_ALLOWED=NO build | tee "$RUNNER_TEMP/field-ios-build.log"
+      - name: Launch real Simulator and verify UI, file bridge and Keychain
+        run: bash scripts/ios-simulator-smoke.sh
       - name: Build unsigned iPhone application
         run: |
           set -o pipefail
@@ -48,4 +50,6 @@ jobs:
             ${{ runner.temp }}/FIELD-simulator.zip
             ${{ runner.temp }}/field-ios-build.log
             ${{ runner.temp }}/field-device-build.log
+            ${{ runner.temp }}/FIELD-ci-smoke.json
+            ${{ runner.temp }}/FIELD-simulator.png
           if-no-files-found: warn
