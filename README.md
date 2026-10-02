@@ -13,8 +13,9 @@ The repository includes a GitHub Pages workflow. After enabling Pages with
 GitHub Actions in repository settings, the production URL is
 `https://tunetotslab.github.io/FIELD/`. Configure that URL in BotFather as the
 bot's Main Mini App or as a `web_app` button. The bot/backend is intentionally not part of this frontend;
-local recordings remain in IndexedDB and `sendData` sends only the saved sound
-metadata when the app was opened from a keyboard button.
+private recordings remain in IndexedDB. Authenticated World and Tune Tots Group
+publication use the existing Cloudflare Worker, D1 and private R2 bucket.
+`sendData` sends only metadata when opened from a keyboard button.
 
 ## Run
 
@@ -27,11 +28,29 @@ Production verification:
 
 ```bash
 npm run typecheck
+npm test
 npm run lint
 npm run build
 ```
 
-Microphone access requires HTTPS or localhost. Audio is stored locally in IndexedDB. Group and World publishing are intentionally disabled until a backend exists.
+Microphone access requires HTTPS or localhost. Audio is stored locally in IndexedDB.
+World/Group availability follows the existing build flags and Worker configuration.
+See `server/README.md` for deployment and `FIELD_WORLD_GROUPS_PLAN_RU.md` for release
+verification and remaining physical-device acceptance.
+
+Library rows are normalized centrally on read and on save without deleting data.
+Both publication destinations convert the saved render to PCM WAV, derive duration
+from real samples and preserve the local source. World comes only from D1/R2;
+foreground/online events revalidate it. Daily uses the local calendar day and
+refreshes after foregrounding and while the Daily screen stays open overnight.
+
+City suggestions start after two characters within the selected country. The
+versioned GeoNames catalogue in `public/geo/v1` includes alternate scripts,
+English/native names and available translations. It is fetched by the Worker per
+country; it is not included in the frontend JavaScript bundle. Catalogue coverage
+is settlements with >500 residents or administrative seats, not every village.
+Missing translations fall back to English and native labels. Source, licence and
+checksums are in its manifest; rebuild with `scripts/build-city-directory.py`.
 
 ## Approved assets now integrated
 

@@ -1,4 +1,4 @@
-const CACHE = 'field-shell-v6';
+const CACHE = 'field-shell-v7';
 const root = self.registration.scope;
 const SHELL = [
   '/',
@@ -25,7 +25,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || event.request.headers.has('Authorization') || url.origin !== self.location.origin || !url.href.startsWith(root)) return;
-  event.respondWith(fetch(event.request).then(response => {
+  event.respondWith(fetch(event.request, event.request.mode === 'navigate' ? { cache: 'no-cache' } : {}).then(response => {
     const copy = response.clone();
     if (response.ok) event.waitUntil(caches.open(CACHE).then(cache => cache.put(event.request, copy)));
     return response;

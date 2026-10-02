@@ -149,7 +149,7 @@ const en = {
     "No place found. Refine the search or continue without a location.",
   placeSearchError:
     "Place search is unavailable. Your sound and previous choice are safe.",
-  geoAttribution: "Place search © OpenStreetMap contributors",
+  geoAttribution: "City names © GeoNames · CC BY 4.0",
   echoRate: "ECHO RATE",
   slower: "SLOWER",
   faster: "FASTER",
@@ -296,7 +296,7 @@ const ru: Record<Key, string> = {
   placeNotFound:
     "Место не найдено. Уточните запрос или продолжите без локации.",
   placeSearchError: "Поиск мест недоступен. Звук и прежний выбор сохранены.",
-  geoAttribution: "Поиск мест © участники OpenStreetMap",
+  geoAttribution: "Названия городов © GeoNames · CC BY 4.0",
   echoRate: "ТЕМП ЭХА",
   slower: "МЕДЛЕННЕЕ",
   faster: "БЫСТРЕЕ",
@@ -442,7 +442,7 @@ const hy: Record<Key, string> = {
   placeNotFound: "Վայրը չի գտնվել։ Ճշտեք կամ շարունակեք առանց վայրի։",
   placeSearchError:
     "Որոնումն անհասանելի է։ Ձեր ձայնը և ընտրությունը պահպանված են։",
-  geoAttribution: "Վայրերի որոնում © OpenStreetMap-ի մասնակիցներ",
+  geoAttribution: "Քաղաքների անուններ © GeoNames · CC BY 4.0",
   echoRate: "ԷԽՈՅԻ ԱՐԱԳՈՒԹՅՈՒՆ",
   slower: "ԴԱՆԴԱՂ",
   faster: "ԱՐԱԳ",
@@ -586,7 +586,7 @@ const zh: Record<Key, string> = {
   searchingPlaces: "正在搜尋…",
   placeNotFound: "找不到地點。請調整搜尋或不選位置繼續。",
   placeSearchError: "目前無法搜尋地點。你的聲音與先前選擇不會遺失。",
-  geoAttribution: "地點搜尋 © OpenStreetMap 貢獻者",
+  geoAttribution: "城市名稱 © GeoNames · CC BY 4.0",
   echoRate: "回音速度",
   slower: "較慢",
   faster: "較快",

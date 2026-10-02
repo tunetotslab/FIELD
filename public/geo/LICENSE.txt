@@ -1,0 +1,9 @@
+FIELD city catalogue: GeoNames, https://www.geonames.org/
+Source: https://download.geonames.org/export/dump/
+Licence: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+
+Adaptations: country shards, prefix normalization, selection of current localized
+names, deterministic population ordering. No source user recordings are used.
+See v1/manifest.json for source checksums and coverage.
+GeoNames data is provided without guarantees of completeness or accuracy.

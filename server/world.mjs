@@ -1,3 +1,4 @@
+import { directorySearch, normalizeCitySearch } from "./city-directory.mjs";
 import { downloadTicket } from "./downloads.mjs";
 import { removeWorldDelivery } from "./world-delivery.mjs";
 // City-level archive only. Never copy arbitrary client metadata into public rows.
@@ -67,64 +68,13 @@ export async function searchCity(env, query, country, language = "en") {
     !/^[A-Z]{2}$/.test(country)
   )
     throw Error("City required");
-  const cacheKey = `${country}:${language}:${query.trim().toLowerCase()}`;
+  const cacheKey = `directory-v1:${country}:${language}:${normalizeCitySearch(query)}`;
   const cached = await env.DB.prepare(
     "SELECT results FROM city_search_cache WHERE id=? AND expires_at>?",
-  )
-    .bind(cacheKey, Date.now())
-    .first();
+  ).bind(cacheKey, Date.now()).first();
   if (cached) return JSON.parse(cached.results);
-  // One atomic application-wide lease; no autocomplete or per-device rate limits.
   const now = Date.now();
-  const lease = await env.DB.prepare(
-    "INSERT INTO service_limits (id,last_at) VALUES ('geocoder',?) ON CONFLICT(id) DO UPDATE SET last_at=excluded.last_at WHERE service_limits.last_at<=? RETURNING id",
-  )
-    .bind(now, now - 1100)
-    .first();
-  if (!lease) throw Error("City lookup busy");
-  const url = new URL(
-    env.GEOCODER_URL || "https://nominatim.openstreetmap.org/search",
-  );
-  url.search = new URLSearchParams({
-    city: query.trim(),
-    countrycodes: country.toLowerCase(),
-    format: "jsonv2",
-    addressdetails: "1",
-    "accept-language": language,
-    limit: "8",
-  }).toString();
-  const response = await fetch(url, {
-    headers: { "User-Agent": `FIELD/1.0 (${env.SUPPORT_EMAIL})` },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!response.ok) throw Error("City lookup unavailable");
-  const places = await response.json();
-  const locations = places.flatMap((place) => {
-    const a = place.address || {},
-      city = a.city || a.town || a.village || a.municipality;
-    const lat = Number(place.lat),
-      lng = Number(place.lon);
-    if (
-      !city ||
-      a.country_code?.toUpperCase() !== country ||
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng) ||
-      Math.abs(lat) > 90 ||
-      Math.abs(lng) > 180
-    )
-      return [];
-    return [
-      {
-        placeId: `osm:${place.osm_type}:${place.osm_id}`,
-        city,
-        country: a.country,
-        countryCode: country,
-        region: a.state || a.region,
-        lat,
-        lng,
-      },
-    ];
-  });
+  const locations = await directorySearch(env, query, country, language);
   if (locations.length)
     await env.DB.batch(
       locations.map((location) =>

@@ -1784,4 +1784,27 @@ chat. Persist outcomes and delivery state; retry failures without losing the
 decision. Users must allow bot messages/start the bot; do not claim delivery to
 blocked or unreachable accounts. Human Keep/Hide/Delete remain the only decisions.
 
+## Production stabilization — October 2, 2026
+
+City search now offers debounced country-scoped prefix suggestions from the
+GitHub-versioned GeoNames catalogue (CC BY 4.0), replacing explicit-only Nominatim
+search at the owner's request. Search accepts indexed alternate scripts and
+transliterations. Show the interface-language label when available, English
+fallback and a distinct native label. Never invent a translation. Coverage is
+GeoNames cities500/admin seats, not every settlement. Stable server-resolved IDs
+remain authoritative; existing World OSM IDs and user audio must survive rollout.
+
+Library normalization is centralized at the storage boundary (schemaVersion 1).
+Read-through normalization preserves raw historical rows until an explicit save;
+save persists the current model while preserving original/edit/publication fields.
+Visibility alone never proves successful publication. Early city/country-only
+locations require city selection before World publication. World and Group share
+one audio preparation path; missing bytes fail per item without deleting data.
+
+World revalidates after foreground/reconnect, refreshes the selected city's list
+and ignores cancelled responses. Private Library never supplies globe markers.
+Daily retains a stable local-day task and artwork, but rechecks on foreground,
+screen entry and a visible-screen timer across midnight. No storage wipe, native
+application work, donation/bot rewrite or new social feature is included.
+
 **END OF FIELD_SPEC.md**

@@ -234,6 +234,25 @@ export async function runAudioChecks(
   );
   await repository.remove(record.id);
   assert((await repository.getAll()).length === 0, "Blob deletion");
+  // A raw pre-version row in this disposable QA database exercises read-through
+  // compatibility without replacing or deleting anything in the user's library.
+  const legacyDb = await new Promise<IDBDatabase>((resolve,reject) => {
+    const request=indexedDB.open(name,1);
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+  await new Promise<void>((resolve,reject) => {
+    const transaction=legacyDb.transaction('sounds','readwrite');
+    transaction.objectStore('sounds').put({...record,id:'legacy-probe',styleId:undefined,waveform:undefined,originalBlob:undefined,worldPublication:undefined});
+    transaction.oncomplete=()=>resolve();transaction.onabort=()=>reject(transaction.error);
+  });
+  legacyDb.close();
+  const legacy=(await repository.getAll())[0];
+  assert(legacy.schemaVersion===1 && legacy.styleId==='grotesk' && legacy.waveform.length===0,'Legacy metadata normalization');
+  assert(legacy.audioBlob.size===clean.blob.size && !legacy.originalBlob && !legacy.worldPublication,'Legacy migration invented source or publication');
+  const legacyPrepared=await preparePublicationAudio(legacy);
+  assert(Math.abs(legacyPrepared.duration-clean.duration)<.01,'Legacy row cannot prepare actual audio');
+  await repository.remove('legacy-probe');
   let isOnline = false,
     fail = true,
     calls = 0;

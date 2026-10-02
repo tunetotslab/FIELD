@@ -1,0 +1,13 @@
+{
+  "source": "https://download.geonames.org/export/dump/",
+  "license": "CC BY 4.0",
+  "coverage": "cities500: population > 500 or administrative seats; not every village",
+  "cities": 235914,
+  "countries": 246,
+  "sha256": {
+    "cities500.zip": "88b41c5f6ce2a69ac526bf70b54a27f9c1992d8cf29855536b853be63bde4d17",
+    "alternateNamesV2.zip": "f9e22a7971fc79596e68be75e2e04e46aa517d5a84383ff76df677af81c88308",
+    "admin1CodesASCII.txt": "1da92a6323a5fec3176f3f743bf4cf4040fd56a876da55e46fbca23c863aa60a",
+    "countryInfo.txt": "93bafc525813f22e4711ff9ed6d626343094ce48c26388dc7c49189b3d7d5512"
+  }
+}

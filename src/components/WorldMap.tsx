@@ -18,6 +18,7 @@ import { Waveform } from "./Waveform";
 import { FieldGlobe } from "./FieldArtwork";
 import { formatTime } from "../audio/utils";
 import type { PlaybackManager } from "../audio/player";
+import { subscribeForeground } from '../lifecycle';
 
 const productionApi = {
   worldAudio,
@@ -50,6 +51,15 @@ export function WorldMap({
     [playing, setPlaying] = useState<string>(),
     [fetching, setFetching] = useState<string>(),
     [progress, setProgress] = useState(0);
+  useEffect(() => {
+    let last = 0;
+    const revalidate = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < 1000) return;
+      last = Date.now();
+      setRefresh(value => value + 1);
+    };
+    return subscribeForeground(revalidate);
+  }, []);
   const [report, setReport] = useState<WorldSound>(),
     [reportBusy, setReportBusy] = useState(false),
     [reportNotice, setReportNotice] = useState("");
@@ -137,7 +147,9 @@ export function WorldMap({
     void api
       .worldCities(controller.signal)
       .then((items) => {
+        if (controller.signal.aborted) return;
         setCities(items);
+        setSelected(current => current ? items.find(city => city.id === current.id) : undefined);
       })
       .catch(() => {
         if (!controller.signal.aborted) setError(t("worldLoadFailed"));
@@ -172,7 +184,7 @@ export function WorldMap({
         if (!controller.signal.aborted) setListLoading(false);
       });
     return () => controller.abort();
-  }, [selected, t]);
+  }, [selected, refresh, t]);
   useEffect(() => {
     player.onProgress = setProgress;
     return () => {

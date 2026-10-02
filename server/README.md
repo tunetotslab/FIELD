@@ -60,15 +60,27 @@ Do not execute the updated fresh-install `schema.sql` as a migration.
 Never deploy a Worker referencing moderation columns before this migration.
 
 World upload accepts PCM WAV up to 24 MB / **actual** 60 seconds, including FX
-tails. `/cities?q=...&country=AM&language=ru` is explicitly user-triggered;
-autocomplete is prohibited. D1 caches results for 30 days and atomically limits
-all application geocoder requests to one per 1.1 seconds. `GEOCODER_URL` allows
-replacing the compatible search provider without updating frontend. The existing
-Nominatim integration is subject to its [usage policy](https://operations.osmfoundation.org/policies/nominatim/):
-modest traffic, identifiable User-Agent, OSM attribution, no autocomplete and
-replacement on growth/provider request. No confidential data is sent there.
-Only cached server city IDs are accepted for publication; client coordinates
-are ignored.
+tails. `/cities?q=...&country=AM&language=ru` now searches the versioned GeoNames
+country catalogue after two characters (450ms frontend debounce). Nominatim is
+no longer used: its global lease blocked concurrent users and its policy does not
+permit autocomplete. D1 caches results for 30 days under a new namespace; the
+Worker caches at most three country files for 30 minutes. Typed queries and user
+coordinates never go to an external geocoder. `CITY_DIRECTORY_URL` can override
+the default `${APP_URL}geo/v1/`; publish the catalogue via the existing Pages
+workflow before deploying this Worker. Prefix aliases are normalized at build
+time; Thai/other non-Latin combining marks are retained. RU/EN/HY/Chinese names
+use GeoNames translations; missing labels fall back to English plus native names.
+Existing OSM IDs are retained only when a catalogue alias matches a cached city
+in the same country within 10km, with no ambiguous matches. New IDs use
+`geonames:<id>`. Only cached server city IDs are accepted for publication; client
+coordinates are ignored. No D1 migration is required for this catalogue change.
+
+Catalogue sources/licence: [GeoNames dumps](https://download.geonames.org/export/dump/readme.txt),
+CC BY 4.0. Download `cities500.zip`, `alternateNamesV2.zip`, `admin1CodesASCII.txt`
+and `countryInfo.txt` into ignored `work/geo/`, then run
+`python3 scripts/build-city-directory.py work/geo public/geo/v1` and commit the
+generated shards/manifest. Coverage excludes some small villages; aliases and
+translations are only as complete as GeoNames. Do not invent translated names.
 
 `GET /world/cities` returns complete visible city counts. `GET /world?city=ID`
 returns `{items,nextCursor}` (20 items). Cursor ordering uses `(created_at,id)`.
@@ -92,6 +104,12 @@ requires owner review rather than blind resending.
 R2 stays private; requests require signed Telegram initData no older than 1 hour.
 Users reopen FIELD to refresh an expired session. No authenticated API response
 may be cached by the service worker.
+
+All World/group GET requests explicitly bypass HTTP caches. World revalidates on
+open, foreground/focus and reconnect; the active city list is refreshed too.
+Cancelled city responses cannot overwrite a newer fetch. Static shell caching
+remains available offline; navigations revalidate HTTP HTML in shell v7. No
+localStorage/IndexedDB reset is part of release or rollback.
 
 Regression verification: `npm run typecheck`, `npm test`, `npm run build`, plus
 dev-only `/qa.html` for audio/IndexedDB/three-FX and isolated World UI. Do not

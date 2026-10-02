@@ -31,6 +31,7 @@ export async function worldRequest<T>(
 ): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
+    cache: 'no-store',
     headers: {
       Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}`,
       ...options.headers,
@@ -112,6 +113,7 @@ export function reportWorldSound(
 }
 export async function worldAudio(id: string, signal?: AbortSignal) {
   const response = await fetch(`${API_URL}/audio/${encodeURIComponent(id)}`, {
+    cache: 'no-store',
     headers: {
       Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}`,
     },

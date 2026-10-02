@@ -1,4 +1,5 @@
 import type { SoundRecord } from '../types';
+import { normalizeRecording } from './normalize';
 
 const DB_NAME = 'field-audio';
 const STORE = 'sounds';
@@ -32,8 +33,9 @@ async function tx<T>(name: string, mode: IDBTransactionMode, action: (store: IDB
 
 export function createSoundRepository(name = DB_NAME) {
   return {
-    save: (sound: SoundRecord) => tx(name, 'readwrite', store => store.put(sound)),
-    getAll: () => tx<SoundRecord[]>(name, 'readonly', store => store.getAll()),
+    save: (sound: SoundRecord) => tx(name, 'readwrite', store => store.put(normalizeRecording(sound))),
+    // Read-through migration: old raw rows remain intact until the user saves.
+    getAll: async () => (await tx<SoundRecord[]>(name, 'readonly', store => store.getAll())).map(normalizeRecording),
     remove: (id: string) => tx(name, 'readwrite', store => store.delete(id)),
     clear: () => tx(name, 'readwrite', store => store.clear())
   };

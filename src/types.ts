@@ -44,6 +44,9 @@ export type Screen =
   | "help";
 
 export interface SoundLocation {
+  englishCity?: string;
+  nativeCity?: string;
+  localizedNames?: Record<string, string>;
   placeId: string;
   city: string;
   country: string;
@@ -83,6 +86,7 @@ export interface SoundDraft {
 }
 
 export interface SoundRecord {
+  schemaVersion?: number;
   effectChain?: EffectSlot[];
   originalBlob?: Blob;
   editState?: Omit<

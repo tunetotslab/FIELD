@@ -7,3 +7,4 @@ vite.config.d.ts
 .env*
 .dev.vars*
 .wrangler/
+work/

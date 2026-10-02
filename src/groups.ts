@@ -18,6 +18,7 @@ function auth() {
 
 export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
   const response = await fetch(`${API_URL}/groups`, {
+    cache: 'no-store',
     headers: auth(),
     signal,
   });

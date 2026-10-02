@@ -13,6 +13,8 @@ import { analyze, effectLabel, renderDraft } from "./audio/processing";
 import { formatTime } from "./audio/utils";
 import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
+import { hasResolvableCity } from './storage/normalize';
+import { subscribeForeground } from './lifecycle';
 import { telegram } from "./telegram";
 import { Dialog } from './components/Dialog';
 import { Donate } from './components/Donate';
@@ -32,6 +34,7 @@ import {
   createTaskSelector,
   createImageVariantSelector,
   TASK_ROTATION_MODE,
+  localDate,
 } from "./data/taskRotation";
 import { emojiCategories, searchEmoji, type EmojiCategory } from "./data/emoji";
 import { useI18n, type Locale } from "./i18n";
@@ -103,7 +106,23 @@ const selectImageVariant = createImageVariantSelector({
 export default function App() {
   const { t } = useI18n();
   const [activeTask, setActiveTask] = useState<Task & { imageSrc: string }>();
+  const dailyDate = useRef('');
+  const refreshDaily = useCallback(() => {
+    const date = new Date();
+    const day = localDate(date);
+    if (dailyDate.current === day) return;
+    dailyDate.current = day;
+    const id = selectTask(TASK_ROTATION_MODE, date);
+    const task = tasks.find(task => task.id === id)!;
+    const images = taskImages[task.imageId];
+    setActiveTask({...task, imageSrc: images[selectImageVariant(task.imageId, images.length, TASK_ROTATION_MODE, date)]});
+  }, []);
   const [screen, setScreen] = useState<Screen>("home");
+  useEffect(() => {
+    if (screen !== 'daily') return;
+    refreshDaily();
+    return subscribeForeground(refreshDaily, 30000);
+  }, [screen, refreshDaily]);
   const [draft, setDraft] = useState<SoundDraft>();
   const [records, setRecords] = useState<SoundRecord[]>([]);
   const [notice, setNotice] = useState("");
@@ -144,16 +163,7 @@ export default function App() {
   }, [screen]);
   const go = (next: Screen) => {
     if (next === "daily") {
-      const id = selectTask(TASK_ROTATION_MODE);
-      const task = tasks.find((task) => task.id === id)!;
-      const images = taskImages[task.imageId];
-      setActiveTask({
-        ...task,
-        imageSrc:
-          images[
-            selectImageVariant(task.imageId, images.length, TASK_ROTATION_MODE)
-          ],
-      });
+      refreshDaily();
     }
     if (
       next === "settings" &&
@@ -428,7 +438,7 @@ export default function App() {
               if(destination) {
                 reusedRecord.current=record;
                 setDraft({...newDraft(record.audioBlob,record.duration,record.waveform),...record.editState,id:record.id,originalBlob:record.originalBlob||record.audioBlob,title:record.title,emojis:record.emojis,styleId:record.styleId,location:record.location,createdAt:record.createdAt,processedBlob:record.audioBlob,processedDuration:record.duration,processedWaveform:record.waveform,visibility:destination});
-                go(record.location && destination==='world'?'visibility':destination==='group'?'visibility':'location');
+                go(destination==='group' || hasResolvableCity(record) ? 'visibility' : 'location');
               } else {
                 reusedRecord.current=undefined;
                 const base=record.originalBlob||record.audioBlob;
@@ -1235,11 +1245,8 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
     CountryOption | undefined
   >(() => {
     if (!draft.location) return undefined;
-    return {
-      code: draft.location.countryCode,
-      name: draft.location.country,
-      searchNames: [draft.location.country],
-    };
+    return allCountries.find(country => country.code === draft.location?.countryCode ||
+      country.searchNames.some(name => name.toLocaleLowerCase() === draft.location?.country?.trim().toLocaleLowerCase()));
   });
   const [cityQuery, setCityQuery] = useState(draft.location?.city || "");
   const [results, setResults] = useState<SoundLocation[]>([]);
@@ -1260,6 +1267,16 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
       : [];
   const searchController = useRef<AbortController | null>(null);
   useEffect(() => () => searchController.current?.abort(), []);
+  // Prefix search is served from the FIELD country catalogue, not Nominatim.
+  useEffect(() => {
+    if (!selectedCountry || Array.from(cityQuery.trim()).length < 2 ||
+      (hasResolvableCity(draft) && draft.location?.city === cityQuery)) return;
+    const timer = window.setTimeout(() => void findCity(), 450);
+    return () => {
+      window.clearTimeout(timer);
+      searchController.current?.abort();
+    };
+  }, [cityQuery, selectedCountry?.code, locale]);
   const findCity = async () => {
     if (!selectedCountry || cityQuery.trim().length < 2) return;
     searchController.current?.abort();
@@ -1344,14 +1361,16 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
                   >
                     {place.city}
                     <small>
-                      {[place.region, place.country].filter(Boolean).join(", ")}
+                      {[place.englishCity !== place.city ? place.englishCity : undefined,
+                        place.nativeCity !== place.city && place.nativeCity !== place.englishCity ? place.nativeCity : undefined,
+                        place.region, place.country].filter(Boolean).join(" · ")}
                     </small>
                   </button>
                 ),
             )}
           </div>
         )}
-        {draft.location && (
+        {hasResolvableCity(draft) && draft.location && (
           <div className="selected-place">
             <strong>✓ {draft.location.city}</strong>
             <small>
@@ -1363,7 +1382,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
         )}
         <a
           className="geo-attribution"
-          href="https://www.openstreetmap.org/copyright"
+          href="https://www.geonames.org/"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -1384,7 +1403,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
           <i />
         </button>
       </div>
-      <button className="primary-button" onClick={next}>
+      <button className="primary-button" disabled={draft.visibility === 'world' && !hasResolvableCity(draft)} onClick={next}>
         {t("continue")}
       </button>
     </Shell>
@@ -1427,7 +1446,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
         ? t("worldCopy")
         : t("publicationUnavailable"),
       COMMUNITY_PUBLISHING_AVAILABLE &&
-        Boolean(draft.location?.city && draft.location?.country),
+        hasResolvableCity(draft),
     ],
     ["group", t("group"), GROUP_PUBLISHING_AVAILABLE ? t("groupCopy") : t("backendRequired"), groupEnabled],
   ];
@@ -1480,7 +1499,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
           {groupError && <p role="alert" className="search-status">{groupError}</p>}
         </section>
       )}
-      <button className="primary-button" disabled={draft.visibility === 'group' && !draft.groupId} onClick={next}>
+      <button className="primary-button" disabled={(draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
         {t("continue")}
       </button>
     </Shell>

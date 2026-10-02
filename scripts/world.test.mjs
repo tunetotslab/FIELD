@@ -65,7 +65,9 @@ const env = {
   ADMIN_TELEGRAM_ID: "9",
   WEBHOOK_SECRET: "test-world-webhook",
   SUPPORT_EMAIL: "test@example.invalid",
+  CITY_DIRECTORY_URL: "https://catalogue.test/geo/v1/",
 };
+database.prepare('INSERT INTO world_cities(id,location) VALUES (?,?)').run('osm:relation:1',JSON.stringify({placeId:'osm:relation:1',city:'Yerevan',country:'Armenia',countryCode:'AM',lat:40.177,lng:44.503}));
 function auth(user) {
   const params = new URLSearchParams({
     auth_date: String(Math.floor(Date.now() / 1000)),
@@ -164,17 +166,9 @@ let rejectTelegram=false,unknownTelegram=false;
 let geocoderCalls = 0,
   notifications = 0;
 globalThis.fetch = async (url, options) => {
-  if (String(url).includes("nominatim")) {
+  if (String(url).includes('catalogue.test')) {
     geocoderCalls++;
-    return Response.json([
-      {
-        osm_type: "relation",
-        osm_id: 1,
-        lat: "40.177",
-        lon: "44.503",
-        address: { city: "Yerevan", country: "Armenia", country_code: "am" },
-      },
-    ]);
+    return Response.json([[1,'Yerevan','Yerevan',['yerevan','ереван','երևան'],40.177,44.503,1000000,'Yerevan',{en:'Yerevan',ru:'Ереван',hy:'Երևան'}]]);
   }
   if (String(url).includes("api.telegram.org")) {
     if(unknownTelegram)throw Error('Simulated ambiguous network timeout');
@@ -201,7 +195,7 @@ try {
   const resolved=await request('/cities/resolve',1,{method:'POST',body:JSON.stringify({...metadata.location,placeId:'osm:old',lat:0,lng:0})});
   assert.equal(resolved.status,200);
   assert.equal((await resolved.json()).placeId,canonical.placeId);
-  assert.equal((await request("/cities?q=Dilijan&country=AM")).status, 503);
+  assert.equal((await request("/cities?q=Dilijan&country=AM",2)).status, 200);
   assert.equal(geocoderCalls, 1);
   const response = await request("/world", 1, { method: "POST", body: form() });
   assert.equal(response.status, 201);
@@ -302,6 +296,8 @@ try {
       );
   const cities = await (await request("/world/cities", 2)).json();
   assert.equal(cities[0].count, 46);
+  assert.deepEqual(await (await request('/world/cities',1)).json(),cities,'All users get the same cities and complete counts');
+  assert.deepEqual(await (await request('/world/cities',3)).json(),cities,'Repeated loads do not lose older cities');
   let cursor = null;
   const ids = [];
   do {
@@ -402,7 +398,7 @@ try {
     401,
   );
   console.log(
-    "PASS World real SQLite/R2 adapter: signed auth, PCM duration, city privacy/cache/throttle, idempotency, 46-row pagination, second-user playback, owner removal, reports, moderator ACL, hidden audio, course isolation",
+    "PASS World real SQLite/R2 adapter: signed auth, PCM duration, city privacy/cache/no cross-user throttle, idempotency, identical global counts, 46-row pagination, second-user playback, owner removal, reports, moderator ACL, hidden audio, course isolation",
   );
   const groupId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
   database
