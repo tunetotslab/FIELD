@@ -18,6 +18,9 @@ async function moduleUrl(path) {
     const next = await moduleUrl(resolved.href);
     code = code.replace(match[0], `from ${JSON.stringify(next)}`);
   }
+  for(const match of [...code.matchAll(/from ["'](@capacitor[^"']+)["']/g)]) {
+    code=code.replace(match[0],`from ${JSON.stringify(import.meta.resolve(match[1]))}`);
+  }
   const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
   modules.set(path, url);
   return url;
@@ -318,3 +321,25 @@ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{canShare:
 const browserSharing=runFileAction(preparedFile,'share');assert.equal(nativeBrowserShare,true);await browserSharing;
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:realNavigator});
 console.log('PASS actual export/share client: full legacy WAV without decode/storage, signed Telegram relay, stable retry identity, native Telegram selector, visible ambiguous/rejected errors and synchronous browser sharing');
+
+// Real native repository adapter reconstructs independent Blob bytes without a
+// WebView database. Only the device boundary is a deterministic fixture.
+const {createNativeSoundRepository}=await load('../src/storage/native.ts');
+const nativeRows=new Map();let nativeWriteFails=false;
+const bridge={
+ async listSounds(){return {ids:[...nativeRows.keys()]};},
+ async loadSound({id}){return structuredClone(nativeRows.get(id));},
+ async saveSound(row){if(nativeWriteFails)throw Error('Disk full');nativeRows.set(row.id,structuredClone(row));},
+ async removeSound({id}){nativeRows.delete(id);}
+};
+const nativeRepository=createNativeSoundRepository(bridge);
+const nativeRecord={...normalized,id:'native-one',audioBlob:new Blob([new Uint8Array([0,255,4,7])],{type:'audio/wav'}),originalBlob:new Blob([new Uint8Array([9,8,0])],{type:'audio/mp4'}),effectChain:[{effect:'echo',mix:.3}],unknownMetadata:{keep:'all'},worldPublication:{state:'pending',clientId:'native-publish',ownerUserId:7}};
+await nativeRepository.save(nativeRecord);
+const reopenedNative=(await createNativeSoundRepository(bridge).getAll())[0];
+assert.deepEqual([...new Uint8Array(await reopenedNative.audioBlob.arrayBuffer())],[0,255,4,7]);
+assert.deepEqual([...new Uint8Array(await reopenedNative.originalBlob.arrayBuffer())],[9,8,0]);
+assert.equal(reopenedNative.originalBlob.type,'audio/mp4');assert.deepEqual(reopenedNative.effectChain,nativeRecord.effectChain);assert.deepEqual(reopenedNative.unknownMetadata,nativeRecord.unknownMetadata);assert.deepEqual(reopenedNative.worldPublication,nativeRecord.worldPublication);
+nativeWriteFails=true;await assert.rejects(()=>nativeRepository.save({...nativeRecord,title:'lost'}));assert.equal((await nativeRepository.getAll())[0].title,nativeRecord.title);
+await assert.rejects(()=>nativeRepository.clear());assert.equal((await nativeRepository.getAll()).length,1);
+await nativeRepository.remove(nativeRecord.id);assert.equal((await nativeRepository.getAll()).length,0);
+console.log('PASS native adapter: original/render byte integrity after reopen, metadata/FX/ownership, failed save preserves old row and bulk clear disabled');
