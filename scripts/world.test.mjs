@@ -473,7 +473,9 @@ try {
   database.prepare("UPDATE world_telegram_deliveries SET state='queued',updated_at=0 WHERE sound_id=?").run(mirrorId);
   rejectTelegram=true;await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
   assert.equal(database.prepare('SELECT state FROM world_telegram_deliveries WHERE sound_id=?').get(mirrorId).state,'failed');
-  rejectTelegram=false;await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  rejectTelegram=false;
+  // Recovery processes bounded batches fairly; 45 older fixture rows may precede this retry.
+  for(let attempt=0;attempt<7 && database.prepare('SELECT state FROM world_telegram_deliveries WHERE sound_id=?').get(mirrorId).state!=='delivered';attempt++)await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
   assert.equal(database.prepare('SELECT state FROM world_telegram_deliveries WHERE sound_id=?').get(mirrorId).state,'delivered');
   database.prepare("UPDATE world_telegram_deliveries SET state='queued',updated_at=0 WHERE sound_id=?").run(mirrorId);
   unknownTelegram=true;await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});unknownTelegram=false;
