@@ -1807,4 +1807,19 @@ Daily retains a stable local-day task and artwork, but rechecks on foreground,
 screen entry and a visible-screen timer across midnight. No storage wipe, native
 application work, donation/bot rewrite or new social feature is included.
 
+## iPhone feedback follow-up — October 2, 2026
+
+World and Group deadlines/cancellation must work in Safari without the static
+AbortSignal.any/timeout methods. Legacy publication asks for missing required
+emoji/title metadata before upload; audio remains untouched. Cold Home loading
+reserves the logo/mascot layout so the record control never overlaps artwork.
+Recording termination and audio decode have bounded recovery; a failed decode
+can retry the same captured bytes instead of requiring another recording.
+
+Daily interleaves the four prompts per artwork: each adjacent local day uses a
+different approved illustration, with a stable prompt/image throughout that day.
+Settings information links are ordered About FIELD, Links, Privacy, Help,
+Microphone. About explains FIELD, field recordings, Tune Tots Lab, keep/share
+and free access without repeated biographies or obsolete service status.
+
 **END OF FIELD_SPEC.md**

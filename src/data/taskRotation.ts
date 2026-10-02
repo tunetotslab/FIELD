@@ -7,6 +7,22 @@ export const TASK_ROTATION_KEY = "field-task-rotation-v1";
 type Storage = Pick<globalThis.Storage, "getItem" | "setItem">;
 type Queue = { remaining: string[]; last?: string };
 
+/** Tasks arrive in four-card artwork blocks. Interleave those blocks so every
+ * calendar day changes both the prompt and its matching approved illustration. */
+export function dailyTaskIds(tasks: readonly {id: string; imageId: number}[]): string[] {
+  const groups = new Map<number, string[]>();
+  for (const task of tasks) {
+    const group = groups.get(task.imageId) || [];
+    group.push(task.id);
+    groups.set(task.imageId, group);
+  }
+  const result: string[] = [];
+  const count = Math.max(...[...groups.values()].map(group => group.length));
+  for (let index = 0; index < count; index++)
+    for (const group of groups.values()) if (group[index]) result.push(group[index]);
+  return result;
+}
+
 // Alternate the supplied artwork variants per image, independently of task order.
 export function createImageVariantSelector(storage?: Storage) {
   const counts = new Map<number, number>();

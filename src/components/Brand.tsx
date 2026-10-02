@@ -23,7 +23,7 @@ export function TuneTotsLogo({ compact = false }: { compact?: boolean }) {
 }
 
 export function FieldWordmark() {
-  return <img className="field-wordmark" src={fieldWordmark} alt="FIELD" />;
+  return <img className="field-wordmark" src={fieldWordmark} width={1944} height={809} alt="FIELD" />;
 }
 
 export function Miley({ state }: { state: "record" | "world" }) {
@@ -32,6 +32,8 @@ export function Miley({ state }: { state: "record" | "world" }) {
     <img
       className={`miley-art miley-${state}`}
       src={source}
+      width={state === "record" ? 1402 : undefined}
+      height={state === "record" ? 1122 : undefined}
       alt={
         state === "record"
           ? "Miley holding a field recorder"

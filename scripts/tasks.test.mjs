@@ -62,6 +62,7 @@ console.log(
 );
 const {
   createTaskSelector,
+  dailyTaskIds,
   createImageVariantSelector,
   localDate,
   TASK_ROTATION_KEY,
@@ -227,3 +228,13 @@ try {
 } finally {
   delete globalThis.__fieldTaskTest;
 }
+
+const dailyOrder = dailyTaskIds(tasks);
+assert.equal(new Set(dailyOrder).size, tasks.length);
+const selectDaily = createTaskSelector(dailyOrder);
+for (let day=0; day<160; day++) {
+ const a=tasks.find(task=>task.id===selectDaily('daily',new Date(2026,9,1+day)));
+ const b=tasks.find(task=>task.id===selectDaily('daily',new Date(2026,9,2+day)));
+ assert.notEqual(a.imageId,b.imageId, 'Every adjacent day must show different artwork, including cycle boundary');
+}
+console.log('PASS adjacent local days change matching task artwork across two full rotations');

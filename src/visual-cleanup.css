@@ -24,7 +24,7 @@
 }
 .shell-home .screen-content {
   display: grid;
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: repeat(4, minmax(min-content, auto));
   align-content: start;
   gap: clamp(12px, 2.2vh, 20px);
   padding-bottom: var(--space-4);
@@ -47,7 +47,7 @@
 .home-illustration .miley-record {
   width: min(78%, 292px);
   max-height: min(29vh, 240px);
-  height: auto;
+  height: min(29vh, 240px);
   object-fit: contain;
   object-position: center;
 }
@@ -349,6 +349,7 @@
   .home-illustration .miley-record {
     width: min(66%, 210px);
     max-height: 190px;
+    height: min(29vh, 190px);
   }
   .shell-home .screen-content {
     gap: var(--space-2);
