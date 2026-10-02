@@ -4,14 +4,21 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "node scripts/dsp.test.mjs && node scripts/recorder.test.mjs && node scripts/tasks.test.mjs && node scripts/compatibility.test.mjs && node scripts/cities.test.mjs && node scripts/uploads.test.mjs && node scripts/server.test.mjs && node scripts/world.test.mjs && node scripts/files.test.mjs",
+    "test": "node scripts/dsp.test.mjs && node scripts/recorder.test.mjs && node scripts/tasks.test.mjs && node scripts/compatibility.test.mjs && node scripts/cities.test.mjs && node scripts/uploads.test.mjs && node scripts/server.test.mjs && node scripts/world.test.mjs && node scripts/files.test.mjs && node scripts/native-auth.test.mjs",
     "dev": "vite --host 0.0.0.0",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "build:ios": "VITE_FIELD_PLATFORM=ios VITE_FIELD_WORLD_ENABLED=true VITE_FIELD_GROUPS_ENABLED=true npm run build -- --base=/",
+    "sync:ios": "npm run build:ios && cap sync ios",
+    "open:ios": "cap open ios",
+    "test:ios-storage": "swiftc -module-cache-path /private/tmp/field-swift-cache ios/App/App/FieldLibrary.swift scripts/native-library-test.swift -lsqlite3 -o /private/tmp/field-library-test && /private/tmp/field-library-test"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@fontsource-variable/caveat": "^5.3.0",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource/unifrakturcook": "^5.3.0",
@@ -30,7 +37,13 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "fake-indexeddb": "^6.2.5",
     "prettier": "^3.9.9"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    }
   }
 }

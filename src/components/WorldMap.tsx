@@ -1,3 +1,6 @@
+import {isAuthenticated} from '../auth/session';
+import {isNativeApp} from '../native/runtime';
+import {NativeAccount} from './NativeAccount';
 import { useEffect, useRef, useState } from "react";
 import {
   worldAudio,
@@ -60,7 +63,10 @@ export function WorldMap({
       last = Date.now();
       setRefresh(value => value + 1);
     };
-    return subscribeForeground(revalidate);
+    const cleanup=subscribeForeground(revalidate);
+    const changed=()=>{setRefresh(value=>value+1);};
+    window.addEventListener('field-auth-changed',changed);
+    return ()=>{cleanup();window.removeEventListener('field-auth-changed',changed);};
   }, []);
   const [report, setReport] = useState<WorldSound>(),
     [reportBusy, setReportBusy] = useState(false),
@@ -146,9 +152,9 @@ export function WorldMap({
       setLoading(false);
       return;
     }
-    if (api === productionApi && !telegram.isTelegram) {
+    if (api === productionApi && !isAuthenticated()) {
       setCities([]); setSelected(undefined);
-      setError(t('worldTelegramOnly')); setLoading(false);
+      setError(isNativeApp()?'':t('worldTelegramOnly')); setLoading(false);
       return;
     }
     void api
@@ -284,6 +290,7 @@ export function WorldMap({
   };
   return (
     <Shell variant="world" title={t("fieldWorld")} back={back}>
+      {isNativeApp() && !isAuthenticated() && <NativeAccount />}
       <div className="world-composition">
         <FieldGlobe
           markers={cities}

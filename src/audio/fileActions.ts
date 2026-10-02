@@ -1,3 +1,4 @@
+import {isNativeApp,device,bytesToBase64} from '../native/runtime';
 import { API_URL } from "../config";
 import { newId } from "../id";
 import { fetchWithDeadline, NetworkRequestError } from "../network";
@@ -71,6 +72,11 @@ export async function runFileAction(
   file: File,
   action: "share" | "export",
 ): Promise<FileActionResult> {
+  if (isNativeApp()) {
+    const result=await device.shareWav({base64:bytesToBase64(await file.arrayBuffer()),name:file.name,action});
+    if(result.cancelled) throw new DOMException('Cancelled','AbortError');
+    return {destination:'device'};
+  }
   if (!telegram.isTelegram) {
     if (action === "export") downloadWav(file);
     else await shareWav(file);

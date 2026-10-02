@@ -26,6 +26,7 @@ export class FieldRecorder {
   private onVisibility = () => {
     if (document.hidden) this.pause();
   };
+  private onNativeBackground = () => { if (!this.recorder) this.discard(); else this.stop(); };
   constructor(private events: RecorderEvents) {}
 
   attachVisualizer(canvas: HTMLCanvasElement | null) {
@@ -46,6 +47,7 @@ export class FieldRecorder {
     }
     try {
       this.events.onState("requesting-permission");
+      window.addEventListener("field-app-background",this.onNativeBackground);
       let expired = false;
       const microphone = navigator.mediaDevices.getUserMedia({
         audio: {
@@ -274,6 +276,7 @@ export class FieldRecorder {
   }
 
   private cleanup() {
+    window.removeEventListener("field-app-background",this.onNativeBackground);
     window.clearTimeout(this.stopTimer);
     document.removeEventListener("visibilitychange", this.onVisibility);
     if (this.frame) cancelAnimationFrame(this.frame);

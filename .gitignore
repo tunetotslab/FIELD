@@ -8,3 +8,13 @@ vite.config.d.ts
 .dev.vars*
 .wrangler/
 work/
+
+# Native generated output; checked-in iOS source stays in FIELD GitHub.
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/App.xcodeproj/xcuserdata/
+**/DerivedData/
+**/xcuserdata/
+*.ipa
+*.xcarchive

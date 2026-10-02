@@ -1,3 +1,5 @@
+import {NativeAccount} from './components/NativeAccount';
+import {isAuthenticated} from './auth/session';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -20,6 +22,8 @@ import { hasResolvableCity, publicationStart } from './storage/normalize';
 import { subscribeForeground } from './lifecycle';
 import { isAuthenticationError, publicationErrorMessage } from './world';
 import { telegram } from "./telegram";
+import {isNativeApp} from "./native/runtime";
+import {subscribeNativeLifecycle} from "./native/lifecycle";
 import { Dialog } from './components/Dialog';
 import { Donate } from './components/Donate';
 import { uploadWorld, unpublishWorld, retryPendingWorld } from './storage/publication';
@@ -155,14 +159,18 @@ export default function App() {
   useEffect(() => {
     const cleanup = telegram.init();
     void loadLibrary();
-    return () => { cleanup?.(); player.stop(); };
+    let active=true;let nativeCleanup:(()=>void)|undefined;
+    const background=()=>{player.stop();setPlayingId(undefined);};
+    window.addEventListener('field-app-background',background);
+    void subscribeNativeLifecycle().then(dispose=>{if(active)nativeCleanup=dispose;else dispose();}).catch(()=>{});
+    return () => {active=false;nativeCleanup?.();window.removeEventListener('field-app-background',background);cleanup?.();player.stop();};
   }, [loadLibrary]);
   useEffect(() => {
     if(!COMMUNITY_PUBLISHING_AVAILABLE) return;
     let active=true;
     const retry=()=>{void retryPendingWorld().then(()=>{if(active) void loadLibrary();});};
-    retry(); window.addEventListener('online',retry);
-    return ()=>{active=false;window.removeEventListener('online',retry);};
+    retry(); window.addEventListener('online',retry);window.addEventListener('field-auth-changed',retry);
+    return ()=>{active=false;window.removeEventListener('online',retry);window.removeEventListener('field-auth-changed',retry);};
   },[loadLibrary]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -1424,14 +1432,15 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const [groupError, setGroupError] = useState('');
   const [joining, setJoining] = useState(false);
   const loadGroups = useCallback(async (signal?: AbortSignal) => {
-    if (!GROUP_PUBLISHING_AVAILABLE) return;
+    if (!GROUP_PUBLISHING_AVAILABLE || (isNativeApp()&&!isAuthenticated())) {setGroups([]);return;}
     try { setGroups(await fieldGroups(signal)); setGroupError(''); }
     catch (error) { if (!signal?.aborted) setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupsLoadFailed')); }
   }, [t]);
   useEffect(() => {
     const controller = new AbortController();
     void loadGroups(controller.signal);
-    return () => controller.abort();
+    const changed=()=>void loadGroups(controller.signal);window.addEventListener('field-auth-changed',changed);
+    return () => {controller.abort();window.removeEventListener('field-auth-changed',changed);};
   }, [loadGroups]);
   const join = async () => {
     if (!code.trim()) return;
@@ -1454,12 +1463,13 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
         ? t("worldCopy")
         : t("publicationUnavailable"),
       COMMUNITY_PUBLISHING_AVAILABLE &&
-        hasResolvableCity(draft),
+        hasResolvableCity(draft) && (!isNativeApp() || isAuthenticated()),
     ],
     ["group", t("group"), GROUP_PUBLISHING_AVAILABLE ? t("groupCopy") : t("backendRequired"), groupEnabled],
   ];
   return (
     <Shell title={t("shareTo")} back={back}>
+      {isNativeApp() && !isAuthenticated() && <NativeAccount />}
       <p className="eyebrow">{t("shareWhere")}</p>
       <DraftTitlePreview draft={draft} />
       <div className="option-list visibility-list">
@@ -1507,7 +1517,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
           {groupError && <p role="alert" className="search-status">{groupError}</p>}
         </section>
       )}
-      <button className="primary-button" disabled={(draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
+      <button className="primary-button" disabled={(isNativeApp() && draft.visibility !== "private" && !isAuthenticated()) || (draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
         {t("continue")}
       </button>
     </Shell>
@@ -1877,8 +1887,9 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   ];
   return (
     <Shell title={t("settings")} back={back}>
+      <NativeAccount />
       <div className="settings-list">
-        <button onClick={() => go('donate')}><span>⭐ {t('donate')}</span><strong>›</strong></button>
+        {!isNativeApp() && <button onClick={() => go('donate')}><span>⭐ {t('donate')}</span><strong>›</strong></button>}
         <fieldset className="language-picker">
           <legend>{t('appearance')}</legend>
           {(['light', 'system'] as const).map((value) => <button key={value} aria-pressed={theme === value} className={theme === value ? 'selected' : ''} onClick={() => { setTheme(value); setThemePreference(value); }}>{t(value === 'light' ? 'lightTheme' : 'systemTheme')}</button>)}
@@ -1978,7 +1989,7 @@ function InformationScreen({
   const article = settingsContent(locale)[kind];
   return (
     <Shell title={article.title} back={() => go("settings")}>
-      <ArticleBody article={article} emailAfterLastSection={kind === 'help'} donate={kind === 'about' ? () => go('donate') : undefined} />
+      <ArticleBody article={article} emailAfterLastSection={kind === 'help'} donate={!isNativeApp() && kind === 'about' ? () => go('donate') : undefined} />
       {(kind === "about" || kind === "help") && <ContactLinks includeEmail={kind !== 'help'} />}
     </Shell>
   );

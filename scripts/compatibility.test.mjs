@@ -18,6 +18,9 @@ async function moduleUrl(path) {
     const next = await moduleUrl(resolved.href);
     code = code.replace(match[0], `from ${JSON.stringify(next)}`);
   }
+  for(const match of [...code.matchAll(/from ["'](@capacitor[^"']+)["']/g)]) {
+    code=code.replace(match[0],`from ${JSON.stringify(import.meta.resolve(match[1]))}`);
+  }
   const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
   modules.set(path, url);
   return url;
@@ -318,3 +321,50 @@ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{canShare:
 const browserSharing=runFileAction(preparedFile,'share');assert.equal(nativeBrowserShare,true);await browserSharing;
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:realNavigator});
 console.log('PASS actual export/share client: full legacy WAV without decode/storage, signed Telegram relay, stable retry identity, native Telegram selector, visible ambiguous/rejected errors and synchronous browser sharing');
+
+// Real native repository adapter reconstructs independent Blob bytes without a
+// WebView database. Only the device boundary is a deterministic fixture.
+const {createNativeSoundRepository}=await load('../src/storage/native.ts');
+const nativeRows=new Map();let nativeWriteFails=false;
+const bridge={
+ async listSounds(){return {ids:[...nativeRows.keys()]};},
+ async loadSound({id}){return structuredClone(nativeRows.get(id));},
+ async saveSound(row){if(nativeWriteFails)throw Error('Disk full');nativeRows.set(row.id,structuredClone(row));},
+ async removeSound({id}){nativeRows.delete(id);}
+};
+const nativeRepository=createNativeSoundRepository(bridge);
+const nativeRecord={...normalized,id:'native-one',audioBlob:new Blob([new Uint8Array([0,255,4,7])],{type:'audio/wav'}),originalBlob:new Blob([new Uint8Array([9,8,0])],{type:'audio/mp4'}),effectChain:[{effect:'echo',mix:.3}],unknownMetadata:{keep:'all'},worldPublication:{state:'pending',clientId:'native-publish',ownerUserId:7}};
+await nativeRepository.save(nativeRecord);
+const reopenedNative=(await createNativeSoundRepository(bridge).getAll())[0];
+assert.deepEqual([...new Uint8Array(await reopenedNative.audioBlob.arrayBuffer())],[0,255,4,7]);
+assert.deepEqual([...new Uint8Array(await reopenedNative.originalBlob.arrayBuffer())],[9,8,0]);
+assert.equal(reopenedNative.originalBlob.type,'audio/mp4');assert.deepEqual(reopenedNative.effectChain,nativeRecord.effectChain);assert.deepEqual(reopenedNative.unknownMetadata,nativeRecord.unknownMetadata);assert.deepEqual(reopenedNative.worldPublication,nativeRecord.worldPublication);
+nativeWriteFails=true;await assert.rejects(()=>nativeRepository.save({...nativeRecord,title:'lost'}));assert.equal((await nativeRepository.getAll())[0].title,nativeRecord.title);
+await assert.rejects(()=>nativeRepository.clear());assert.equal((await nativeRepository.getAll()).length,1);
+await nativeRepository.remove(nativeRecord.id);assert.equal((await nativeRepository.getAll()).length,0);
+console.log('PASS native adapter: original/render byte integrity after reopen, metadata/FX/ownership, failed save preserves old row and bulk clear disabled');
+
+// Exercise actual native session/client logic with only its Keychain boundary replaced.
+let keychainValue;
+const sessionBridge={
+ async sessionWrite({value}){keychainValue=value;},
+ async sessionRead(){return {value:keychainValue};},
+ async sessionRemove(){keychainValue=undefined;}
+};
+window.Telegram=undefined;
+const {createNativeSessionStore}=await load('../src/auth/session.ts');
+const sessionApi=createNativeSessionStore(sessionBridge,()=>true);
+const sessionValue={token:'field_'+'a'.repeat(43),expiresAt:Date.now()+60000,userId:7,displayName:'Owner',provider:'telegram'};
+await sessionApi.setNativeSession(sessionValue);assert.equal(JSON.parse(keychainValue).userId,7);
+const recordBeforeSessionChange=nativeRows.size;
+globalThis.fetch=async(_url,opts)=>{assert.equal(new Headers(opts.headers).get('Authorization'),`Bearer ${sessionValue.token}`);return Response.json({error:'Unauthorized'},{status:401});};
+assert.equal((await sessionApi.authenticatedFetch('https://field.test/world')).status,401);assert.equal(sessionApi.currentSession(),undefined);assert.equal(keychainValue,undefined);assert.equal(nativeRows.size,recordBeforeSessionChange);
+await sessionApi.setNativeSession(sessionValue);
+let completeOldRequest;
+globalThis.fetch=()=>new Promise(resolve=>{completeOldRequest=resolve;});
+const oldResponse=sessionApi.authenticatedFetch('https://field.test/world');
+const newer={...sessionValue,token:'field_'+'b'.repeat(43),userId:8};await sessionApi.setNativeSession(newer);
+completeOldRequest(Response.json({error:'Unauthorized'},{status:401}));await oldResponse;
+assert.equal(sessionApi.currentSession().userId,8);assert.equal(JSON.parse(keychainValue).userId,8);
+await sessionApi.setNativeSession(undefined);
+console.log('PASS native auth client: Keychain session, rejected token prompts login without touching Library; delayed old 401 cannot log out a newer account');

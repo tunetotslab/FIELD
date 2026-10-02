@@ -1,3 +1,5 @@
+import {currentSession,isAuthenticated} from '../auth/session';
+import {isNativeApp} from '../native/runtime';
 import { soundsDb } from "./db";
 import { publishSound, removeWorldSound } from "../world";
 import type { SoundRecord, SoundLocation } from "../types";
@@ -11,13 +13,14 @@ export function createWorldPublisher(
     removeWorldSound: (id: string) => Promise<unknown>;
   } = { publishSound, removeWorldSound },
   online = () => navigator.onLine,
-  authenticated = () => !!window.Telegram?.WebApp?.initData,
+  authenticated = isAuthenticated,
 ) {
   const uploads = new Map<string, Promise<SoundRecord>>();
   function uploadWorld(record: SoundRecord): Promise<SoundRecord> {
     const existing = uploads.get(record.id);
     if (existing) return existing;
     const work = (async () => {
+      if(isNativeApp() && (!currentSession() || (record.worldPublication?.ownerUserId && record.worldPublication.ownerUserId!==currentSession()?.userId)))throw Error('Sign in with the publication owner');
       if (record.worldPublication?.state === "published") return record;
       let next: SoundRecord & {
         worldPublication: NonNullable<SoundRecord["worldPublication"]>;
@@ -25,6 +28,7 @@ export function createWorldPublisher(
         ...record,
         worldPublication: {
           ...record.worldPublication,
+          ...(isNativeApp()?{ownerUserId:currentSession()!.userId}:{}),
           clientId: record.worldPublication?.clientId || newId(),
           state: "pending",
         },
@@ -41,6 +45,7 @@ export function createWorldPublisher(
           ...latest,
           location: published.location || latest.location,
           worldPublication: {
+            ...next.worldPublication,
             clientId: next.worldPublication.clientId,
             state: "published",
             serverId: published.id,
@@ -78,14 +83,11 @@ export function createWorldPublisher(
   }
   async function retryPendingWorld() {
     if (!online() || !authenticated()) return;
-    for (const record of await repository.getAll())
-      if (record.worldPublication?.state === "pending") {
-        try {
-          await uploadWorld(record);
-        } catch {
-          /* State persisted; Library offers retry. */
-        }
-      }
+    for (const record of await repository.getAll()) {
+      if (record.worldPublication?.state !== "pending") continue;
+      if(isNativeApp() && record.worldPublication.ownerUserId !== currentSession()?.userId)continue;
+      try {await uploadWorld(record);} catch { /* Library offers retry. */ }
+    }
   }
   return { uploadWorld, unpublishWorld, retryPendingWorld };
 }
