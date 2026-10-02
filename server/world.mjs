@@ -1,0 +1,389 @@
+// City-level archive only. Never copy arbitrary client metadata into public rows.
+const json = (body, status = 200) => Response.json(body, { status });
+export const REPORT_REASONS = ["privacy", "abuse", "copyright", "other"];
+export function wavDuration(bytes) {
+  const view = new DataView(bytes);
+  const text = (offset) =>
+    new TextDecoder().decode(bytes.slice(offset, offset + 4));
+  if (
+    bytes.byteLength < 44 ||
+    text(0) !== "RIFF" ||
+    text(8) !== "WAVE" ||
+    view.getUint32(4, true) + 8 !== bytes.byteLength
+  )
+    throw Error("Invalid WAV");
+  let rate = 0,
+    block = 0,
+    size = 0,
+    foundData = false;
+  for (let offset = 12; offset + 8 <= bytes.byteLength;) {
+    const n = view.getUint32(offset + 4, true),
+      kind = text(offset),
+      start = offset + 8;
+    if (start + n > bytes.byteLength) throw Error("Invalid WAV chunk");
+    if (kind === "fmt ") {
+      if (n < 16 || view.getUint16(start, true) !== 1)
+        throw Error("PCM WAV required");
+      const channels = view.getUint16(start + 2, true),
+        sampleRate = view.getUint32(start + 4, true),
+        bits = view.getUint16(start + 14, true);
+      block = view.getUint16(start + 12, true);
+      rate = view.getUint32(start + 8, true);
+      if (
+        ![1, 2].includes(channels) ||
+        ![16, 24, 32].includes(bits) ||
+        sampleRate < 8000 ||
+        sampleRate > 96000 ||
+        block !== (channels * bits) / 8 ||
+        rate !== sampleRate * block
+      )
+        throw Error("Invalid PCM");
+    }
+    if (kind === "data") {
+      if (foundData) throw Error("Duplicate data");
+      foundData = true;
+      size = n;
+    }
+    offset = start + n + (n % 2);
+  }
+  const duration = size / rate;
+  if (
+    !block ||
+    size % block ||
+    !Number.isFinite(duration) ||
+    duration <= 0 ||
+    duration > 60
+  )
+    throw Error("Maximum 60 seconds");
+  return duration;
+}
+export async function searchCity(env, query, country, language = "en") {
+  if (
+    typeof query !== "string" ||
+    query.trim().length < 2 ||
+    query.length > 100 ||
+    !/^[A-Z]{2}$/.test(country)
+  )
+    throw Error("City required");
+  const cacheKey = `${country}:${language}:${query.trim().toLowerCase()}`;
+  const cached = await env.DB.prepare(
+    "SELECT results FROM city_search_cache WHERE id=? AND expires_at>?",
+  )
+    .bind(cacheKey, Date.now())
+    .first();
+  if (cached) return JSON.parse(cached.results);
+  // One atomic application-wide lease; no autocomplete or per-device rate limits.
+  const now = Date.now();
+  const lease = await env.DB.prepare(
+    "INSERT INTO service_limits (id,last_at) VALUES ('geocoder',?) ON CONFLICT(id) DO UPDATE SET last_at=excluded.last_at WHERE service_limits.last_at<=? RETURNING id",
+  )
+    .bind(now, now - 1100)
+    .first();
+  if (!lease) throw Error("City lookup busy");
+  const url = new URL(
+    env.GEOCODER_URL || "https://nominatim.openstreetmap.org/search",
+  );
+  url.search = new URLSearchParams({
+    city: query.trim(),
+    countrycodes: country.toLowerCase(),
+    format: "jsonv2",
+    addressdetails: "1",
+    "accept-language": language,
+    limit: "8",
+  }).toString();
+  const response = await fetch(url, {
+    headers: { "User-Agent": `FIELD/1.0 (${env.SUPPORT_EMAIL})` },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw Error("City lookup unavailable");
+  const places = await response.json();
+  const locations = places.flatMap((place) => {
+    const a = place.address || {},
+      city = a.city || a.town || a.village || a.municipality;
+    const lat = Number(place.lat),
+      lng = Number(place.lon);
+    if (
+      !city ||
+      a.country_code?.toUpperCase() !== country ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      Math.abs(lat) > 90 ||
+      Math.abs(lng) > 180
+    )
+      return [];
+    return [
+      {
+        placeId: `osm:${place.osm_type}:${place.osm_id}`,
+        city,
+        country: a.country,
+        countryCode: country,
+        region: a.state || a.region,
+        lat,
+        lng,
+      },
+    ];
+  });
+  if (locations.length)
+    await env.DB.batch(
+      locations.map((location) =>
+        env.DB.prepare(
+          "INSERT INTO world_cities (id,location) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET location=excluded.location",
+        ).bind(location.placeId, JSON.stringify(location)),
+      ),
+    );
+  await env.DB.prepare(
+    "INSERT INTO city_search_cache (id,results,expires_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET results=excluded.results,expires_at=excluded.expires_at",
+  )
+    .bind(cacheKey, JSON.stringify(locations), now + 30 * 86400000)
+    .run();
+  return locations;
+}
+const publicRow = (row) => ({ ...JSON.parse(row.metadata), id: row.id });
+export async function worldRoute(request, env, user, notify) {
+  const url = new URL(request.url),
+    path = url.pathname,
+    method = request.method;
+  if (path === "/cities" && method === "GET") {
+    try {
+      return json(
+        await searchCity(
+          env,
+          url.searchParams.get("q"),
+          url.searchParams.get("country"),
+          ["en", "ru", "hy", "zh-TW"].includes(url.searchParams.get("language"))
+            ? url.searchParams.get("language")
+            : "en",
+        ),
+      );
+    } catch {
+      return json({ error: "City lookup unavailable; try again" }, 503);
+    }
+  }
+  if (!path.startsWith("/world")) return null;
+  if (env.WORLD_ENABLED !== "true")
+    return json({ error: "World unavailable" }, 503);
+  if (path === "/world" && method === "POST") {
+    const length = Number(request.headers.get("Content-Length"));
+    if (!length || length > 25000000)
+      return json({ error: "Maximum upload 25 MB" }, 413);
+    let form, data, duration;
+    try {
+      form = await request.formData();
+      data = JSON.parse(String(form.get("metadata")));
+    } catch {
+      return json({ error: "Invalid metadata" }, 400);
+    }
+    const audio = form.get("audio");
+    if (
+      !(audio instanceof File) ||
+      audio.size > 24000000 ||
+      !data ||
+      typeof data.title !== "string" ||
+      !data.title.trim() ||
+      data.title.length > 80 ||
+      !Array.isArray(data.emojis) ||
+      data.emojis.length !== 3 ||
+      data.emojis.some(
+        (e) => typeof e !== "string" || !e.trim() || e.length > 32,
+      ) ||
+      !Number.isFinite(data.duration) ||
+      data.duration <= 0 ||
+      data.duration > 60 ||
+      !/^[-a-zA-Z0-9]{1,100}$/.test(data.id || "")
+    )
+      return json({ error: "Invalid sound" }, 400);
+    try {
+      duration = wavDuration(await audio.arrayBuffer());
+    } catch {
+      return json(
+        { error: "Valid PCM WAV, maximum 60 seconds, required" },
+        400,
+      );
+    }
+    if (Math.abs(duration - data.duration) > 0.1)
+      return json({ error: "Duration mismatch" }, 400);
+    const existing = await env.DB.prepare(
+      "SELECT id,published,moderation_state FROM sounds WHERE user_id=? AND client_id=? AND group_id IS NULL",
+    )
+      .bind(user, data.id)
+      .first();
+    if (existing)
+      return existing.published && existing.moderation_state === "visible"
+        ? json({ id: existing.id }, 200)
+        : json(
+            { error: "This publication was removed; make a new local version" },
+            409,
+          );
+    const recent = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM sounds WHERE user_id=? AND created_at>?",
+    )
+      .bind(user, Date.now() - 86400000)
+      .first();
+    if (recent.n >= 20) return json({ error: "Daily upload limit" }, 429);
+    const city = await env.DB.prepare(
+      "SELECT location FROM world_cities WHERE id=?",
+    )
+      .bind(data.location?.placeId || "")
+      .first();
+    if (!city) return json({ error: "Choose a city from search results" }, 400);
+    const location = JSON.parse(city.location);
+    const metadata = {
+      title: data.title.trim(),
+      emojis: data.emojis,
+      duration,
+      createdAt: Date.now(),
+      visibility: "world",
+      styleId: [
+        "grotesk",
+        "bubble",
+        "gothic",
+        "times",
+        "italic",
+        "experimental",
+      ].includes(data.styleId)
+        ? data.styleId
+        : "grotesk",
+      effect:
+        typeof data.effect === "string" ? data.effect.slice(0, 20) : "original",
+      waveform: Array.isArray(data.waveform)
+        ? data.waveform
+            .slice(0, 160)
+            .map((x) => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0))
+        : [],
+      location,
+    };
+    const id = crypto.randomUUID();
+    await env.AUDIO.put(id, audio.stream(), {
+      httpMetadata: { contentType: "audio/wav" },
+    });
+    try {
+      await env.DB.prepare(
+        "INSERT INTO sounds (id,user_id,metadata,published,created_at,city_key,client_id) VALUES (?,?,?,1,?,?,?)",
+      )
+        .bind(
+          id,
+          user,
+          JSON.stringify(metadata),
+          metadata.createdAt,
+          location.placeId,
+          data.id,
+        )
+        .run();
+    } catch (error) {
+      await env.AUDIO.delete(id);
+      const race = await env.DB.prepare(
+        "SELECT id FROM sounds WHERE user_id=? AND client_id=? AND group_id IS NULL AND published=1 AND moderation_state='visible'",
+      )
+        .bind(user, data.id)
+        .first();
+      if (race) return json({ id: race.id });
+      throw error;
+    }
+    return json({ id, ...metadata }, 201);
+  }
+  if (path === "/world/cities" && method === "GET") {
+    const { results } = await env.DB.prepare(
+      "SELECT city_key,COUNT(*) AS count,MIN(metadata) AS metadata FROM sounds WHERE published=1 AND moderation_state='visible' AND group_id IS NULL GROUP BY city_key",
+    ).all();
+    return json(
+      results
+        .filter((r) => r.city_key)
+        .map((r) => ({
+          id: r.city_key,
+          ...JSON.parse(r.metadata).location,
+          count: r.count,
+        })),
+    );
+  }
+  if (path === "/world" && method === "GET") {
+    const city = url.searchParams.get("city");
+    if (!city || city.length > 100)
+      return json({ error: "City required" }, 400);
+    let cursor;
+    try {
+      cursor = url.searchParams.get("cursor")
+        ? JSON.parse(atob(url.searchParams.get("cursor")))
+        : null;
+    } catch {
+      return json({ error: "Invalid cursor" }, 400);
+    }
+    if (
+      cursor &&
+      (!Number.isSafeInteger(cursor.time) ||
+        typeof cursor.id !== "string" ||
+        cursor.id.length > 100)
+    )
+      return json({ error: "Invalid cursor" }, 400);
+    const { results } = await env.DB.prepare(
+      "SELECT id,metadata,created_at FROM sounds WHERE city_key=? AND published=1 AND moderation_state='visible' AND group_id IS NULL AND (created_at<? OR (created_at=? AND id<?)) ORDER BY created_at DESC,id DESC LIMIT 21",
+    )
+      .bind(
+        city,
+        cursor?.time || Number.MAX_SAFE_INTEGER,
+        cursor?.time || Number.MAX_SAFE_INTEGER,
+        cursor?.id || "",
+      )
+      .all();
+    const items = results.slice(0, 20),
+      last = items.at(-1);
+    return json({
+      items: items.map(publicRow),
+      nextCursor:
+        results.length > 20
+          ? btoa(JSON.stringify({ time: last.created_at, id: last.id }))
+          : null,
+    });
+  }
+  const match = path.match(/^\/world\/([0-9a-f-]{36})(\/reports)?$/i);
+  if (match && method === "DELETE" && !match[2]) {
+    const row = await env.DB.prepare(
+      "SELECT id FROM sounds WHERE id=? AND user_id=? AND group_id IS NULL",
+    )
+      .bind(match[1], user)
+      .first();
+    if (!row) return json({ error: "Not found" }, 404);
+    await env.DB.prepare("UPDATE sounds SET published=0 WHERE id=?")
+      .bind(row.id)
+      .run();
+    await env.AUDIO.delete(row.id);
+    return json({ ok: true });
+  }
+  if (match && method === "POST" && match[2]) {
+    if (Number(request.headers.get("Content-Length")) > 1024)
+      return json({ error: "Too large" }, 413);
+    let data;
+    try {
+      data = await request.json();
+    } catch {
+      return json({ error: "Invalid report" }, 400);
+    }
+    if (!REPORT_REASONS.includes(data.reason))
+      return json({ error: "Invalid reason" }, 400);
+    const sound = await env.DB.prepare(
+      "SELECT id FROM sounds WHERE id=? AND published=1 AND moderation_state='visible' AND group_id IS NULL",
+    )
+      .bind(match[1])
+      .first();
+    if (!sound) return json({ error: "Not found" }, 404);
+    const count = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM sound_reports WHERE reporter_id=? AND created_at>?",
+    )
+      .bind(user, Date.now() - 86400000)
+      .first();
+    if (count.n >= 10) return json({ error: "Daily report limit" }, 429);
+    const inserted = await env.DB.prepare(
+      "INSERT INTO sound_reports (id,sound_id,reporter_id,reason,created_at) VALUES (?,?,?,?,?) ON CONFLICT(sound_id,reporter_id) DO NOTHING",
+    )
+      .bind(crypto.randomUUID(), sound.id, user, data.reason, Date.now())
+      .run();
+    // Report durability never depends on Telegram delivery. /reports recovers failures.
+    if (inserted.meta?.changes)
+      try {
+        await notify(sound.id, data.reason);
+      } catch {
+        /* Human moderation queue retained. */
+      }
+    return json({ ok: true }, 201);
+  }
+  return json({ error: "Not found" }, 404);
+}
