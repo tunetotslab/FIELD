@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { API_URL } from '../config';
 import { Miley } from './Brand';
 import { dailyImageCollection } from '../data/taskImages';
+import { fetchWithDeadline } from '../network';
 import type { Screen } from '../types';
 
 export const DONATION_AMOUNTS = [5, 10, 25, 50, 75, 100, 1000, 10000, 100000];
@@ -40,7 +41,7 @@ export function Donate({ go, random = false }: { go: (screen: Screen) => void; r
     if (!amount || !API_URL || !app?.initData || !app.openInvoice) return;
     setBusy(true); setNotice('');
     try {
-      const response = await fetch(`${API_URL}/donations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `tma ${app.initData}` }, body: JSON.stringify({ amount }), signal: AbortSignal.timeout(15000) });
+      const response = await fetchWithDeadline(`${API_URL}/donations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `tma ${app.initData}` }, body: JSON.stringify({ amount }) }, 15000);
       if (!response.ok) throw new Error();
       const { url } = await response.json();
       if (typeof url !== 'string' || !url.startsWith('https://t.me/$')) throw new Error();
