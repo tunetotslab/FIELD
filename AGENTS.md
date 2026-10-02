@@ -10,3 +10,9 @@
 - If `FIELD_SPEC.md` is missing or cannot be read, stop before changing the project and report the problem.
 - If GitHub is unavailable, do not create an alternative copy, mirror, migration, or replacement project. Stop and report that GitHub is unavailable.
 - Keep all code changes in the FIELD GitHub repository and push them there.
+
+# Owner identity
+
+- The owner, founder and sole teacher of Tune Tots Lab is **Никола Чен (Nikola Chen)**.
+- Russian instrumental credit: **FIELD создан Николой Ченом, основателем и преподавателем Tune Tots Lab**.
+- Do not change the name to Николай or introduce other Lab teachers. Use the configured Instagram links for the author and studio.

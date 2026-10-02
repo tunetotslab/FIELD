@@ -20,6 +20,7 @@ type TelegramWebApp = {
   ) => void;
   colorScheme?: "light" | "dark";
   openInvoice?: (url: string, callback: (status: string) => void) => void;
+  openLink?: (url: string) => void;
   ready?: () => void;
   expand?: () => void;
   setHeaderColor?: (color: string) => void;
@@ -97,11 +98,8 @@ export const telegram = {
       backButton.hide?.();
     }
   },
-  sendSound(meta: object) {
-    if (!window.Telegram?.WebApp?.sendData) return false;
-    window.Telegram.WebApp.sendData(
-      JSON.stringify({ type: "field-sound", ...meta }),
-    );
-    return true;
+  openBrowser(url: string) {
+    if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
   },
 };

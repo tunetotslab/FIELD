@@ -15,7 +15,10 @@ GitHub Actions in repository settings, the production URL is
 bot's Main Mini App or as a `web_app` button. The bot/backend is intentionally not part of this frontend;
 private recordings remain in IndexedDB. Authenticated World and Tune Tots Group
 publication use the existing Cloudflare Worker, D1 and private R2 bucket.
-`sendData` sends only metadata when opened from a keyboard button.
+Ready exports/shares the actual WAV through native file sharing, with a browser
+download fallback. Select Telegram in the share sheet to send a private file;
+no metadata-only `sendData` message or cloud upload is used for this action.
+World requires a signed Telegram session; the ordinary-browser map explains this.
 
 ## Run
 
@@ -39,10 +42,13 @@ See `server/README.md` for deployment and `FIELD_WORLD_GROUPS_PLAN_RU.md` for re
 verification and remaining physical-device acceptance.
 
 Library rows are normalized centrally on read and on save without deleting data.
-Both publication destinations convert the saved render to PCM WAV, derive duration
+Both publication destinations normalize the saved render to PCM WAV, derive duration
 from real samples and preserve the local source. World comes only from D1/R2;
 foreground/online events revalidate it. Daily uses the local calendar day and
 refreshes after foregrounding and while the Daily screen stays open overnight.
+Saved PCM is prepared directly without Web Audio allocation. Metadata changes
+retain the render; only audio edits invalidate it. Publication errors include a
+safe stage or HTTP code, and request deadlines cover the complete response body.
 
 City suggestions start after two characters within the selected country. The
 versioned GeoNames catalogue in `public/geo/v1` includes alternate scripts,

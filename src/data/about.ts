@@ -13,18 +13,18 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
     ]},
     {heading: 'Tune Tots Lab — учимся создавать', paragraphs: [
       'В Tune Tots Lab дети с нуля осваивают электронную музыку: исследуют звук, импровизируют, записывают свои идеи и собирают из них треки. Мы учимся творить, а не просто копировать чужую музыку. Play · Improvise · Create — наш принцип и любимый способ устроить полезный шум.',
-      'FIELD создан в лаборатории Николаем Ченом и преподавателями Tune Tots Lab. Николай Чен — музыкант, композитор и основатель лаборатории. Вместе мы превращаем любопытство к звукам в собственную музыку.',
+      'FIELD создан Николой Ченом, основателем и преподавателем Tune Tots Lab. Никола Чен — музыкант, композитор и автор этого приложения. Вместе с учениками мы превращаем любопытство к звукам в собственную музыку.',
     ]},
     {heading: 'FIELD World — звуки путешествуют', paragraphs: [
       'FIELD — открытое сообщество людей, которые делятся музыкальными зарисовками по всему миру. World собирает их на карте по городам: можно услышать чужую находку, скачать её и дать звуку новую жизнь в своей работе.',
       'В этом и прелесть: дождь из одного города может познакомиться с ритмом из другого. Публикация добровольна; на карте показывается выбранный город, а не твоя точная геопозиция.',
     ]},
     {heading: 'Tune Tots Group — наша учебная мастерская', paragraphs: [
-      'Закрытые группы нужны для обмена зарисовками между учениками и преподавателями. Запись можно отправить из Library после занятия, даже если решение поделиться пришло позже самой записи. Наши звуки становятся материалом для упражнений и настоящих треков.',
+      'Закрытые группы нужны для обмена зарисовками между учениками и преподавателем. Запись можно отправить из Library после занятия, даже если решение поделиться пришло позже самой записи. Наши звуки становятся материалом для упражнений и настоящих треков.',
       'World и учебная Group — разные места публикации. Можно поделиться с классом, открыть находку всему миру или оставить её только себе. Холодильник не настаивает на публичной карьере.',
     ]},
     {heading: 'Бесплатно и с любопытством', paragraphs: [
-      'Запись, редактирование и доступные функции FIELD бесплатны. Музыкальная подготовка не требуется — достаточно любопытства и ушей. Добровольная поддержка помогает развивать приложение и лабораторию.',
+      'Запись, редактирование и доступные функции FIELD бесплатны. Музыкальная подготовка не требуется — достаточно любопытства и ушей. Добровольная поддержка в виде донатов помогает развивать приложение и лабораторию. Даже маленькая поддержка звучит приятно.',
       'Официальные страницы и контакты — в разделе «Ссылки». Если что-то молчит, хотя должно звучать, напиши нам: разберёмся.',
     ]},
   ]},
@@ -39,14 +39,14 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
     ]},
     {heading: 'Tune Tots Lab — learning to create', paragraphs: [
       'Children at Tune Tots Lab learn electronic music from scratch: exploring sound, improvising, recording ideas and turning them into tracks. We learn to create rather than simply copy someone else’s music. Play · Improvise · Create is our approach to making useful noise.',
-      'FIELD was created in the laboratory by Nikola Chen and the teachers of Tune Tots Lab. Nikola Chen is a musician, composer and the laboratory’s founder. Together we turn curiosity about sound into our own music.',
+      'FIELD was created by Nikola Chen, the founder and teacher of Tune Tots Lab. Nikola Chen is a musician, composer and the app’s author. Together with the students, we turn curiosity about sound into our own music.',
     ]},
     {heading: 'FIELD World — sounds travel', paragraphs: [
       'FIELD is an open community sharing musical sketches around the world. World places them on a city map: listen to a discovery, download it and give it another life in your work.',
       'Rain from one city can meet a rhythm from another. Sharing is your choice; the map shows a selected city, never your precise device location.',
     ]},
     {heading: 'Tune Tots Group — our learning workshop', paragraphs: [
-      'Private groups let students and teachers exchange sketches for exercises and real tracks. Send a saved recording from Library after class, even if you decided to share it later.',
+      'Private groups let students and their teacher exchange sketches for exercises and real tracks. Send a saved recording from Library after class, even if you decided to share it later.',
       'World and a learning Group are separate destinations. Share with your class, with the world, or keep it private. The fridge does not insist on a public career.',
     ]},
     {heading: 'Free and curious', paragraphs: [
@@ -65,14 +65,14 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
     ]},
     {heading: 'Tune Tots Lab՝ սովորում ենք ստեղծել', paragraphs: [
       'Tune Tots Lab-ում երեխաները զրոյից սովորում են էլեկտրոնային երաժշտություն․ ուսումնասիրում են ձայնը, իմպրովիզացնում, գրանցում գաղափարներ և ստեղծում թրեքեր։ Սովորում ենք ստեղծել, ոչ թե պարզապես պատճենել ուրիշների երաժշտությունը։ Play · Improvise · Create։',
-      'FIELD-ը ստեղծել են Նիկոլա Չենը և Tune Tots Lab-ի ուսուցիչները։ Նիկոլա Չենը երաժիշտ, կոմպոզիտոր և լաբորատորիայի հիմնադիրն է։ Միասին ձայնի հանդեպ հետաքրքրությունը դարձնում ենք սեփական երաժշտություն։',
+      'FIELD-ը ստեղծել է Նիկոլա Չենը՝ Tune Tots Lab-ի հիմնադիրն ու ուսուցիչը։ Նիկոլա Չենը երաժիշտ, կոմպոզիտոր և հավելվածի հեղինակն է։ Աշակերտների հետ ձայնի հանդեպ հետաքրքրությունը դարձնում ենք սեփական երաժշտություն։',
     ]},
     {heading: 'FIELD World՝ ձայները ճամփորդում են', paragraphs: [
       'FIELD-ը բաց համայնք է՝ ամբողջ աշխարհից երաժշտական էսքիզներ կիսելու համար։ World-ը դրանք տեղադրում է քաղաքների քարտեզի վրա․ լսիր, ներբեռնիր և նոր կյանք տուր քո աշխատանքում։',
       'Մի քաղաքի անձրևը կարող է հանդիպել մյուսի ռիթմին։ Հրապարակումը կամավոր է․ քարտեզը ցույց է տալիս քաղաքը, ոչ թե սարքի ճշգրիտ տեղը։',
     ]},
     {heading: 'Tune Tots Group՝ ուսումնական արվեստանոց', paragraphs: [
-      'Փակ խմբերը թույլ են տալիս աշակերտներին և ուսուցիչներին կիսվել էսքիզներով՝ վարժությունների և իրական թրեքերի համար։ Ձայնադարանի պահպանված ձայնը կարելի է ուղարկել նաև դասից հետո։',
+      'Փակ խմբերը թույլ են տալիս աշակերտներին և իրենց ուսուցչին կիսվել էսքիզներով՝ վարժությունների և իրական թրեքերի համար։ Ձայնադարանի պահպանված ձայնը կարելի է ուղարկել նաև դասից հետո։',
       'World-ը և ուսումնական Group-ը տարբեր վայրեր են։ Կիսվիր դասարանի հետ, աշխարհի հետ կամ պահիր քեզ համար։ Սառնարանը չի պահանջում հանրային կարիերա։',
     ]},
     {heading: 'Անվճար և հետաքրքրասեր', paragraphs: [
@@ -91,7 +91,7 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
     ]},
     {heading: 'Tune Tots Lab：學習創作', paragraphs: [
       '孩子在 Tune Tots Lab 從零學習電子音樂：探索聲音、即興、記錄想法並組成曲目。我們學習創作，而非單純複製別人的音樂。Play · Improvise · Create 是我們製造有用噪音的方法。',
-      'FIELD 由 Nikola Chen 與 Tune Tots Lab 的教師在實驗室創作。Nikola Chen 是音樂家、作曲家與實驗室創辦人。我們一起把對聲音的好奇轉化為自己的音樂。',
+      'FIELD 由 Tune Tots Lab 的創辦人與教師 Nikola Chen 創作。Nikola Chen 是音樂家、作曲家與本應用程式作者。我們與學生一起把對聲音的好奇轉化為自己的音樂。',
     ]},
     {heading: 'FIELD World：聲音去旅行', paragraphs: [
       'FIELD 是分享世界各地音樂草稿的開放社群。World 將它們放上城市地圖：聆聽發現、下載，並在自己的作品中給聲音新的生命。',

@@ -20,6 +20,7 @@ import { FieldGlobe } from "./FieldArtwork";
 import { formatTime } from "../audio/utils";
 import type { PlaybackManager } from "../audio/player";
 import { subscribeForeground } from '../lifecycle';
+import { telegram } from '../telegram';
 
 const productionApi = {
   worldAudio,
@@ -145,6 +146,11 @@ export function WorldMap({
       setLoading(false);
       return;
     }
+    if (api === productionApi && !telegram.isTelegram) {
+      setCities([]); setSelected(undefined);
+      setError(t('worldTelegramOnly')); setLoading(false);
+      return;
+    }
     void api
       .worldCities(controller.signal)
       .then((items) => {
@@ -153,20 +159,20 @@ export function WorldMap({
         setSelected(current => current ? items.find(city => city.id === current.id) : undefined);
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
+        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? (telegram.isTelegram ? 'sessionExpired' : 'worldTelegramOnly') : "worldLoadFailed"));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [refresh, focusCity, t]);
+  }, [refresh, focusCity, t, api]);
   useEffect(() => {
     stop();
     setSounds([]);
     setCursor(null);
-    setError("");
     setListLoading(false);
     if (!selected) return;
+    setError("");
     const controller = new AbortController();
     listController.current = controller;
     setListLoading(true);

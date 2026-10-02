@@ -1,4 +1,7 @@
 export const worldEn = {
+  shareWav: 'SHARE WAV', shareFailed: 'Could not open file sharing. Your audio stays on this device.',
+  worldTelegramOnly: 'Open FIELD from its Telegram bot to view World. This browser has no Telegram session.',
+  emailComposeChoice: 'Choose Gmail in the browser or your default mail app. If no mail app is configured, copy the address above.', defaultMail: 'Default mail app',
   publicationAudioFailed: 'Cannot process this saved audio. Keep it; try downloading it from Library.',
   publicationNetworkFailed: 'Could not reach FIELD. Check your connection and retry. Your recording remains local.',
   publicationTooLarge: 'The upload exceeds the size limit. Your recording remains local.',
@@ -69,6 +72,9 @@ export const worldEn = {
 };
 type Copy = Record<keyof typeof worldEn, string>;
 export const worldRu: Copy = {
+  shareWav: 'ПОДЕЛИТЬСЯ WAV', shareFailed: 'Не удалось открыть отправку файла. Аудио остаётся на устройстве.',
+  worldTelegramOnly: 'Открой FIELD из его Telegram-бота, чтобы увидеть World. В этом браузере нет сессии Telegram.',
+  emailComposeChoice: 'Выбери Gmail в браузере или свою почтовую программу. Если она не настроена, скопируй адрес выше.', defaultMail: 'Почтовая программа',
   publicationAudioFailed: 'Не удалось обработать этот звук. Сохрани его; попробуй скачать из Library.',
   publicationNetworkFailed: 'Не удалось связаться с FIELD. Проверь подключение и повтори. Запись остаётся на устройстве.',
   publicationTooLarge: 'Размер загрузки превышает лимит. Запись остаётся на устройстве.',
@@ -139,6 +145,9 @@ export const worldRu: Copy = {
     "Повторить загрузку в группу? Если предыдущий запрос успел завершиться до обрыва связи, может отправиться вторая копия.",
 };
 export const worldHy: Copy = {
+  shareWav: 'ԿԻՍՎԵԼ WAV-ՈՎ', shareFailed: 'Ֆայլով կիսվելը չհաջողվեց։ Ձայնը մնում է սարքում։',
+  worldTelegramOnly: 'World-ը տեսնելու համար բացիր FIELD-ը իր Telegram բոտից։ Այս դիտարկիչում Telegram սեսիա չկա։',
+  emailComposeChoice: 'Ընտրիր Gmail-ը դիտարկիչում կամ քո փոստային ծրագիրը։ Եթե ծրագիրը կարգավորված չէ, պատճենիր վերևի հասցեն։', defaultMail: 'Փոստային ծրագիր',
   publicationAudioFailed: 'Այս ձայնը չհաջողվեց մշակել։ Պահպանիր այն, փորձիր ներբեռնել Ձայնադարանից։',
   publicationNetworkFailed: 'FIELD-ի հետ կապ չհաստատվեց։ Ստուգիր կապը և կրկնիր․ ձայնը սարքում է։',
   publicationTooLarge: 'Վերբեռնումը գերազանցում է չափի սահմանը։ Ձայնը սարքում է։',
@@ -208,6 +217,9 @@ export const worldHy: Copy = {
     "Կրկի՞ն ուղարկել խումբ։ Եթե նախորդ հարցումն ավարտվել է, կարող է երկրորդ պատճեն ուղարկվել։",
 };
 export const worldZh: Copy = {
+  shareWav: '分享 WAV', shareFailed: '無法開啟檔案分享。音訊仍保留在裝置上。',
+  worldTelegramOnly: '請從 FIELD 的 Telegram 機器人開啟應用程式以查看 World。此瀏覽器沒有 Telegram 工作階段。',
+  emailComposeChoice: '選擇在瀏覽器使用 Gmail 或預設郵件程式。若未設定郵件程式，請複製上方地址。', defaultMail: '預設郵件程式',
   publicationAudioFailed: '無法處理此音訊。請保留錄音，並嘗試從聲音庫下載。',
   publicationNetworkFailed: '無法連接 FIELD。請檢查網路並重試，錄音仍留在裝置。',
   publicationTooLarge: '上傳超過大小限制。錄音仍留在裝置。',

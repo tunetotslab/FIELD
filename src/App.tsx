@@ -10,6 +10,9 @@ import type {
 } from "./types";
 import { FieldRecorder } from "./audio/recorder";
 import { analyze, effectLabel, renderDraft } from "./audio/processing";
+import { changesAudio, patchDraft } from './audio/draft';
+import { wavFile, downloadWav, shareWav } from './audio/export';
+import { newId } from './id';
 import { formatTime } from "./audio/utils";
 import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
@@ -82,7 +85,7 @@ function newDraft(
   waveform: number[],
 ): SoundDraft {
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     originalBlob: blob,
     duration,
     trimStart: 0,
@@ -207,21 +210,20 @@ export default function App() {
     setScreen(next);
   };
   const update = (patch: Partial<SoundDraft>) => {
-    const newVersion=(!!reusedRecord.current || records.some(record=>record.id===draft?.id)) && ['effect','effectChain','effectMix','pitchSemitones','echoDelayMs','trimStart','trimEnd','fadeIn','fadeOut'].some(key=>key in patch);
+    const newVersion=(!!reusedRecord.current || records.some(record=>record.id===draft?.id)) && changesAudio(patch);
     if(newVersion) reusedRecord.current=undefined;
     setDraft((current) =>
       current
         ? {
-            ...current,
-            processedBlob: undefined,
-            processedDuration: undefined,
-            processedWaveform: undefined,
-            ...patch,
-            ...(newVersion?{id:crypto.randomUUID(),createdAt:Date.now(),visibility:'private' as const}:{}),
+            ...patchDraft(current, patch),
+            ...(newVersion?{id:newId(),createdAt:Date.now(),visibility:'private' as const}:{}),
           }
         : current,
     );
   };
+  const cacheReady = useCallback((source: SoundDraft, rendered: {blob:Blob;duration:number;waveform:number[]}) => {
+    setDraft(current => current === source ? {...current,processedBlob:rendered.blob,processedDuration:rendered.duration,processedWaveform:rendered.waveform} : current);
+  }, []);
 
   const save = async () => {
     if (!draft) return;
@@ -230,7 +232,7 @@ export default function App() {
     setNotice("");
     try {
       const previous = (await soundsDb.getAll()).find(record=>record.id===draft.id);
-      const rendered = reusedRecord.current ? {blob:reusedRecord.current.audioBlob,duration:reusedRecord.current.duration,waveform:reusedRecord.current.waveform} : await renderDraft(draft);
+      const rendered = reusedRecord.current ? {blob:reusedRecord.current.audioBlob,duration:reusedRecord.current.duration,waveform:reusedRecord.current.waveform} : draft.processedBlob ? {blob:draft.processedBlob,duration:draft.processedDuration ?? draft.duration,waveform:draft.processedWaveform ?? draft.waveform} : await renderDraft(draft);
       const record: SoundRecord = {
         ...previous,
         ...reusedRecord.current,
@@ -258,6 +260,8 @@ export default function App() {
         waveform: rendered.waveform,
       };
       await soundsDb.save(record);
+      // Export/preview stay usable even when the destination rejects upload.
+      setDraft({...draft,processedBlob:rendered.blob,processedWaveform:rendered.waveform,processedDuration:rendered.duration});
       if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
         setSavePhase('uploading');
         try { const saved = await uploadWorld(record); setMapCity(saved.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
@@ -301,18 +305,14 @@ export default function App() {
     }
   };
 
-  const exportDraft = async () => {
+  const exportDraft = (blob: Blob) => {
     if (!draft) return;
-    setBusy(true);
     try {
-      const rendered = draft.processedBlob
-        ? { blob: draft.processedBlob }
-        : await renderDraft(draft);
-      download(rendered.blob, draft.title || "Untitled Sound");
+      void shareWav(wavFile(blob, draft.title || 'Untitled Sound')).catch(error => {
+        if (!(error instanceof Error && error.name === 'AbortError')) setNotice(t('shareFailed'));
+      });
     } catch {
-      setNotice("Export failed. Try a shorter recording.");
-    } finally {
-      setBusy(false);
+      setNotice(t('shareFailed'));
     }
   };
 
@@ -424,6 +424,7 @@ export default function App() {
               notice={notice}
               save={save}
               exportSound={exportDraft}
+              prepared={cacheReady}
               fresh={() => {
                 reusedRecord.current=undefined;
                 setDraft(undefined);
@@ -448,7 +449,7 @@ export default function App() {
                 reusedRecord.current=undefined;
                 const base=record.originalBlob||record.audioBlob;
                 const analyzed=await analyze(base);
-                setDraft({...newDraft(base,analyzed.duration,analyzed.waveform),...record.editState,title:record.title,emojis:record.emojis,location:record.location,styleId:record.styleId,id:crypto.randomUUID(),originalBlob:base,visibility:'private',createdAt:Date.now()});
+                setDraft({...newDraft(base,analyzed.duration,analyzed.waveform),...record.editState,title:record.title,emojis:record.emojis,location:record.location,styleId:record.styleId,id:newId(),originalBlob:base,visibility:'private',createdAt:Date.now()});
                 go('edit');setNotice(t(record.originalBlob?'editVersion':'legacyEdit'));
               }
             }}
@@ -1532,6 +1533,7 @@ export function ReadyScreen({
   notice,
   save,
   exportSound,
+  prepared,
   fresh,
   back,
   playing,
@@ -1544,7 +1546,8 @@ export function ReadyScreen({
   busy: boolean;
   notice: string;
   save: () => void;
-  exportSound: () => void;
+  exportSound: (blob: Blob) => void;
+  prepared?: (source: SoundDraft, result: {blob:Blob;duration:number;waveform:number[]}) => void;
   fresh: () => void;
   back: () => void;
   playing: boolean;
@@ -1553,6 +1556,15 @@ export function ReadyScreen({
   const { t } = useI18n();
   const [error, setError] = useState("");
   const [confirmWorld, setConfirmWorld] = useState(false);
+  const [file, setFile] = useState<File>();
+  useEffect(() => {
+    let active = true;
+    setFile(undefined); setError('');
+    void (draft.processedBlob ? Promise.resolve({blob:draft.processedBlob,duration:draft.processedDuration ?? draft.duration,waveform:draft.processedWaveform ?? draft.waveform}) : renderDraft(draft))
+      .then(result => {if (active) {setFile(wavFile(result.blob,draft.title || 'Untitled Sound'));if (!draft.processedBlob) prepared?.(draft,result);}})
+      .catch(() => {if (active) setError(`${t('publicationAudioFailed')} [EXPORT_PREPARE]`);});
+    return () => {active=false;};
+  }, [draft, t, prepared]);
   const play = async () => {
     if (playing) {
       player.stop();
@@ -1619,31 +1631,33 @@ export function ReadyScreen({
       )}
       <div className="ready-actions">
         <button
-          disabled={busy}
+          disabled={busy || !file}
           onClick={() => draft.visibility==='world' ? setConfirmWorld(true) : void save()}
           aria-label={t("save")}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m5 12 4.2 4.2L19 6.8" />
           </svg>
-          <span>{busy ? t(phase) : t("save")}</span>
+          <span>{busy ? t(phase) : !file ? t('preparing') : t("save")}</span>
         </button>
-        <button disabled={busy} onClick={() => void exportSound()}>
+        <button disabled={!file} onClick={() => file && exportSound(file)}>
           ⇧<span>EXPORT WAV</span>
         </button>
         <button
+          disabled={!file}
           onClick={() => {
-            if (!telegram.sendSound({ id: draft.id, title: draft.title })) {
-              setPlaying(false);
-            }
+            if (!file) return;
+            try {void shareWav(file).catch(error => {if (!(error instanceof Error && error.name === 'AbortError')) setError(t('shareFailed'));});}
+            catch {setError(t('shareFailed'));}
           }}
         >
-          ↗<span>{telegram.isTelegram ? "SEND TO CHAT" : "SHARE"}</span>
+          ↗<span>{t('shareWav')}</span>
         </button>
         <button onClick={fresh}>
           ＋<span>NEW</span>
         </button>
       </div>
+      {!file && !error && <p className="notice" role="status">{t('preparing')}</p>}
       {draft.visibility!=='private' && <p className="notice">{t('publicationLengthNotice')}</p>}
       {notice===t('savedWorld') && <div className="world-success"><button className="primary-button" onClick={seeMap}>{t('seeMap')}</button><button className="secondary-button" onClick={done}>{t('done')}</button></div>}
       {confirmWorld && <Dialog title={t('worldConfirm')} close={() => setConfirmWorld(false)}><p>{t('worldConsent')}</p><p>{draft.location?.city}, {draft.location?.country}</p><p>{t('publicationLengthNotice')}</p><div className="dialog-actions"><button className="primary-button" onClick={() => {setConfirmWorld(false);void save();}}>{t('publish')}</button><button className="secondary-button" onClick={() => setConfirmWorld(false)}>{t('cancel')}</button></div></Dialog>}
@@ -1904,10 +1918,11 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
     </Shell>
   );
 }
-function ArticleBody({ article, emailAfterLastSection = false }: { article: SettingsArticle; emailAfterLastSection?: boolean }) {
-  const linkedParagraph = (text: string) => text.split(/(Tune Tots Lab|TuneTots Lab|Николай Чен|Николаем Ченом|Никола Чен|Nikola Chen|Նիկոլա Չեն)/g).map((part, index) => {
+function ArticleBody({ article, emailAfterLastSection = false, donate }: { article: SettingsArticle; emailAfterLastSection?: boolean; donate?: () => void }) {
+  const linkedParagraph = (text: string) => text.split(/(Tune Tots Lab|TuneTots Lab|Николой Ченом|Никола Чен|Nikola Chen|Նիկոլա Չեն|в виде донатов|Optional donations|Կամավոր աջակցությունը|自願贊助)/g).map((part, index) => {
     const studio = part === 'Tune Tots Lab' || part === 'TuneTots Lab';
-    const author = ['Николай Чен', 'Николаем Ченом', 'Никола Чен', 'Nikola Chen', 'Նիկոլա Չեն'].includes(part);
+    const author = ['Николой Ченом', 'Никола Чен', 'Nikola Chen', 'Նիկոլա Չեն'].includes(part);
+    if (donate && ['в виде донатов','Optional donations','Կամավոր աջակցությունը','自願贊助'].includes(part)) return <button key={index} className="inline-link" onClick={donate}>{part}</button>;
     return studio || author ? <a key={index} href={studio ? EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM : EXTERNAL_LINKS.NIKOLA_INSTAGRAM} target="_blank" rel="noopener noreferrer">{part}</a> : part;
   });
   return (
@@ -1961,7 +1976,7 @@ function InformationScreen({
   const article = settingsContent(locale)[kind];
   return (
     <Shell title={article.title} back={() => go("settings")}>
-      <ArticleBody article={article} emailAfterLastSection={kind === 'help'} />
+      <ArticleBody article={article} emailAfterLastSection={kind === 'help'} donate={kind === 'about' ? () => go('donate') : undefined} />
       {(kind === "about" || kind === "help") && <ContactLinks includeEmail={kind !== 'help'} />}
     </Shell>
   );
@@ -2126,10 +2141,5 @@ function Links({ go }: { go: (s: Screen) => void }) {
 }
 
 function download(blob: Blob, title: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `FIELD_${title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "Sound"}_${new Date().toISOString().slice(0, 10)}.wav`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadWav(wavFile(blob,title));
 }

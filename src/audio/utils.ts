@@ -18,7 +18,7 @@ export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
   }
 }
 
-export function peaksFromBuffer(buffer: AudioBuffer, count = 160): number[] {
+export function peaksFromBuffer(buffer: Pick<AudioBuffer, 'getChannelData'>, count = 160): number[] {
   const data = buffer.getChannelData(0);
   const block = Math.max(1, Math.floor(data.length / count));
   const peaks: number[] = [];
@@ -32,7 +32,7 @@ export function peaksFromBuffer(buffer: AudioBuffer, count = 160): number[] {
   return peaks.map(value => value / max);
 }
 
-export function audioBufferToWav(buffer: AudioBuffer): Blob {
+export function audioBufferToWav(buffer: Pick<AudioBuffer, 'length' | 'numberOfChannels' | 'sampleRate' | 'getChannelData'>): Blob {
   const channels = buffer.numberOfChannels;
   const length = buffer.length * channels * 2 + 44;
   const arrayBuffer = new ArrayBuffer(length);

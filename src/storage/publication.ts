@@ -1,6 +1,7 @@
 import { soundsDb } from "./db";
 import { publishSound, removeWorldSound } from "../world";
 import type { SoundRecord, SoundLocation } from "../types";
+import { newId } from '../id';
 export function createWorldPublisher(
   repository = soundsDb,
   api: {
@@ -24,7 +25,7 @@ export function createWorldPublisher(
         ...record,
         worldPublication: {
           ...record.worldPublication,
-          clientId: record.worldPublication?.clientId || crypto.randomUUID(),
+          clientId: record.worldPublication?.clientId || newId(),
           state: "pending",
         },
       };

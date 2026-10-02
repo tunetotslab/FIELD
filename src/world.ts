@@ -1,7 +1,7 @@
 import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
 import { preparePublicationAudio, PublicationAudioError } from "./audio/publication";
-import { fetchWithDeadline } from './network';
+import { fetchWithDeadline, NetworkRequestError } from './network';
 export type WorldSound = Pick<
   SoundRecord,
   "id" | "title" | "emojis" | "duration" | "createdAt" | "styleId" | "waveform"
@@ -25,8 +25,9 @@ export async function requestError(response: Response): Promise<FieldRequestErro
   return new FieldRequestError(response.status, reason);
 }
 export function publicationErrorMessage(error: unknown, t: (key: 'sessionExpired' | 'publicationAudioFailed' | 'publicationNetworkFailed' | 'publicationTooLarge' | 'publicationCityFailed' | 'publicationMetadataFailed' | 'publicationAccessFailed' | 'publicationLimitFailed' | 'publicationServiceFailed') => string): string {
-  if (error instanceof PublicationAudioError) return t('publicationAudioFailed');
-  if (!(error instanceof FieldRequestError)) return t('publicationNetworkFailed');
+  if (error instanceof PublicationAudioError) return `${t('publicationAudioFailed')} [${error.step}]`;
+  if (error instanceof NetworkRequestError) return `${t('publicationNetworkFailed')} [${error.step}:${error.kind}]`;
+  if (!(error instanceof FieldRequestError)) return `${t('publicationServiceFailed')} [LOCAL:${error instanceof Error && /^[a-zA-Z]{1,30}$/.test(error.name) ? error.name : 'Error'}]`;
   const key = error.status === 401 ? 'sessionExpired' : error.status === 413 ? 'publicationTooLarge' : error.status === 429 ? 'publicationLimitFailed' : error.status === 403 ? 'publicationAccessFailed' : error.reason.toLowerCase().includes('city') ? 'publicationCityFailed' : error.status === 400 ? 'publicationMetadataFailed' : 'publicationServiceFailed';
   return `${t(key)} (${error.status})`;
 }
@@ -58,7 +59,7 @@ export async function worldRequest<T>(
   });
   if (!response.ok)
     throw await requestError(response);
-  return response.json();
+  try {return await response.json();} catch {throw new FieldRequestError(response.status, 'Invalid service response');}
 }
 export async function publishSound(record: SoundRecord) {
   const prepared = await preparePublicationAudio(record);
@@ -71,7 +72,7 @@ export async function publishSound(record: SoundRecord) {
       city: record.location.city,
       countryCode: record.location.countryCode,
       region: record.location.region,
-      language: localStorage.getItem("field-locale") || "en",
+      language: (() => {try {return localStorage.getItem('field-locale') || 'en';} catch {return 'en';}})(),
     }),
   });
   const form = new FormData();

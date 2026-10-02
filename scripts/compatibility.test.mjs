@@ -85,6 +85,35 @@ assert.equal(calls.at(-1).options.cache,'no-store');
 assert.equal(calls.filter(call=>call.url.endsWith('/world')).length,2);
 assert.equal(calls.filter(call=>call.url.endsWith('/sounds')).length,2);
 console.log('PASS old/current normalization, preserved source/unknown fields, honest publication state, shared World/Group PCM payload, stale duration, missing audio and GET cache policy');
+
+// Saved PCM publication must not depend on Safari's AudioBuffer constructor,
+// decoding context, MIME labels, stale duration or localStorage availability.
+const {audioBufferToWav} = await load('../src/audio/utils.ts');
+const pcm = audioBufferToWav(new TestBuffer({length:8000,numberOfChannels:2,sampleRate:8000}));
+const pcmBytes = await pcm.arrayBuffer();
+const savedPcm = new Blob([pcmBytes], {type:'application/octet-stream'});
+const savedContext = globalThis.AudioContext;
+globalThis.AudioBuffer = undefined;
+await publishGroupSound('course',current);
+globalThis.AudioContext = undefined;
+globalThis.localStorage = {getItem:()=>{throw new DOMException('Denied','SecurityError');}};
+const pcmRecord = {...current,audioBlob:savedPcm,originalBlob:saved,duration:999};
+await publishSound(pcmRecord); await publishGroupSound('course',pcmRecord);
+assert.deepEqual(await pcmRecord.audioBlob.arrayBuffer(),pcmBytes);
+assert.equal(pcmRecord.originalBlob,saved);
+assert.equal(pcmRecord.duration,999);
+const longPcm = audioBufferToWav(new TestBuffer({length:8000*61,numberOfChannels:2,sampleRate:8000}));
+const bounded = await preparePublicationAudio({...pcmRecord,audioBlob:longPcm});
+assert.equal(bounded.duration,60);
+assert.equal(wavDuration(await bounded.audioBlob.arrayBuffer()),60);
+const boundedView = new DataView(await bounded.audioBlob.arrayBuffer());
+assert.equal(boundedView.getInt16(boundedView.byteLength-2,true),0);
+assert.equal(longPcm.size,44+8000*61*2*2);
+await assert.rejects(async()=>wavDuration(await longPcm.arrayBuffer()),/Maximum 60 seconds/);
+await assert.rejects(preparePublicationAudio({...pcmRecord,audioBlob:new Blob([pcmBytes.slice(0,50)])}),error=>error.step==='AUDIO_WAV');
+globalThis.AudioBuffer = TestBuffer; globalThis.AudioContext = savedContext;
+globalThis.localStorage = {getItem:()=>null};
+console.log('PASS saved mono/stereo PCM uploads without Web Audio/storage, source preservation, actual duration, 60-second public cap/fade and corrupt-WAV stage');
 globalThis.fetch=async()=>Response.json({error:'Unauthorized'},{status:401});
 await assert.rejects(worldCities(new AbortController().signal),isAuthenticationError);
 assert.equal(isAuthenticationError(new Error('Offline')),false);
@@ -131,7 +160,9 @@ let lastSignal;
 globalThis.fetch=async(_input,options)=>{lastSignal=options.signal;return new Promise((resolve,reject)=>{if(lastSignal.aborted)reject(new DOMException('Aborted','AbortError'));else lastSignal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});});};
 const cancel=new AbortController();const cancelledRequest=fetchWithDeadline('https://field.test',{signal:cancel.signal});cancel.abort();
 await assert.rejects(cancelledRequest,{name:'AbortError'});assert.ok(lastSignal.aborted);
-await assert.rejects(fetchWithDeadline('https://field.test',{},5),{name:'AbortError'});
+await assert.rejects(fetchWithDeadline('https://field.test',{},5),error=>error.step==='FIELD_REQUEST' && error.kind==='TIMEOUT');
+globalThis.fetch=async(_input,options)=>new Response(new ReadableStream({start(controller){options.signal.addEventListener('abort',()=>controller.error(new DOMException('Aborted','AbortError')),{once:true});}}));
+await assert.rejects(fetchWithDeadline('https://field.test/world',{method:'POST'},5),error=>error.step==='WORLD_UPLOAD' && error.kind==='TIMEOUT');
 console.log('PASS compatible network parent cancellation and timeout without Safari static signal helpers');
 
 assert.equal(publicationStart({...normalized,emojis:[]},'world'),'emoji');
@@ -155,5 +186,57 @@ const {PublicationAudioError}=await load('../src/audio/publication.ts');
 assert.match(publicationErrorMessage(new FieldRequestError(413), key=>key),/publicationTooLarge.*413/);
 assert.match(publicationErrorMessage(new FieldRequestError(400,'Please choose the city again'), key=>key),/publicationCityFailed.*400/);
 assert.match(publicationErrorMessage(new FieldRequestError(401), key=>key),/sessionExpired.*401/);
-assert.equal(publicationErrorMessage(new PublicationAudioError('Unsupported format'), key=>key),'publicationAudioFailed');
+assert.equal(publicationErrorMessage(new PublicationAudioError('Unsupported format'), key=>key),'publicationAudioFailed [AUDIO_DECODE]');
+assert.match(publicationErrorMessage(new TypeError('Private details'), key=>key),/publicationServiceFailed \[LOCAL:TypeError\]/);
+const {NetworkRequestError} = await load('../src/network.ts');
+assert.match(publicationErrorMessage(new NetworkRequestError('GROUP_UPLOAD','NETWORK'), key=>key),/publicationNetworkFailed \[GROUP_UPLOAD:NETWORK\]/);
 console.log('PASS publication failures distinguish size, city, expired session, local decode and network');
+
+const {patchDraft,changesAudio} = await load('../src/audio/draft.ts');
+const draft = {id:'legacy',originalBlob:saved,processedBlob:pcm,processedDuration:1,processedWaveform:[.2],effect:'echo',trimStart:0,trimEnd:1};
+for(const patch of [{title:'Rename'},{emojis:['🌧️','🌱','✨']},{location:current.location},{visibility:'world'},{visibility:'group',groupId:'course'},{styleId:'gothic'},{loop:true}]) {
+ const next = patchDraft(draft,patch);
+ assert.equal(next.processedBlob,pcm);
+ assert.equal(next.originalBlob,saved);
+ assert.equal(changesAudio(patch),false);
+}
+for(const patch of [{effect:'reverse'},{effectChain:[]},{trimStart:.2},{fadeOut:true}]) {
+ const next = patchDraft(draft,patch);
+ assert.equal(next.processedBlob,undefined);assert.equal(next.processedDuration,undefined);assert.equal(next.originalBlob,saved);
+}
+console.log('PASS metadata preserves saved render/FX; actual audio edits invalidate it');
+
+const {wavFile,shareWav} = await load('../src/audio/export.ts');
+const exportFile = wavFile(pcm,'Дождь Bangkok');
+assert.match(exportFile.name,/Дождь-Bangkok/);
+assert.deepEqual(await exportFile.arrayBuffer(),pcmBytes);
+const realNavigator = globalThis.navigator;
+let sharingCalled = false;
+Object.defineProperty(globalThis,'navigator',{configurable:true,value:{canShare:({files})=>files[0]===exportFile,share:({files})=>{assert.equal(files[0],exportFile);sharingCalled=true;return Promise.resolve();}}});
+const sharing = shareWav(exportFile);
+assert.equal(sharingCalled,true,'Native sharing is invoked synchronously in the click, before any await');
+await sharing;
+Object.defineProperty(globalThis,'navigator',{configurable:true,value:realNavigator});
+console.log('PASS WAV sharing carries real saved bytes and preserves native user activation');
+
+const {newId}=await load('../src/id.ts');
+const originalRandomUUID=crypto.randomUUID;
+crypto.randomUUID=undefined;
+const ids=Array.from({length:100},()=>newId());
+assert.equal(new Set(ids).size,100);
+for(const id of ids) assert.match(id,/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+const {createWorldPublisher}=await load('../src/storage/publication.ts');
+const queued=new Map();let attempts=0,clientId;
+const queueRecord={...pcmRecord,worldPublication:undefined};
+const repository={save:async record=>queued.set(record.id,record),getAll:async()=>[...queued.values()]};
+const publisher=createWorldPublisher(repository,{
+ publishSound:async record=>{attempts++;clientId ??=record.worldPublication.clientId;assert.equal(record.worldPublication.clientId,clientId);if(attempts===1)throw new NetworkRequestError('WORLD_UPLOAD','NETWORK');return {id:'server-id',location:current.location};},
+ removeWorldSound:async()=>{},
+},()=>true,()=>true);
+await assert.rejects(publisher.uploadWorld(queueRecord),error=>error.kind==='NETWORK');
+assert.equal(queued.get(queueRecord.id).worldPublication.state,'failed');
+const recovered=await publisher.uploadWorld(queued.get(queueRecord.id));
+assert.equal(recovered.worldPublication.state,'published');assert.equal(recovered.worldPublication.clientId,clientId);
+assert.equal(recovered.audioBlob,savedPcm);assert.equal(recovered.originalBlob,saved);
+crypto.randomUUID=originalRandomUUID;
+console.log('PASS recording/publication UUIDs when Safari randomUUID is absent; real upload queue preserves bytes and idempotency across failure/retry');

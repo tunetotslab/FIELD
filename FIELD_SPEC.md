@@ -1832,11 +1832,29 @@ size/rate limits and service failures; preserve local audio in every case.
 
 About FIELD foregrounds Tune Tots Lab's electronic-music education from scratch,
 original creation, classroom sketch exchange and use in tracks, alongside FIELD's
-open worldwide sound community. Credit Nikola Chen and the Lab teachers; author
+open worldwide sound community. Credit Nikola Chen (Никола Чен; Николой Ченом
+in the Russian credit), the sole founder and teacher of Tune Tots Lab; author
 and studio names link to their configured Instagram pages. Retain field-recording
 explanation, World/private Group distinction, free access and light humour.
 Every Shell provides one footer after content with breathing space. Help's contact
 section offers a selectable/copyable email, optional default mail app and Gmail;
 copy must not require launching a mail application.
+
+## Immediate saved-upload and iPhone export follow-up
+
+Metadata changes must retain the saved render; only trim/FX audio edits invalidate
+it. Saved PCM WAV publication rebuilds the public header/sample duration directly,
+without requiring Web Audio allocation or reapplying FX. Unsupported encodings
+retain the bounded decode fallback; every preparation/network failure has a safe
+stage code. Deadlines cover response bodies as well as headers.
+
+Ready prepares the WAV before the export/share gesture. Share sends actual file
+bytes using the system share sheet (choose Telegram there), never a metadata-only
+sendData message. Keep export available after failed publication; download is the
+fallback when native file sharing is unavailable. No private audio is uploaded
+solely to share it. Outside Telegram, explain the required World session rather
+than implying that an empty map is the global archive. Mail offers copy, a browser
+Gmail composer and an explicit default-mail option with consistent pink controls.
+About contains a soft link to the existing voluntary donation screen.
 
 **END OF FIELD_SPEC.md**
