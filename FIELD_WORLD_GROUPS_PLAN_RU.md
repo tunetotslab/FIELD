@@ -59,6 +59,21 @@ QA-fixtures изолированы и никогда не публикуются
 World включается для контрольного теста пользователя после automated/browser QA.
 Это не отметка о завершении Stage 5 и не подтверждение реального mobile acceptance.
 
+### Публикация контрольной версии
+
+- GitHub PR: https://github.com/tunetotslab/FIELD/pull/1 (merged).
+- Код в `main`: `8f8c27c10f484cf03e7a42d4667ae0e76fe5c66d`.
+- Pages build/deploy: https://github.com/tunetotslab/FIELD/actions/runs/36948668114 — success.
+- D1 migration `0003_world.sql` применена до Worker deploy.
+- Worker version: `8bcacbf5-a14b-4958-8a71-ea54dff08024`.
+- Frontend и Worker World flags включены; live bundle содержит новый API и не содержит QA fixtures.
+- Live health: 200; World без подписи: 401; неверный Origin/webhook без секрета: 403.
+- Существующие 5 записей учебной группы и 1 Telegram binding сохранились.
+- На момент проверки публичных World-записей и жалоб ещё нет: synthetic fixtures не загружались.
+- Browser audio/storage QA: 162 проверки, включая offline reopen/retry и три FX-комбинации.
+- Размеры 375/390/430/900: панель города без горизонтального переполнения.
+- Реальная публикация, второй телефон и решение по жалобе через бота: ожидаются от пользователя.
+
 ## Продуктовый контракт Tune Tots Group
 
 1. Владелец создаёт учебную группу и получает короткий код.
