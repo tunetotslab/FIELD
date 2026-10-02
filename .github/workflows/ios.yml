@@ -29,12 +29,12 @@ jobs:
         env:
           VITE_FIELD_API_URL: ${{ vars.FIELD_API_URL }}
         run: npm run sync:ios
-      - name: Build simulator application (no signing required)
+      - name: Build simulator application (ad-hoc signing)
         id: simulator_build
         run: |
           set -o pipefail
           xcodebuild -version
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/FieldBuild" CODE_SIGNING_ALLOWED=NO build | tee "$RUNNER_TEMP/field-ios-build.log"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/FieldBuild" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build | tee "$RUNNER_TEMP/field-ios-build.log"
       - name: Launch real Simulator and verify UI, file bridge and Keychain
         run: bash scripts/ios-simulator-smoke.sh
       - name: Build unsigned iPhone application

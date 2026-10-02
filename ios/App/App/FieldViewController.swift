@@ -17,21 +17,27 @@ class FieldViewController: CAPBridgeViewController {
         let script = """
         (async () => {
           if (!document.querySelector('#root')?.children.length || !window.Capacitor?.isNativePlatform()) return false;
+          if (window.__fieldSmokeRunning) return;
+          window.__fieldSmokeRunning = true;
           const p = window.Capacitor.Plugins.FieldDevice;
           if (!p) throw Error('Missing native FieldDevice plugin');
           const id = 'field-ci-smoke';
           const metadata = JSON.stringify({record: {id, title:'CI smoke', unknown:{keep:true}},renderType:'audio/wav',originalType:'audio/mp4'});
+          window.__fieldSmokeStage = 'file-save';
           await p.saveSound({id,metadata,renderBase64:'AP8EBw==',originalBase64:'CQgA'});
+          window.__fieldSmokeStage = 'file-read';
           const row = await p.loadSound({id});
           if(row.metadata !== metadata || row.renderBase64 !== 'AP8EBw==' || row.originalBase64 !== 'CQgA') throw Error('Native bytes differ');
+          window.__fieldSmokeStage = 'file-remove';
           await p.removeSound({id});
           const list = await p.listSounds();
           if(list.ids.includes(id)) throw Error('Native row not removed');
+          window.__fieldSmokeStage = 'keychain';
           await p.sessionWrite({value:'CI Keychain smoke'});
           if((await p.sessionRead()).value !== 'CI Keychain smoke') throw Error('Keychain mismatch');
           await p.sessionRemove();
           return {ok:true, native:true, ui:true, storage:true, keychain:true};
-        })().then(result => { window.__fieldSmoke = result; }).catch(error => { window.__fieldSmoke = {ok:false, error:String(error)}; });
+        })().then(result => { window.__fieldSmoke = result; }).catch(error => { window.__fieldSmoke = {ok:false, step:window.__fieldSmokeStage || 'startup', error:String(error)}; });
         true;
         """
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
