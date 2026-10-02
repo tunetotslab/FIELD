@@ -168,7 +168,10 @@ let geocoderCalls = 0,
 globalThis.fetch = async (url, options) => {
   if (String(url).includes('catalogue.test')) {
     geocoderCalls++;
-    return Response.json([[1,'Yerevan','Yerevan',['yerevan','ереван','երևան'],40.177,44.503,1000000,'Yerevan',{en:'Yerevan',ru:'Ереван',hy:'Երևան'}]]);
+    return Response.json([
+      [1,'Yerevan','Yerevan',['yerevan','ереван','երևան'],40.177,44.503,1000000,'Yerevan',{en:'Yerevan',ru:'Ереван',hy:'Երևան'}],
+      [2,'Yerevan District','Yerevan District',['yerevan district'],41,45,100,'Other',{en:'Yerevan District',ru:'Ереванский район'}]
+    ]);
   }
   if (String(url).includes("api.telegram.org")) {
     if(unknownTelegram)throw Error('Simulated ambiguous network timeout');
@@ -195,6 +198,9 @@ try {
   const resolved=await request('/cities/resolve',1,{method:'POST',body:JSON.stringify({...metadata.location,placeId:'osm:old',lat:0,lng:0})});
   assert.equal(resolved.status,200);
   assert.equal((await resolved.json()).placeId,canonical.placeId);
+  const translatedLegacy=await request('/cities/resolve',2,{method:'POST',body:JSON.stringify({...metadata.location,placeId:'osm:older',language:'ru'})});
+  assert.equal(translatedLegacy.status,200);
+  assert.equal((await translatedLegacy.json()).placeId,canonical.placeId,'English legacy name resolves while UI/results are Russian and multiple prefixes match');
   assert.equal((await request("/cities?q=Dilijan&country=AM",2)).status, 200);
   assert.equal(geocoderCalls, 1);
   const response = await request("/world", 1, { method: "POST", body: form() });

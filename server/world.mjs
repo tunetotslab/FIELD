@@ -117,13 +117,11 @@ export async function resolveCity(env, data) {
     language,
   );
   if (locations.length === 1) return locations[0];
-  const normalized = (value) =>
-    String(value || "")
-      .normalize("NFKC")
-      .trim()
-      .toLocaleLowerCase();
+  const normalized = normalizeCitySearch;
   const matches = locations.filter(
-    (location) => normalized(location.city) === normalized(data.city),
+    (location) => [location.city, location.englishCity, location.nativeCity,
+      ...Object.values(location.localizedNames || {})].some(name =>
+        normalized(name) === normalized(data.city)),
   );
   if (matches.length === 1) return matches[0];
   const regionMatches = matches.filter(
