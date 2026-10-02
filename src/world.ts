@@ -1,8 +1,8 @@
-import {authenticationHeaders} from './auth/session';
+import {authenticationHeaders,authenticatedFetch} from './auth/session';
 import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
 import { preparePublicationAudio, PublicationAudioError } from "./audio/publication";
-import { fetchWithDeadline, NetworkRequestError } from './network';
+import { NetworkRequestError } from './network';
 import { StorageError } from './storage/errors';
 export type WorldSound = Pick<
   SoundRecord,
@@ -52,7 +52,7 @@ export async function worldRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetchWithDeadline(`${API_URL}${path}`, {
+  const response = await authenticatedFetch(`${API_URL}${path}`, {
     ...options,
     cache: 'no-store',
     headers: {
@@ -134,7 +134,7 @@ export function reportWorldSound(
   });
 }
 export async function worldAudio(id: string, signal?: AbortSignal) {
-  const response = await fetchWithDeadline(`${API_URL}/audio/${encodeURIComponent(id)}`, {
+  const response = await authenticatedFetch(`${API_URL}/audio/${encodeURIComponent(id)}`, {
     cache: 'no-store',
     headers: {
       ...authenticationHeaders(),

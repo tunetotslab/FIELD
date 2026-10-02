@@ -343,3 +343,28 @@ nativeWriteFails=true;await assert.rejects(()=>nativeRepository.save({...nativeR
 await assert.rejects(()=>nativeRepository.clear());assert.equal((await nativeRepository.getAll()).length,1);
 await nativeRepository.remove(nativeRecord.id);assert.equal((await nativeRepository.getAll()).length,0);
 console.log('PASS native adapter: original/render byte integrity after reopen, metadata/FX/ownership, failed save preserves old row and bulk clear disabled');
+
+// Exercise actual native session/client logic with only its Keychain boundary replaced.
+let keychainValue;
+const sessionBridge={
+ async sessionWrite({value}){keychainValue=value;},
+ async sessionRead(){return {value:keychainValue};},
+ async sessionRemove(){keychainValue=undefined;}
+};
+window.Telegram=undefined;
+const {createNativeSessionStore}=await load('../src/auth/session.ts');
+const sessionApi=createNativeSessionStore(sessionBridge,()=>true);
+const sessionValue={token:'field_'+'a'.repeat(43),expiresAt:Date.now()+60000,userId:7,displayName:'Owner',provider:'telegram'};
+await sessionApi.setNativeSession(sessionValue);assert.equal(JSON.parse(keychainValue).userId,7);
+const recordBeforeSessionChange=nativeRows.size;
+globalThis.fetch=async(_url,opts)=>{assert.equal(new Headers(opts.headers).get('Authorization'),`Bearer ${sessionValue.token}`);return Response.json({error:'Unauthorized'},{status:401});};
+assert.equal((await sessionApi.authenticatedFetch('https://field.test/world')).status,401);assert.equal(sessionApi.currentSession(),undefined);assert.equal(keychainValue,undefined);assert.equal(nativeRows.size,recordBeforeSessionChange);
+await sessionApi.setNativeSession(sessionValue);
+let completeOldRequest;
+globalThis.fetch=()=>new Promise(resolve=>{completeOldRequest=resolve;});
+const oldResponse=sessionApi.authenticatedFetch('https://field.test/world');
+const newer={...sessionValue,token:'field_'+'b'.repeat(43),userId:8};await sessionApi.setNativeSession(newer);
+completeOldRequest(Response.json({error:'Unauthorized'},{status:401}));await oldResponse;
+assert.equal(sessionApi.currentSession().userId,8);assert.equal(JSON.parse(keychainValue).userId,8);
+await sessionApi.setNativeSession(undefined);
+console.log('PASS native auth client: Keychain session, rejected token prompts login without touching Library; delayed old 401 cannot log out a newer account');
