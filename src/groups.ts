@@ -1,3 +1,4 @@
+import {authenticationHeaders} from './auth/session';
 import { fetchWithDeadline } from "./network";
 import { API_URL } from "./config";
 import type { SoundRecord } from "./types";
@@ -14,7 +15,7 @@ export interface FieldGroup {
 }
 
 function auth() {
-  return { Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}` };
+  return { ...authenticationHeaders() };
 }
 
 export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
@@ -38,6 +39,7 @@ export async function joinFieldGroup(code: string): Promise<FieldGroup> {
 }
 
 export async function publishGroupSound(groupId: string, record: SoundRecord) {
+  const headers = auth();
   const prepared = await preparePublicationAudio(record);
   const form = new FormData();
   form.set(
@@ -49,7 +51,7 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds`,
     {
       method: "POST",
-      headers: auth(),
+      headers,
       body: form,
     },
   );

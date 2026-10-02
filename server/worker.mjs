@@ -1,3 +1,4 @@
+import {allowedOrigin, nativeUser, nativeRoute, nativeBotUpdate} from './native-auth.mjs';
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
 import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
@@ -138,6 +139,7 @@ async function handleBotUpdate(update, env) {
   let locale = await storedLocale(env, user.id) || localeFromCode(user.language_code);
   const data = callback?.data || '';
   if (callback) await answerCallback(env, callback.id);
+  if (await nativeBotUpdate(update, env, telegramFor(env))) return;
   if (await moderationUpdate(update, env, telegramFor(env))) return;
   const command = data.startsWith('bot:') ? data.slice(4) : (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
   const adminAction = data.startsWith('admin:') ? data.slice(6) : command;
@@ -266,13 +268,16 @@ async function route(request, env, ctx) {
   if (url.pathname === '/telegram/webhook' && request.method === 'POST') return webhook(request,env);
   if (url.pathname === '/health') return json({ok:true});
   if (url.pathname.startsWith('/download/') && ['GET','HEAD'].includes(request.method) && env.WORLD_ENABLED==='true') return serveDownload(request,env);
-  if (request.headers.get('Origin') !== env.APP_ORIGIN) return json({error:'Forbidden'},403);
+  if (!allowedOrigin(request, env)) return json({error:'Forbidden'},403);
   if (request.method === 'OPTIONS') return new Response(null,{status:204});
+  const nativeResponse=await nativeRoute(request,env);
+  if(nativeResponse)return nativeResponse;
   let user;
-  try { user = await authenticate((request.headers.get('Authorization') || '').replace(/^tma /,''), env.BOT_TOKEN); }
+  try { user = request.headers.get('Authorization')?.startsWith('Bearer ') ? await nativeUser(request,env) : await authenticate((request.headers.get('Authorization') || '').replace(/^tma /,''), env.BOT_TOKEN); }
   catch { return json({error:'Unauthorized'},401); }
   if(url.pathname==='/files/telegram' && request.method==='POST') return transferPrivateFile(request,env,user);
   if (url.pathname === '/donations' && request.method === 'POST') {
+    if(request.headers.get('Authorization')?.startsWith('Bearer '))return json({error:'Use Telegram for donations'},403);
     if (Number(request.headers.get('Content-Length')) > 2048) return json({error:'Too large'},413);
     const {amount} = await request.json();
     if (!validAmount(amount)) return json({error:'Invalid amount'},400);
@@ -383,8 +388,8 @@ export default { async scheduled(_event,env,ctx) {
   try { response = await route(request,env,ctx); } catch { response = json({error:'Service unavailable'},503); }
   const headers = new Headers(response.headers);
   headers.set('Cache-Control','no-store');
-  if (request.headers.get('Origin') === env.APP_ORIGIN) {
-    headers.set('Access-Control-Allow-Origin',env.APP_ORIGIN);
+  if (allowedOrigin(request,env)) {
+    headers.set('Access-Control-Allow-Origin',request.headers.get('Origin'));
     headers.set('Access-Control-Allow-Headers','Content-Type, Authorization');
     headers.set('Access-Control-Allow-Methods','GET, POST, DELETE, OPTIONS');
     headers.set('Vary','Origin');

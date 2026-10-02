@@ -72,3 +72,21 @@ Replace the clearly marked placeholders with approved source files for:
 - Daily challenge photography, beginning with `daily-metallic.jpg`
 
 Do not trace or regenerate these assets from the reference screenshots.
+
+
+## iOS / Stage 6
+
+Owner authorized iOS development on 2026-10-03; Android follows later.
+See [FIELD_IOS_PLAN_RU.md](FIELD_IOS_PLAN_RU.md). Native source lives in `ios/` in
+this GitHub repository. `npm run sync:ios` bundles the same frontend locally;
+`npm run open:ios` opens Xcode. No remote app-shell URL or native service worker.
+Native audio/files + SQLite are separate from Telegram/PWA's IndexedDB; native
+sessions use Keychain. Export/share use system iOS controllers.
+
+`.github/workflows/ios.yml` checks real Swift/SQLite persistence and compiles both
+simulator and unsigned iPhone builds. Its simulator archive is not an installable
+signed IPA. TestFlight/App Store requires Apple Developer enrollment and signing.
+`npm run test:ios-storage` runs native persistence checks on macOS with Swift.
+Standalone Telegram auth is opt-in (`NATIVE_AUTH_ENABLED`, migration 0007);
+private bot approval preserves existing Telegram user/group identities. Store
+release additionally requires the remaining gates documented in the iOS plan.
