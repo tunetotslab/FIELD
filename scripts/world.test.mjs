@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { createHmac } from "node:crypto";
 import worker from "../server/worker.mjs";
 import { wavDuration } from "../server/world.mjs";
+import {deliverWorld} from '../server/world-delivery.mjs';
+import {deliverReportOutcomes} from '../server/moderation.mjs';
 const database = new DatabaseSync(":memory:");
 const migrationDb = new DatabaseSync(':memory:');
 migrationDb.exec("CREATE TABLE sounds(id TEXT PRIMARY KEY,user_id INTEGER,metadata TEXT,published INTEGER DEFAULT 0,created_at INTEGER,group_id TEXT,telegram_delivery_state TEXT)");
@@ -11,6 +13,9 @@ migrationDb.prepare('INSERT INTO sounds(id,user_id,metadata,published,created_at
 migrationDb.exec(readFileSync(new URL('../server/migrations/0003_world.sql',import.meta.url),'utf8'));
 assert.equal(migrationDb.prepare('SELECT city_key FROM sounds').get().city_key,'osm:legacy');
 assert.equal(migrationDb.prepare('SELECT COUNT(*) n FROM world_cities').get().n,1);
+migrationDb.exec(readFileSync(new URL('../server/migrations/0004_report_outcomes.sql',import.meta.url),'utf8'));
+migrationDb.exec(readFileSync(new URL('../server/migrations/0005_world_sharing.sql',import.meta.url),'utf8'));
+assert.equal(migrationDb.prepare('SELECT COUNT(*) n FROM sounds').get().n,1);
 migrationDb.close();
 database.exec(
   readFileSync(new URL("../server/schema.sql", import.meta.url), "utf8"),
@@ -154,6 +159,8 @@ function form(data = metadata, audio = wav()) {
   return f;
 }
 const originalFetch = globalThis.fetch;
+const telegramMessages=[];
+let rejectTelegram=false,unknownTelegram=false;
 let geocoderCalls = 0,
   notifications = 0;
 globalThis.fetch = async (url, options) => {
@@ -170,8 +177,11 @@ globalThis.fetch = async (url, options) => {
     ]);
   }
   if (String(url).includes("api.telegram.org")) {
+    if(unknownTelegram)throw Error('Simulated ambiguous network timeout');
+    if(rejectTelegram)return Response.json({ok:false,description:'Forbidden: bot not in chat'});
     notifications++;
-    return Response.json({ ok: true, result: true });
+    telegramMessages.push({url:String(url),body:options.body instanceof FormData?Object.fromEntries(options.body):JSON.parse(options.body)});
+    return Response.json({ ok: true, result: {message_id:77} });
   }
   throw Error(`Unexpected fetch ${url}`);
 };
@@ -188,6 +198,9 @@ try {
   assert.equal(canonical.placeId, "osm:relation:1");
   assert.equal((await request("/cities?q=Yerevan&country=AM")).status, 200);
   assert.equal(geocoderCalls, 1);
+  const resolved=await request('/cities/resolve',1,{method:'POST',body:JSON.stringify({...metadata.location,placeId:'osm:old',lat:0,lng:0})});
+  assert.equal(resolved.status,200);
+  assert.equal((await resolved.json()).placeId,canonical.placeId);
   assert.equal((await request("/cities?q=Dilijan&country=AM")).status, 503);
   assert.equal(geocoderCalls, 1);
   const response = await request("/world", 1, { method: "POST", body: form() });
@@ -195,6 +208,26 @@ try {
   const published = await response.json(),
     id = published.id;
   assert.equal(stored.size, 1);
+  assert.deepEqual(await (await request(`/world/${id}/likes`,2,{method:'POST'})).json(),{likes:1,liked:1});
+  assert.equal((await (await request(`/world/${id}/likes`,2,{method:'POST'})).json()).likes,1);
+  assert.equal((await (await request(`/world/${id}/likes`,1,{method:'POST'})).json()).likes,2);
+  assert.equal((await (await request(`/world/${id}/likes`,2,{method:'DELETE'})).json()).likes,1);
+  assert.equal((await (await request(`/world/${id}/likes`,2,{method:'DELETE'})).json()).likes,1);
+  const ticket=await (await request(`/world/${id}/download`,2,{method:'POST'})).json();
+  const download=await worker.fetch(new Request(ticket.url),env);
+  assert.equal(download.status,200);
+  assert.ok(download.headers.get('Content-Disposition').startsWith('attachment;'));
+  assert.equal((await download.arrayBuffer()).byteLength,wav().byteLength);
+  const tampered=new URL(ticket.url);tampered.searchParams.set('signature','0'.repeat(64));
+  assert.equal((await worker.fetch(new Request(tampered),env)).status,403);
+  tampered.searchParams.set('expires',String(Date.now()-1));
+  assert.equal((await worker.fetch(new Request(tampered),env)).status,403);
+  await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp',APP_URL:'https://field.test'});
+  const delivered=telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp');
+  assert.equal(delivered.length,1);
+  assert.ok(delivered[0].body.document instanceof File);
+  await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  assert.equal(telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp').length,1);
   assert.equal(published.location.lat, 40.177);
   assert.equal(published.location.lng, 44.503);
   assert.equal(published.effect, "echo");
@@ -317,9 +350,15 @@ try {
   await moderation(2, "hide");
   assert.equal((await request(`/audio/${id}`, 2)).status, 200);
   await moderation(9, "hide");
+  assert.equal((await worker.fetch(new Request(ticket.url),env)).status,404);
+  assert.equal((await request(`/world/${id}/likes`,2,{method:'POST'})).status,404);
+  assert.equal(telegramMessages.filter(m=>m.body.chat_id===2).length,1);
+  assert.ok(telegramMessages.find(m=>m.body.chat_id===2).body.text.includes('hidden'));
+  assert.ok(database.prepare('SELECT resolution_notified_at FROM sound_reports').get().resolution_notified_at);
   assert.equal((await request(`/audio/${id}`, 2)).status, 404);
   assert.equal((await (await request("/world/cities", 2)).json())[0].count, 45);
   await moderation(9, "delete");
+  assert.equal(telegramMessages.filter(m=>m.body.chat_id===2).length,1);
   assert.ok(!stored.has(id));
   assert.equal(
     (await request("/world", 1, { method: "POST", body: form() })).status,
@@ -423,6 +462,31 @@ try {
     method: "POST",
   });
   assert.equal(notifications, alreadySent);
+  assert.equal((await request(`/world/${group.id}/download`,2,{method:'POST'})).status,404);
+  assert.equal((await request(`/world/${group.id}/likes`,2,{method:'POST'})).status,404);
+  // Only public files enter the durable mirror, never course documents.
+  await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  assert.equal(database.prepare('SELECT COUNT(*) n FROM world_telegram_deliveries d JOIN sounds s ON s.id=d.sound_id WHERE s.group_id IS NOT NULL').get().n,0);
+  // Definite rejection retries; unknown send outcome must not auto-resend.
+  const mirrorId=database.prepare("SELECT id FROM sounds WHERE group_id IS NULL AND published=1 AND moderation_state='visible' LIMIT 1").get().id;
+  stored.set(mirrorId,wav());
+  database.prepare("UPDATE world_telegram_deliveries SET state='queued',updated_at=0 WHERE sound_id=?").run(mirrorId);
+  rejectTelegram=true;await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  assert.equal(database.prepare('SELECT state FROM world_telegram_deliveries WHERE sound_id=?').get(mirrorId).state,'failed');
+  rejectTelegram=false;await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  assert.equal(database.prepare('SELECT state FROM world_telegram_deliveries WHERE sound_id=?').get(mirrorId).state,'delivered');
+  database.prepare("UPDATE world_telegram_deliveries SET state='queued',updated_at=0 WHERE sound_id=?").run(mirrorId);
+  unknownTelegram=true;await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});unknownTelegram=false;
+  assert.equal(database.prepare('SELECT state FROM world_telegram_deliveries WHERE sound_id=?').get(mirrorId).state,'uncertain');
+  const before=telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp').length;
+  await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  assert.equal(telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp').length,before);
+  database.prepare("INSERT INTO sound_reports(id,sound_id,reporter_id,reason,created_at,resolved_at,resolution,reporter_language) VALUES ('outcome-test',?,4,'other',1,2,'keep','ru')").run(mirrorId);
+  await deliverReportOutcomes(env,async()=>{throw Error('Bot blocked');});
+  assert.equal(database.prepare("SELECT resolution_notified_at FROM sound_reports WHERE id='outcome-test'").get().resolution_notified_at,null);
+  await deliverReportOutcomes(env,async(method,body)=>{assert.equal(body.chat_id,4);assert.ok(body.text.includes('не обнаружил нарушений'));});
+  assert.ok(database.prepare("SELECT resolution_notified_at FROM sound_reports WHERE id='outcome-test'").get().resolution_notified_at);
+  console.log('PASS legacy city repair, expiring scoped WAV download, shared idempotent likes, private report outcomes/retry, public-only Telegram mirror/deduplication/rejected versus uncertain delivery');
   console.log(
     "PASS course regression: member-only audio, outsider rejected, idempotent upload, owner-only Telegram retry, delivered document never resent",
   );

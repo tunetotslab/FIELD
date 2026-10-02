@@ -1,4 +1,60 @@
 import { isAdmin } from "./admin.mjs";
+import { removeWorldDelivery } from "./world-delivery.mjs";
+export async function deliverReportOutcomes(env, telegram) {
+  const copy = {
+    ru: {
+      keep: "Администратор не обнаружил нарушений. Жалоба закрыта, публикация оставлена. Не каждый подозрительный холодильник — преступник 🧊",
+      hide: "Жалоба рассмотрена: запись скрыта из World. Звук отправлен на тихий час 🤫",
+      delete:
+        "Жалоба удовлетворена: публикация удалена из World. Этот звук покинул планету 🚀",
+    },
+    en: {
+      keep: "No violation found. Report closed; publication remains. Not every suspicious fridge is a criminal 🧊",
+      hide: "Report reviewed: publication hidden from World. The sound is taking a quiet break 🤫",
+      delete:
+        "Report upheld: publication removed from World. This sound has left the planet 🚀",
+    },
+    hy: {
+      keep: "Խախտում չի հայտնաբերվել։ Բողոքը փակված է, հրապարակումը մնում է։ Կասկածելի սառնարանը միշտ չէ, որ հանցագործ է 🧊",
+      hide: "Բողոքը դիտարկվել է․ հրապարակումը թաքցված է World-ից։ Ձայնը հանգստանում է 🤫",
+      delete:
+        "Բողոքն ընդունվել է․ հրապարակումը հեռացված է World-ից։ Ձայնը լքել է մոլորակը 🚀",
+    },
+    "zh-TW": {
+      keep: "未發現違規。檢舉已結案，錄音保留。可疑冰箱不一定是罪犯 🧊",
+      hide: "檢舉已審查，錄音已從 World 隱藏。聲音正在安靜休息 🤫",
+      delete: "檢舉成立，錄音已從 World 移除。這個聲音離開了星球 🚀",
+    },
+  };
+  const { results } = await env.DB.prepare(
+    "SELECT id,reporter_id,reporter_language,resolution FROM sound_reports WHERE resolution IS NOT NULL AND resolution_notified_at IS NULL LIMIT 20",
+  ).all();
+  for (const row of results) {
+    const claim = await env.DB.prepare(
+      "UPDATE sound_reports SET resolution_notify_started_at=? WHERE id=? AND resolution_notified_at IS NULL AND (resolution_notify_started_at IS NULL OR resolution_notify_started_at<?)",
+    )
+      .bind(Date.now(), row.id, Date.now() - 300000)
+      .run();
+    if (!claim.meta?.changes) continue;
+    try {
+      await telegram("sendMessage", {
+        chat_id: row.reporter_id,
+        text: `FIELD World · ${(copy[row.reporter_language] || copy.en)[row.resolution]}`,
+      });
+      await env.DB.prepare(
+        "UPDATE sound_reports SET resolution_notified_at=?,resolution_notify_started_at=NULL WHERE id=?",
+      )
+        .bind(Date.now(), row.id)
+        .run();
+    } catch {
+      await env.DB.prepare(
+        "UPDATE sound_reports SET resolution_notify_started_at=NULL WHERE id=?",
+      )
+        .bind(row.id)
+        .run();
+    }
+  }
+}
 export async function notifyReport(env, telegram, id, reason) {
   if (!Number(env.ADMIN_TELEGRAM_ID)) return;
   const row = await env.DB.prepare(
@@ -102,11 +158,13 @@ export async function moderationUpdate(update, env, telegram) {
         .bind(action === "delete" ? "removed" : "hidden", id)
         .run();
     if (action === "delete") await env.AUDIO.delete(id);
+    if (action !== "keep") await removeWorldDelivery(env, id);
     await env.DB.prepare(
-      "UPDATE sound_reports SET resolved_at=? WHERE sound_id=? AND resolved_at IS NULL",
+      "UPDATE sound_reports SET resolved_at=?,resolution=? WHERE sound_id=? AND resolved_at IS NULL",
     )
-      .bind(Date.now(), id)
+      .bind(Date.now(), action, id)
       .run();
+    await deliverReportOutcomes(env, telegram);
     await telegram("sendMessage", {
       chat_id: chat.id,
       text: `FIELD World · ${action === "keep" ? "Жалоба закрыта, публикация оставлена" : action === "hide" ? "Публикация скрыта" : "Публикация и облачное аудио удалены"}.`,

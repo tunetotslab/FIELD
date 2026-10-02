@@ -23,7 +23,7 @@
   --color-pink-soft: #553047;
   --color-pink-dark: #ff80c8;
 }
-.app-shell { height: var(--tg-viewport-stable-height, 100dvh); min-height: 0; padding-bottom: 0; background: var(--surface); }
+.app-shell { height: var(--field-viewport-height, var(--tg-viewport-stable-height, 100dvh)); min-height: 0; padding-bottom: 0; background: var(--surface); }
 .app-header, .screen-title { flex-shrink: 0; }
 .app-header { grid-template-columns: minmax(44px, 1fr) auto minmax(44px, 1fr); }
 .header-right { flex-wrap: wrap; }
@@ -93,3 +93,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--color-pink); ou
   .app-shell, .shell-home, .shell-world, .shell-fx { width: 430px; height: min(880px, calc(100dvh - 32px)); min-height: 0; border-inline: 1px solid var(--color-line); }
 }
 @media (max-height: 500px) { .app-header { min-height: 48px; } .brand-logo { max-height: 44px; } }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+input:not([type="range"]), textarea, select { font-size: max(16px, 1em); }
+.field-dialog { max-height: calc(var(--field-viewport-height, 100dvh) - 32px); }
+.dialog-actions { display: grid; gap: 12px; margin-top: 20px; }
+.dialog-actions > button { width: 100%; margin: 0; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.world-record-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.world-record-actions > button { width: auto; flex: 1 1 auto; min-height: 44px; margin: 0; white-space: normal; }
+.world-record-actions > button[aria-pressed="true"] { color: var(--color-pink-dark); border-color: var(--color-pink); background: var(--surface-raised); }
+.world-download-link { display: block; padding: 12px 0; color: var(--color-ink); font-size: 14px; overflow-wrap: anywhere; }

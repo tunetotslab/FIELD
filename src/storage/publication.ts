@@ -1,9 +1,14 @@
 import { soundsDb } from "./db";
 import { publishSound, removeWorldSound } from "../world";
-import type { SoundRecord } from "../types";
+import type { SoundRecord, SoundLocation } from "../types";
 export function createWorldPublisher(
   repository = soundsDb,
-  api = { publishSound, removeWorldSound },
+  api: {
+    publishSound: (
+      record: SoundRecord,
+    ) => Promise<{ id: string; location?: SoundLocation }>;
+    removeWorldSound: (id: string) => Promise<unknown>;
+  } = { publishSound, removeWorldSound },
   online = () => navigator.onLine,
   authenticated = () => !!window.Telegram?.WebApp?.initData,
 ) {
@@ -33,6 +38,7 @@ export function createWorldPublisher(
         if (!latest) return next; // Never resurrect a locally deleted recording.
         const result: SoundRecord = {
           ...latest,
+          location: published.location || latest.location,
           worldPublication: {
             clientId: next.worldPublication.clientId,
             state: "published",

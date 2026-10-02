@@ -5,6 +5,8 @@ import {
   worldSounds,
   reportWorldSound,
   reportReasons,
+  likeWorldSound,
+  worldDownload,
   type WorldSound,
   type WorldCity,
 } from "../world";
@@ -22,6 +24,8 @@ const productionApi = {
   worldCities,
   worldSounds,
   reportWorldSound,
+  likeWorldSound,
+  worldDownload,
 };
 export function WorldMap({
   focusCity,
@@ -49,6 +53,67 @@ export function WorldMap({
   const [report, setReport] = useState<WorldSound>(),
     [reportBusy, setReportBusy] = useState(false),
     [reportNotice, setReportNotice] = useState("");
+  const [likeBusy, setLikeBusy] = useState<string>(),
+    [downloadBusy, setDownloadBusy] = useState<string>();
+  const [downloadLinks, setDownloadLinks] = useState<
+    Record<string, { url: string; name: string }>
+  >({});
+  const actionLocks = useRef(new Set<string>());
+  const like = async (sound: WorldSound) => {
+    const key = `like:${sound.id}`;
+    if (actionLocks.current.has(key)) return;
+    actionLocks.current.add(key);
+    setLikeBusy(sound.id);
+    try {
+      const result = await api.likeWorldSound(sound.id, !sound.liked);
+      setSounds((old) =>
+        old.map((item) =>
+          item.id === sound.id
+            ? { ...item, likes: result.likes, liked: Boolean(result.liked) }
+            : item,
+        ),
+      );
+    } catch {
+      setError(t("worldActionFailed"));
+    } finally {
+      actionLocks.current.delete(key);
+      setLikeBusy(undefined);
+    }
+  };
+  const download = async (sound: WorldSound) => {
+    const key = `download:${sound.id}`;
+    if (actionLocks.current.has(key)) return;
+    actionLocks.current.add(key);
+    setDownloadBusy(sound.id);
+    try {
+      const { url } = await api.worldDownload(sound.id);
+      const name = `${sound.title.replace(/[\x00-\x1f/\\]/g, "-") || "field-sound"}.wav`;
+      setDownloadLinks((old) => ({ ...old, [sound.id]: { url, name } }));
+      const app = window.Telegram?.WebApp;
+      let native = false;
+      if (app?.downloadFile && app.isVersionAtLeast?.("8.0"))
+        try {
+          app.downloadFile({ url, file_name: name });
+          native = true;
+        } catch {
+          /* Fall back to an ordinary download link. */
+        }
+      if (!native) {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = name;
+        anchor.rel = "noopener";
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+    } catch {
+      setError(t("worldActionFailed"));
+    } finally {
+      actionLocks.current.delete(key);
+      setDownloadBusy(undefined);
+    }
+  };
   const listController = useRef<AbortController | null>(null),
     audioController = useRef<AbortController | null>(null);
   const blobs = useRef(new Map<string, Blob>()),
@@ -73,7 +138,6 @@ export function WorldMap({
       .worldCities(controller.signal)
       .then((items) => {
         setCities(items);
-        if (focusCity) setSelected(items.find((c) => c.id === focusCity));
       })
       .catch(() => {
         if (!controller.signal.aborted) setError(t("worldLoadFailed"));
@@ -204,7 +268,7 @@ export function WorldMap({
       <div className="world-composition">
         <FieldGlobe
           markers={cities}
-          focus={selected}
+          focus={selected || cities.find((city) => city.id === focusCity)}
           onMarker={(marker) =>
             setSelected(cities.find((c) => c.id === marker.id))
           }
@@ -304,15 +368,45 @@ export function WorldMap({
                   value={player.currentId === sound.id ? progress : 0}
                   aria-label={t("play")}
                 />
-                <button
-                  className="report-button"
-                  onClick={() => {
-                    setReport(sound);
-                    setReportNotice("");
-                  }}
-                >
-                  {t("report")}
-                </button>
+                <div className="world-record-actions">
+                  <button
+                    className="secondary-button"
+                    disabled={downloadBusy === sound.id}
+                    onClick={() => void download(sound)}
+                  >
+                    {downloadBusy === sound.id
+                      ? t("loading")
+                      : t("worldDownload")}
+                  </button>
+                  <button
+                    className="secondary-button"
+                    aria-label={t("worldLike")}
+                    aria-pressed={Boolean(sound.liked)}
+                    disabled={likeBusy === sound.id}
+                    onClick={() => void like(sound)}
+                  >
+                    {sound.liked ? "♥" : "♡"} {sound.likes || 0}
+                  </button>
+                  <button
+                    className="report-button"
+                    onClick={() => {
+                      setReport(sound);
+                      setReportNotice("");
+                    }}
+                  >
+                    {t("report")}
+                  </button>
+                </div>
+                {downloadLinks[sound.id] && (
+                  <a
+                    className="world-download-link"
+                    href={downloadLinks[sound.id].url}
+                    download={downloadLinks[sound.id].name}
+                    rel="noopener"
+                  >
+                    {t("worldSaveFile")}
+                  </a>
+                )}
               </article>
             ))}
             {listLoading && <p role="status">{t("loading")}</p>}

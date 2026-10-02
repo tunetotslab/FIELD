@@ -1,11 +1,17 @@
 export const worldEn = {
+  worldSaveFile: "Save file · if downloading did not start",
+  worldDownload: "Download WAV",
+  worldLike: "Like",
+  worldActionFailed: "Could not complete this action. Please try again.",
+  publicationLengthNotice:
+    "The shared copy is limited to 60 seconds. The full recording stays on this device.",
   fxAdd: "Add effect · up to 3",
   fxBypass: "Bypass",
   fxMove: "Move earlier",
   fxRemove: "Remove effect",
   worldConfirm: "Publish to FIELD World?",
   worldConsent:
-    "Anyone using FIELD can listen. Only the selected city is shown, never your precise location. Publish only audio you have permission to share.",
+    "Anyone using FIELD can listen and download. Public audio is also sent to @Fieldapp; downloaded copies cannot be recalled. Only your city is shown, never precise GPS. Share only audio you have permission to publish.",
   publish: "Publish",
   preparing: "Preparing audio…",
   uploading: "Uploading to World…",
@@ -53,13 +59,19 @@ export const worldEn = {
 };
 type Copy = Record<keyof typeof worldEn, string>;
 export const worldRu: Copy = {
+  worldSaveFile: "Сохранить файл · если загрузка не началась",
+  worldDownload: "Скачать WAV",
+  worldLike: "Нравится",
+  worldActionFailed: "Не удалось выполнить действие. Попробуйте снова.",
+  publicationLengthNotice:
+    "Публичная копия — до 60 секунд. Полная запись остаётся на этом устройстве.",
   fxAdd: "Добавить эффект · до 3",
   fxBypass: "Обход",
   fxMove: "Переместить выше",
   fxRemove: "Убрать эффект",
   worldConfirm: "Опубликовать в FIELD World?",
   worldConsent:
-    "Запись смогут слушать все пользователи FIELD. Видно только выбранный город, не точное местоположение. Публикуйте только аудио, которым вправе делиться.",
+    "Запись смогут слушать и скачивать все пользователи FIELD. Аудио также попадёт в @Fieldapp; скачанные копии вернуть нельзя. Видно только город, не точное местоположение. Публикуйте только то, чем вправе делиться.",
   publish: "Опубликовать",
   preparing: "Подготавливаем аудио…",
   uploading: "Загружаем в World…",
@@ -107,13 +119,19 @@ export const worldRu: Copy = {
     "Повторить загрузку в группу? Если предыдущий запрос успел завершиться до обрыва связи, может отправиться вторая копия.",
 };
 export const worldHy: Copy = {
+  worldSaveFile: "Պահպանել ֆայլը · եթե ներբեռնումը չի սկսվել",
+  worldDownload: "Ներբեռնել WAV",
+  worldLike: "Հավանել",
+  worldActionFailed: "Չհաջողվեց կատարել գործողությունը։ Կրկին փորձեք։",
+  publicationLengthNotice:
+    "Հրապարակվող պատճենը մինչև 60 վայրկյան է։ Ամբողջ ձայնագրությունը մնում է այս սարքում։",
   fxAdd: "Ավելացնել էֆեկտ · մինչև 3",
   fxBypass: "Շրջանցել",
   fxMove: "Տեղափոխել վերև",
   fxRemove: "Հեռացնել էֆեկտը",
   worldConfirm: "Հրապարակե՞լ FIELD World-ում։",
   worldConsent:
-    "FIELD-ի բոլոր օգտատերերը կարող են լսել։ Ցուցադրվում է միայն ընտրված քաղաքը, ոչ ճշգրիտ վայրը։ Կիսվեք միայն թույլատրված ձայնագրություններով։",
+    "FIELD-ի բոլոր օգտատերերը կարող են լսել և ներբեռնել։ Ձայնը նաև ուղարկվում է @Fieldapp․ ներբեռնված պատճենները հետ կանչել հնարավոր չէ։ Տեսանելի է միայն քաղաքը, ոչ ճշգրիտ GPS-ը։ Կիսվեք միայն թույլատրված ձայնով։",
   publish: "Հրապարակել",
   preparing: "Պատրաստում ենք ձայնը…",
   uploading: "Վերբեռնում ենք World…",
@@ -160,13 +178,18 @@ export const worldHy: Copy = {
     "Կրկի՞ն ուղարկել խումբ։ Եթե նախորդ հարցումն ավարտվել է, կարող է երկրորդ պատճեն ուղարկվել։",
 };
 export const worldZh: Copy = {
+  worldSaveFile: "儲存檔案 · 若下載未開始",
+  worldDownload: "下載 WAV",
+  worldLike: "喜歡",
+  worldActionFailed: "無法完成操作，請重試。",
+  publicationLengthNotice: "分享版本最多 60 秒，完整錄音仍保留在此裝置。",
   fxAdd: "加入效果 · 最多 3 個",
   fxBypass: "略過",
   fxMove: "向前移動",
   fxRemove: "移除效果",
   worldConfirm: "發佈到 FIELD World？",
   worldConsent:
-    "FIELD 使用者都能收聽。只顯示選定城市，不顯示精確位置。請只分享你有權公開的錄音。",
+    "FIELD 使用者都能收聽及下載。公開音訊也會傳送至 @Fieldapp；已下載副本無法收回。只顯示城市，不顯示精確 GPS。請只分享有權公開的錄音。",
   publish: "發佈",
   preparing: "正在準備音訊…",
   uploading: "正在上傳到 World…",

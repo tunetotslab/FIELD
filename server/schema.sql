@@ -73,6 +73,11 @@ CREATE TABLE IF NOT EXISTS service_limits (id TEXT PRIMARY KEY, last_at INTEGER 
 CREATE TABLE IF NOT EXISTS sound_reports (
   id TEXT PRIMARY KEY, sound_id TEXT NOT NULL, reporter_id INTEGER NOT NULL,
   reason TEXT NOT NULL, created_at INTEGER NOT NULL, resolved_at INTEGER,
-  notified_at INTEGER, UNIQUE(sound_id, reporter_id)
+  notified_at INTEGER, reporter_language TEXT NOT NULL DEFAULT 'en',
+  resolution TEXT, resolution_notified_at INTEGER, resolution_notify_started_at INTEGER,
+  UNIQUE(sound_id, reporter_id)
 );
 CREATE INDEX IF NOT EXISTS sound_reports_pending ON sound_reports(resolved_at, created_at);
+CREATE INDEX IF NOT EXISTS report_outcomes_pending ON sound_reports(resolution_notified_at, resolved_at) WHERE resolution IS NOT NULL;
+CREATE TABLE IF NOT EXISTS sound_likes(sound_id TEXT NOT NULL REFERENCES sounds(id),user_id INTEGER NOT NULL,PRIMARY KEY(sound_id,user_id));
+CREATE TABLE IF NOT EXISTS world_telegram_deliveries(sound_id TEXT PRIMARY KEY REFERENCES sounds(id),chat_id TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'queued',message_id INTEGER,last_error TEXT,updated_at INTEGER NOT NULL);

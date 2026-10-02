@@ -159,8 +159,8 @@ const en = {
 } as const;
 type Key = keyof typeof en;
 const ru: Record<Key, string> = {
-  ...worldRu,
   ...en,
+  ...worldRu,
   appearance: 'Оформление', lightTheme: 'Светлая', systemTheme: 'Тема устройства / Telegram',
   soundActions: 'Действия с записью',
   donate: 'Донат', randomDonate: 'Случайный донат', donateIntro: 'Поддержите FIELD и Tune Tots Lab. Донат — добровольный.',
@@ -305,8 +305,8 @@ const ru: Record<Key, string> = {
   publicationUnavailable: "Общая публикация пока не подключена",
 };
 const hy: Record<Key, string> = {
-  ...worldHy,
   ...en,
+  ...worldHy,
   appearance: 'Տեսք', lightTheme: 'Լուսավոր', systemTheme: 'Սարքի / Telegram-ի թեմա', soundActions: 'Ձայնագրության գործողություններ',
   donate: 'Աջակցել', randomDonate: 'Պատահական նվիրատվություն', donateIntro: 'Աջակցեք FIELD-ին և Tune Tots Lab-ին։ Նվիրատվությունը կամավոր է։',
   randomRange: 'Պատահական գումար՝ 1–100,000 աստղ։ Փոքր գումարները հաճախ են, մեծերը՝ հազվադեպ։', rollDonate: 'Ընտրել պատահական գումար', rollAgain: 'Կրկին ընտրել',
@@ -451,8 +451,8 @@ const hy: Record<Key, string> = {
   publicationUnavailable: "Ընդհանուր հրապարակումը դեռ միացված չէ",
 };
 const zh: Record<Key, string> = {
-  ...worldZh,
   ...en,
+  ...worldZh,
   appearance: '外觀', lightTheme: '淺色', systemTheme: '裝置 / Telegram 主題', soundActions: '錄音操作',
   donate: '贊助', randomDonate: '隨機贊助', donateIntro: '支持 FIELD 和 Tune Tots Lab。贊助完全自願。',
   randomRange: '隨機選擇 1–100,000 顆星星；日常金額常見，大額金額較少。', rollDonate: '抽取金額', rollAgain: '再抽一次',

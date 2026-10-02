@@ -245,7 +245,7 @@ export default function App() {
       await soundsDb.save(record);
       if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
         setSavePhase('uploading');
-        try { const saved = await uploadWorld(record); setMapCity(record.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
+        try { const saved = await uploadWorld(record); setMapCity(saved.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
         catch { await loadLibrary(); setNotice(t('publishFailed')); return; }
       }
       if (draft.visibility === 'group' && GROUP_PUBLISHING_AVAILABLE && draft.groupId) {
@@ -1441,7 +1441,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
             key={id}
             disabled={!enabled}
             className={draft.visibility === id ? "selected" : ""}
-            onClick={() => update({ visibility: id })}
+            onClick={() => update({ visibility: id,...(id==='group' && !draft.groupId && groups.length===1?{groupId:groups[0].id,groupName:groups[0].name}:{}) })}
           >
             <span>
               <strong>
@@ -1487,7 +1487,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   );
 }
 
-function ReadyScreen({
+export function ReadyScreen({
   phase, seeMap, done,
   draft,
   busy,
@@ -1606,8 +1606,9 @@ function ReadyScreen({
           ＋<span>NEW</span>
         </button>
       </div>
+      {draft.visibility!=='private' && <p className="notice">{t('publicationLengthNotice')}</p>}
       {notice===t('savedWorld') && <div className="world-success"><button className="primary-button" onClick={seeMap}>{t('seeMap')}</button><button className="secondary-button" onClick={done}>{t('done')}</button></div>}
-      {confirmWorld && <Dialog title={t('worldConfirm')} close={() => setConfirmWorld(false)}><p>{t('worldConsent')}</p><p>{draft.location?.city}, {draft.location?.country}</p><button className="primary-button" onClick={() => {setConfirmWorld(false);void save();}}>{t('publish')}</button><button className="secondary-button" onClick={() => setConfirmWorld(false)}>{t('cancel')}</button></Dialog>}
+      {confirmWorld && <Dialog title={t('worldConfirm')} close={() => setConfirmWorld(false)}><p>{t('worldConsent')}</p><p>{draft.location?.city}, {draft.location?.country}</p><p>{t('publicationLengthNotice')}</p><div className="dialog-actions"><button className="primary-button" onClick={() => {setConfirmWorld(false);void save();}}>{t('publish')}</button><button className="secondary-button" onClick={() => setConfirmWorld(false)}>{t('cancel')}</button></div></Dialog>}
     </Shell>
   );
 }
@@ -1772,7 +1773,7 @@ export function Library({
       {menuRecord && <Dialog title={menuRecord.title} close={() => setMenuRecord(undefined)}>
         <div className="sound-actions">
           <button disabled={actionBusy} onClick={() => {void editRecord(menuRecord).catch(()=>setNotice(t('storageFailed')));setMenuRecord(undefined);}}>{t('editSaved')}</button>
-          {COMMUNITY_PUBLISHING_AVAILABLE && !menuRecord.worldPublication && <button onClick={() => {void editRecord(menuRecord,'world');setMenuRecord(undefined);}}>{t('publishWorld')}</button>}
+          {COMMUNITY_PUBLISHING_AVAILABLE && menuRecord.worldPublication?.state!=='published' && <button onClick={() => {void editRecord(menuRecord,'world');setMenuRecord(undefined);}}>{t('publishWorld')}</button>}
           {GROUP_PUBLISHING_AVAILABLE && <button onClick={() => {void editRecord(menuRecord,'group');setMenuRecord(undefined);}}>{t('publishGroup')}</button>}
           {menuRecord.worldPublication?.state==='published' && <><button onClick={() => seeMap(menuRecord)}>{t('seeMap')}</button><button disabled={actionBusy} onClick={() => void removePublication(menuRecord)}>{t('removeWorld')}</button></>}
           {menuRecord.worldPublication && menuRecord.worldPublication.state!=='published' && <button disabled={actionBusy} onClick={() => void retryWorld(menuRecord)}>{t('retry')}</button>}
