@@ -13,6 +13,13 @@ export const reportReasons = [
   "copyright",
   "other",
 ] as const;
+export class FieldRequestError extends Error {
+  constructor(public readonly status: number) {
+    super(`FIELD request failed (${status})`);
+  }
+}
+export const isAuthenticationError = (error: unknown) =>
+  error instanceof FieldRequestError && error.status === 401;
 export function publicMetadata(record: SoundRecord) {
   return {
     id: record.worldPublication?.clientId || record.id,
@@ -41,7 +48,7 @@ export async function worldRequest<T>(
       : AbortSignal.timeout(60000),
   });
   if (!response.ok)
-    throw new Error(`FIELD request failed (${response.status})`);
+    throw new FieldRequestError(response.status);
   return response.json();
 }
 export async function publishSound(record: SoundRecord) {
@@ -121,6 +128,6 @@ export async function worldAudio(id: string, signal?: AbortSignal) {
       ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
       : AbortSignal.timeout(30000),
   });
-  if (!response.ok) throw Error("Audio unavailable");
+  if (!response.ok) throw new FieldRequestError(response.status);
   return response.blob();
 }

@@ -250,6 +250,10 @@ World включается для контрольного теста польз
   Реальные старые файлы с телефонов и Telegram WebView acceptance ещё требуют
   физической проверки. Подпись Mini App по-прежнему истекает через час — reopen
   обновляет сессию; обход авторизации не добавлялся.
+- Дополнительная проверка сохранения: metadata-only публикация legacy render
+  больше не выдумывает `originalBlob`/`editState`. Ошибки 401 при поиске,
+  World/list/playback и Group показывают локализованную инструкцию обновить
+  Telegram-сессию; offline/lookup ошибки остаются отдельными.
 - Проверки текущего исправления: `typecheck`, `lint` (TypeScript), `npm test`,
   production build с `/FIELD/` — pass; браузерный Web Audio/isolated IndexedDB QA
   — 169 assertions. Предупреждение о размере JS bundle существовало до этого

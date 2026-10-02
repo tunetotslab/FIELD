@@ -68,7 +68,7 @@ globalThis.fetch = async (url,options) => {
   return Response.json([]);
 };
 const {preparePublicationAudio} = await load('../src/audio/publication.ts');
-const {publishSound,worldCities} = await load('../src/world.ts');
+const {publishSound,worldCities,isAuthenticationError} = await load('../src/world.ts');
 const {publishGroupSound} = await load('../src/groups.ts');
 for (const record of [{...old,location:current.location},current]) {
   await publishSound(record);
@@ -82,6 +82,10 @@ assert.equal(calls.at(-1).options.cache,'no-store');
 assert.equal(calls.filter(call=>call.url.endsWith('/world')).length,2);
 assert.equal(calls.filter(call=>call.url.endsWith('/sounds')).length,2);
 console.log('PASS old/current normalization, preserved source/unknown fields, honest publication state, shared World/Group PCM payload, stale duration, missing audio and GET cache policy');
+globalThis.fetch=async()=>Response.json({error:'Unauthorized'},{status:401});
+await assert.rejects(worldCities(new AbortController().signal),isAuthenticationError);
+assert.equal(isAuthenticationError(new Error('Offline')),false);
+console.log('PASS expired Telegram session is distinguishable from offline/city lookup failures');
 
 const documentTarget = new EventTarget();
 documentTarget.visibilityState='visible';

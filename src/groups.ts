@@ -1,6 +1,6 @@
 import { API_URL } from "./config";
 import type { SoundRecord } from "./types";
-import { publicMetadata } from "./world";
+import { publicMetadata, FieldRequestError } from "./world";
 import { preparePublicationAudio } from "./audio/publication";
 
 export interface FieldGroup {
@@ -22,7 +22,7 @@ export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
     headers: auth(),
     signal,
   });
-  if (!response.ok) throw new Error("Groups unavailable");
+  if (!response.ok) throw new FieldRequestError(response.status);
   return response.json();
 }
 
@@ -33,7 +33,7 @@ export async function joinFieldGroup(code: string): Promise<FieldGroup> {
     body: JSON.stringify({ code }),
     signal: AbortSignal.timeout(15000),
   });
-  if (!response.ok) throw new Error("Invalid group code");
+  if (!response.ok) throw new FieldRequestError(response.status);
   return response.json();
 }
 
@@ -54,7 +54,7 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
       signal: AbortSignal.timeout(60000),
     },
   );
-  if (!response.ok) throw new Error("Group publishing failed");
+  if (!response.ok) throw new FieldRequestError(response.status);
   return response.json() as Promise<{
     id: string;
     telegramDeliveryState: "delivered" | "failed" | "unconnected" | "pending";
@@ -65,7 +65,7 @@ export async function retryGroupDelivery(groupId: string, id: string) {
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds/${encodeURIComponent(id)}/retry`,
     { method: "POST", headers: auth(), signal: AbortSignal.timeout(60000) },
   );
-  if (!response.ok) throw Error("Group retry failed");
+  if (!response.ok) throw new FieldRequestError(response.status);
   return response.json() as Promise<{
     id: string;
     telegramDeliveryState: "delivered" | "failed" | "unconnected" | "pending";

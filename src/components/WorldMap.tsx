@@ -7,6 +7,7 @@ import {
   reportReasons,
   likeWorldSound,
   worldDownload,
+  isAuthenticationError,
   type WorldSound,
   type WorldCity,
 } from "../world";
@@ -151,8 +152,8 @@ export function WorldMap({
         setCities(items);
         setSelected(current => current ? items.find(city => city.id === current.id) : undefined);
       })
-      .catch(() => {
-        if (!controller.signal.aborted) setError(t("worldLoadFailed"));
+      .catch((error) => {
+        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -177,8 +178,8 @@ export function WorldMap({
           setCursor(page.nextCursor);
         }
       })
-      .catch(() => {
-        if (!controller.signal.aborted) setError(t("worldLoadFailed"));
+      .catch((error) => {
+        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
       })
       .finally(() => {
         if (!controller.signal.aborted) setListLoading(false);
@@ -215,8 +216,8 @@ export function WorldMap({
         ]);
         setCursor(page.nextCursor);
       }
-    } catch {
-      if (!controller.signal.aborted) setError(t("worldLoadFailed"));
+    } catch (error) {
+      if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
     } finally {
       if (!controller.signal.aborted) setListLoading(false);
     }
@@ -256,8 +257,8 @@ export function WorldMap({
         false,
         () => setError(t("audioFailed")),
       );
-    } catch {
-      if (!controller.signal.aborted) setError(t("audioFailed"));
+    } catch (error) {
+      if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "audioFailed"));
     } finally {
       if (sequence === playSequence.current) setFetching(undefined);
     }

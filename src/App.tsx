@@ -15,6 +15,7 @@ import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
 import { hasResolvableCity } from './storage/normalize';
 import { subscribeForeground } from './lifecycle';
+import { isAuthenticationError } from './world';
 import { telegram } from "./telegram";
 import { Dialog } from './components/Dialog';
 import { Donate } from './components/Donate';
@@ -231,8 +232,10 @@ export default function App() {
       const record: SoundRecord = {
         ...previous,
         ...reusedRecord.current,
-        originalBlob: reusedRecord.current?.originalBlob || draft.originalBlob,
-        editState: reusedRecord.current?.editState || (({originalBlob: _original, processedBlob: _processed, processedDuration: _duration, processedWaveform: _peaks, ...state}) => state)(draft),
+        // Metadata-only publication must not turn a legacy render into a claimed
+        // pre-FX original or invent editable settings that were never saved.
+        originalBlob: reusedRecord.current ? reusedRecord.current.originalBlob : draft.originalBlob,
+        editState: reusedRecord.current ? reusedRecord.current.editState : (({originalBlob: _original, processedBlob: _processed, processedDuration: _duration, processedWaveform: _peaks, ...state}) => state)(draft),
         id: draft.id,
         title: draft.title?.trim() || "Untitled Sound",
         emojis: draft.emojis,
@@ -256,7 +259,7 @@ export default function App() {
       if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
         setSavePhase('uploading');
         try { const saved = await uploadWorld(record); setMapCity(saved.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
-        catch { await loadLibrary(); setNotice(t('publishFailed')); return; }
+        catch (error) { await loadLibrary(); setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'publishFailed')); return; }
       }
       if (draft.visibility === 'group' && GROUP_PUBLISHING_AVAILABLE && draft.groupId) {
         setSavePhase('groupUpload');
@@ -270,7 +273,7 @@ export default function App() {
             setNotice(published.telegramDeliveryState === 'unconnected' ? t('savedGroupUnconnected') : t('savedGroupDeliveryFailed'));
             return;
           }
-        } catch { await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:'failed'}}); await loadLibrary(); setNotice(t('groupPublishFailed')); return; }
+        } catch (error) { await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:'failed'}}); await loadLibrary(); setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupPublishFailed')); return; }
       }
       await loadLibrary();
       telegram.success();
@@ -1253,6 +1256,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
   const [placeState, setPlaceState] = useState<
     "idle" | "loading" | "empty" | "error"
   >("idle");
+  const [placeError, setPlaceError] = useState('');
   const countryResults =
     countryQuery.trim().length && countryQuery !== selectedCountry?.name
       ? allCountries
@@ -1285,7 +1289,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
     try {
       const found = await searchCities(cityQuery.trim(), selectedCountry, locale, controller.signal);
       if (!controller.signal.aborted) {setResults(found); setPlaceState(found.length ? 'idle' : 'empty');}
-    } catch { if (!controller.signal.aborted) setPlaceState('error'); }
+    } catch (error) { if (!controller.signal.aborted) {setPlaceState('error');setPlaceError(t(isAuthenticationError(error) ? 'sessionExpired' : 'placeSearchError'));} }
   };
   return (
     <Shell title={t("chooseLocation")} back={back}>
@@ -1343,7 +1347,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
         )}
         {placeState === "error" && (
           <p className="search-status" role="alert">
-            {t("placeSearchError")}
+            {placeError || t("placeSearchError")}
           </p>
         )}
         {results.length > 0 && (
@@ -1418,7 +1422,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const loadGroups = useCallback(async (signal?: AbortSignal) => {
     if (!GROUP_PUBLISHING_AVAILABLE) return;
     try { setGroups(await fieldGroups(signal)); setGroupError(''); }
-    catch { if (!signal?.aborted) setGroupError(t('groupsLoadFailed')); }
+    catch (error) { if (!signal?.aborted) setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupsLoadFailed')); }
   }, [t]);
   useEffect(() => {
     const controller = new AbortController();
@@ -1433,7 +1437,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
       await loadGroups();
       update({ visibility:'group', groupId:group.id, groupName:group.name });
       setCode('');
-    } catch { setGroupError(t('invalidGroupCode')); }
+    } catch (error) { setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'invalidGroupCode')); }
     finally { setJoining(false); }
   };
   const groupEnabled = GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
@@ -1667,10 +1671,10 @@ export function Library({
       const result=r.groupPublication.serverId?await retryGroupDelivery(r.groupPublication.groupId,r.groupPublication.serverId):await publishGroupSound(r.groupPublication.groupId,r);
       await soundsDb.save({...r,groupPublication:{...r.groupPublication,serverId:result.id,state:result.telegramDeliveryState==='delivered'?'published':'failed'}});
       if(result.telegramDeliveryState!=='delivered')setNotice(t('savedGroupDeliveryFailed'));
-    } catch {setNotice(t('groupPublishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}
+    } catch (error) {setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupPublishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}
   };
-  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch {setNotice(t('publishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}};
-  const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch {setNotice(t('publishFailed'));} finally {setActionBusy(false);}};
+  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch (error) {setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'publishFailed'));} finally {await reload();setActionBusy(false);setMenuRecord(undefined);}};
+  const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch (error) {setNotice(t(isAuthenticationError(error) ? 'sessionExpired' : 'publishFailed'));} finally {setActionBusy(false);}};
   const shown = useMemo(
     () =>
       records
