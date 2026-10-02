@@ -129,6 +129,9 @@ interrupted `sending` requires manual review: check Telegram before changing the
 row back to queued. Exactly-once delivery is not promised. Removal/hide tries to
 delete the bot message; external downloads/forwards cannot be recalled.
 
+Owner-only private `/worldsync` drains a batch immediately and reports delivery
+counts/errors. It never blindly resends uncertain deliveries.
+
 Report outcomes retain locale/resolution/notification state. Reporter messages
 are private and retry through the Worker cron; blocked/not-started bots may reject
 delivery. Administration remains private and owner-only.

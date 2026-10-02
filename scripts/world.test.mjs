@@ -483,6 +483,14 @@ try {
   const before=telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp').length;
   await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
   assert.equal(telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp').length,before);
+  async function syncCommand(user,chat={id:user,type:'private'}) {
+    return worker.fetch(new Request('https://field.test/telegram/webhook',{method:'POST',headers:{'X-Telegram-Bot-Api-Secret-Token':env.WEBHOOK_SECRET},body:JSON.stringify({message:{from:{id:user},chat,text:'/worldsync'}})}),{...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
+  }
+  const beforeCommand=telegramMessages.length;
+  await syncCommand(4);await syncCommand(9,{id:-100,type:'supergroup'});
+  assert.equal(telegramMessages.length,beforeCommand);
+  await syncCommand(9);
+  assert.ok(telegramMessages.slice(beforeCommand).some(m=>m.body.chat_id===9 && m.body.text?.startsWith('FIELD World → @Fieldapp')));
   database.prepare("INSERT INTO sound_reports(id,sound_id,reporter_id,reason,created_at,resolved_at,resolution,reporter_language) VALUES ('outcome-test',?,4,'other',1,2,'keep','ru')").run(mirrorId);
   await deliverReportOutcomes(env,async()=>{throw Error('Bot blocked');});
   assert.equal(database.prepare("SELECT resolution_notified_at FROM sound_reports WHERE id='outcome-test'").get().resolution_notified_at,null);

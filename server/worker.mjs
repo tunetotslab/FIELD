@@ -139,6 +139,13 @@ async function handleBotUpdate(update, env) {
   if (await moderationUpdate(update, env, telegramFor(env))) return;
   const command = data.startsWith('bot:') ? data.slice(4) : (message?.text || '').split(/\s+/)[0].replace(/^\//, '').replace(/@.*$/, '');
   const adminAction = data.startsWith('admin:') ? data.slice(6) : command;
+  if(command==='worldsync') {
+    if(!isAdmin(env,user.id) || message?.chat?.type!=='private' || Number(chatId)!==Number(env.ADMIN_TELEGRAM_ID))return;
+    await deliverWorld(env);
+    const {results}=await env.DB.prepare('SELECT state,COUNT(*) AS count,MIN(last_error) AS error FROM world_telegram_deliveries GROUP BY state').all();
+    const labels={queued:'В очереди',sending:'Отправляется',delivered:'Доставлено',failed:'Telegram отклонил',uncertain:'Нужна ручная проверка',removed:'Убрано из чата'};
+    return sendBot(env,chatId,`FIELD World → ${env.WORLD_TELEGRAM_CHAT||'не подключено'}\n${results.map(row=>`${labels[row.state]||row.state}: ${row.count}${row.error?` · ${row.error}`:''}`).join('\n')||'Нет публичных записей для отправки.'}`,undefined);
+  }
   if (adminAction === 'stats' || adminAction === 'transactions') {
     if (!isAdmin(env, user.id)) return sendBot(env, chatId, copy(locale).greeting, homeKeyboard(locale, env));
     return adminAction === 'stats'
