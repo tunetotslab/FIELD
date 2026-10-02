@@ -20,7 +20,7 @@ async function moduleUrl(path) {
   return url;
 }
 const load = async path => import(await moduleUrl(new URL(path, import.meta.url).href));
-const {normalizeRecording, hasResolvableCity} = await load('../src/storage/normalize.ts');
+const {normalizeRecording, hasResolvableCity, publicationStart} = await load('../src/storage/normalize.ts');
 const saved = new Blob([new Uint8Array([1, 2, 3])], {type:'audio/webm'});
 const old = {id:'old-sound',audioBlob:saved,duration:999,createdAt:1,title:'Old',emojis:['🌲','🌲','🌲'],visibility:'world',location:{city:'Dilijan',country:'Armenia'},unknownMetadata:{keep:true}};
 const normalized = normalizeRecording(old);
@@ -52,6 +52,9 @@ globalThis.AudioContext = class {
 };
 globalThis.window = {Telegram:{WebApp:{initData:'test-signed-data'}}};
 globalThis.localStorage = {getItem:()=>null};
+// Reproduce Safari without the newer AbortSignal static methods.
+const originalAny = AbortSignal.any, originalTimeout = AbortSignal.timeout;
+AbortSignal.any = undefined; AbortSignal.timeout = undefined;
 const calls = [];
 globalThis.fetch = async (url,options) => {
   calls.push({url,options});
@@ -120,3 +123,29 @@ documentTarget.dispatchEvent(new Event('visibilitychange'));
 windowTarget.dispatchEvent(new Event('focus'));
 assert.equal(refreshes,before);assert.equal(timers.size,0);
 console.log('PASS foreground/online refresh, overnight Daily rollover, same-day stability, visible midnight timer and listener cleanup');
+
+AbortSignal.any = originalAny; AbortSignal.timeout = originalTimeout;
+
+const {fetchWithDeadline}=await load('../src/network.ts');
+let lastSignal;
+globalThis.fetch=async(_input,options)=>{lastSignal=options.signal;return new Promise((resolve,reject)=>{if(lastSignal.aborted)reject(new DOMException('Aborted','AbortError'));else lastSignal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});});};
+const cancel=new AbortController();const cancelledRequest=fetchWithDeadline('https://field.test',{signal:cancel.signal});cancel.abort();
+await assert.rejects(cancelledRequest,{name:'AbortError'});assert.ok(lastSignal.aborted);
+await assert.rejects(fetchWithDeadline('https://field.test',{},5),{name:'AbortError'});
+console.log('PASS compatible network parent cancellation and timeout without Safari static signal helpers');
+
+assert.equal(publicationStart({...normalized,emojis:[]},'world'),'emoji');
+assert.equal(publicationStart({...normalized,title:'x'.repeat(81)},'world'),'title');
+assert.equal(publicationStart(normalized,'world'),'location');
+assert.equal(publicationStart(normalized,'group'),'visibility');
+assert.equal(publicationStart(current,'world'),'visibility');
+console.log('PASS legacy publication repairs required metadata before requesting server upload');
+const {settingsContent}=await load('../src/data/settingsContent.ts');
+for(const locale of ['ru','en','hy','zh-TW']) {
+ const content=settingsContent(locale);
+ assert.equal(content.about.sections.length,5);
+ assert.ok(!JSON.stringify(content).includes('Nominatim'));
+ assert.ok(JSON.stringify(content.privacy).includes('GeoNames'));
+ assert.ok(JSON.stringify(content.about).includes('Tune Tots Lab'));
+}
+console.log('PASS current localized About, Privacy and Help in all four languages');

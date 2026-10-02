@@ -1,6 +1,7 @@
 import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
 import { preparePublicationAudio } from "./audio/publication";
+import { fetchWithDeadline } from './network';
 export type WorldSound = Pick<
   SoundRecord,
   "id" | "title" | "emojis" | "duration" | "createdAt" | "styleId" | "waveform"
@@ -36,16 +37,13 @@ export async function worldRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetchWithDeadline(`${API_URL}${path}`, {
     ...options,
     cache: 'no-store',
     headers: {
       Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}`,
       ...options.headers,
     },
-    signal: options.signal
-      ? AbortSignal.any([options.signal, AbortSignal.timeout(60000)])
-      : AbortSignal.timeout(60000),
   });
   if (!response.ok)
     throw new FieldRequestError(response.status);
@@ -119,15 +117,13 @@ export function reportWorldSound(
   });
 }
 export async function worldAudio(id: string, signal?: AbortSignal) {
-  const response = await fetch(`${API_URL}/audio/${encodeURIComponent(id)}`, {
+  const response = await fetchWithDeadline(`${API_URL}/audio/${encodeURIComponent(id)}`, {
     cache: 'no-store',
     headers: {
       Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}`,
     },
-    signal: signal
-      ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
-      : AbortSignal.timeout(30000),
-  });
+    signal,
+  }, 30000);
   if (!response.ok) throw new FieldRequestError(response.status);
   return response.blob();
 }

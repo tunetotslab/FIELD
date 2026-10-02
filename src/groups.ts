@@ -1,3 +1,4 @@
+import { fetchWithDeadline } from "./network";
 import { API_URL } from "./config";
 import type { SoundRecord } from "./types";
 import { publicMetadata, FieldRequestError } from "./world";
@@ -17,7 +18,7 @@ function auth() {
 }
 
 export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
-  const response = await fetch(`${API_URL}/groups`, {
+  const response = await fetchWithDeadline(`${API_URL}/groups`, {
     cache: 'no-store',
     headers: auth(),
     signal,
@@ -27,12 +28,11 @@ export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
 }
 
 export async function joinFieldGroup(code: string): Promise<FieldGroup> {
-  const response = await fetch(`${API_URL}/groups/join`, {
+  const response = await fetchWithDeadline(`${API_URL}/groups/join`, {
     method: "POST",
     headers: { ...auth(), "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
-    signal: AbortSignal.timeout(15000),
-  });
+  }, 15000);
   if (!response.ok) throw new FieldRequestError(response.status);
   return response.json();
 }
@@ -45,13 +45,12 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
     JSON.stringify({ ...publicMetadata(prepared), id: record.id }),
   );
   form.set("audio", prepared.audioBlob, "sound.wav");
-  const response = await fetch(
+  const response = await fetchWithDeadline(
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds`,
     {
       method: "POST",
       headers: auth(),
       body: form,
-      signal: AbortSignal.timeout(60000),
     },
   );
   if (!response.ok) throw new FieldRequestError(response.status);
@@ -61,9 +60,9 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
   }>;
 }
 export async function retryGroupDelivery(groupId: string, id: string) {
-  const response = await fetch(
+  const response = await fetchWithDeadline(
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds/${encodeURIComponent(id)}/retry`,
-    { method: "POST", headers: auth(), signal: AbortSignal.timeout(60000) },
+    { method: "POST", headers: auth(),  },
   );
   if (!response.ok) throw new FieldRequestError(response.status);
   return response.json() as Promise<{

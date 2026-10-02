@@ -13,7 +13,7 @@ import { analyze, effectLabel, renderDraft } from "./audio/processing";
 import { formatTime } from "./audio/utils";
 import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
-import { hasResolvableCity } from './storage/normalize';
+import { hasResolvableCity, publicationStart } from './storage/normalize';
 import { subscribeForeground } from './lifecycle';
 import { isAuthenticationError } from './world';
 import { telegram } from "./telegram";
@@ -33,6 +33,7 @@ import { tasks, type Task } from "./data/tasks";
 import { taskImages } from "./data/taskImages";
 import {
   createTaskSelector,
+  dailyTaskIds,
   createImageVariantSelector,
   TASK_ROTATION_MODE,
   localDate,
@@ -67,7 +68,7 @@ const EFFECTS: EffectId[] = [
 ];
 const player = new PlaybackManager();
 const selectTask = createTaskSelector(
-  tasks.map((task) => task.id),
+  dailyTaskIds(tasks),
   {
     getItem: (key) => window.localStorage.getItem(key),
     setItem: (key, value) => window.localStorage.setItem(key, value),
@@ -441,7 +442,7 @@ export default function App() {
               if(destination) {
                 reusedRecord.current=record;
                 setDraft({...newDraft(record.audioBlob,record.duration,record.waveform),...record.editState,id:record.id,originalBlob:record.originalBlob||record.audioBlob,title:record.title,emojis:record.emojis,styleId:record.styleId,location:record.location,createdAt:record.createdAt,processedBlob:record.audioBlob,processedDuration:record.duration,processedWaveform:record.waveform,visibility:destination});
-                go(destination==='group' || hasResolvableCity(record) ? 'visibility' : 'location');
+                go(publicationStart(record, destination));
               } else {
                 reusedRecord.current=undefined;
                 const base=record.originalBlob||record.audioBlob;
@@ -565,32 +566,40 @@ function RecordScreen({
   const [playing, setPlaying] = useState(false);
   const recorder = useRef<FieldRecorder | undefined>(undefined);
   const liveCanvas = useRef<HTMLCanvasElement | null>(null);
+  const captureGeneration = useRef(0);
+  const rawCapture = useRef<{blob: Blob; duration: number} | undefined>(undefined);
+  const decodeCapture = async (blob: Blob, duration: number, generation: number) => {
+    try {
+      const result = await analyze(blob);
+      if (generation !== captureGeneration.current) return;
+      const value = newDraft(blob, result.duration || duration, result.waveform);
+      setCaptured(value); setTime(value.duration); setState("ready");
+    } catch {
+      if (generation !== captureGeneration.current) return;
+      setState("error");
+      setError(t("decodeRetry"));
+    }
+  };
   const start = useCallback(() => {
+    const generation = ++captureGeneration.current;
+    rawCapture.current = undefined;
+    recorder.current?.discard();
+    setTime(0);
     setCaptured(undefined);
     player.stop();
     setPlaying(false);
     setError("");
     recorder.current = new FieldRecorder({
       onState: (next, message) => {
+        if (generation !== captureGeneration.current) return;
         setState(next);
         if (message) setError(message);
       },
-      onTime: setTime,
-      onComplete: async (blob, duration) => {
-        try {
-          const result = await analyze(blob);
-          const value = newDraft(
-            blob,
-            result.duration || duration,
-            result.waveform,
-          );
-          setCaptured(value);
-          setTime(value.duration);
-          setState("ready");
-        } catch {
-          setState("error");
-          setError("Audio decoding failed. Please make a new recording.");
-        }
+      onTime: seconds => {if (generation === captureGeneration.current) setTime(seconds);},
+      onComplete: (blob, duration) => {
+        if (generation !== captureGeneration.current) return;
+        rawCapture.current = {blob, duration};
+        void decodeCapture(blob, duration, generation);
       },
     });
     recorder.current.attachVisualizer(liveCanvas.current);
@@ -599,6 +608,7 @@ function RecordScreen({
   useEffect(() => {
     start();
     return () => {
+      captureGeneration.current++;
       recorder.current?.discard();
       player.stop();
     };
@@ -619,7 +629,11 @@ function RecordScreen({
       }}
     >
       {state === "error" ? (
-        <ErrorPanel message={error} retry={start} />
+        <ErrorPanel message={error} retry={() => {
+          const capture = rawCapture.current;
+          if (capture) {setError("");setState("processing");void decodeCapture(capture.blob, capture.duration, captureGeneration.current);}
+          else start();
+        }} />
       ) : (
         <>
           <div className="timer">{formatTime(time)}</div>
@@ -671,6 +685,7 @@ function RecordScreen({
                 ⌫
               </button>
               <button
+                disabled={state !== "recording" && state !== "paused"}
                 className={`record-button compact ${state === "recording" ? "recording" : "record-resume"}`}
                 onClick={() =>
                   state === "paused"
@@ -1869,26 +1884,11 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
             </button>
           ))}
         </fieldset>
-        <button onClick={() => go("privacy")}>
-          <span>{t("privacy")}</span>
-          <strong>›</strong>
-        </button>
-        <button onClick={() => go("microphone")}>
-          <span>{t("microphone")}</span>
-          <strong>›</strong>
-        </button>
-        <button onClick={() => go("about")}>
-          <span>{t("about")}</span>
-          <strong>›</strong>
-        </button>
-        <button onClick={() => go("help")}>
-          <span>{t("help")}</span>
-          <strong>›</strong>
-        </button>
-        <button onClick={() => go("links")}>
-          <span>{t("links")}</span>
-          <strong>›</strong>
-        </button>
+        <button onClick={() => go("about")}><span>{t("about")}</span><strong>›</strong></button>
+        <button onClick={() => go("links")}><span>{t("links")}</span><strong>›</strong></button>
+        <button onClick={() => go("privacy")}><span>{t("privacy")}</span><strong>›</strong></button>
+        <button onClick={() => go("help")}><span>{t("help")}</span><strong>›</strong></button>
+        <button onClick={() => go("microphone")}><span>{t("microphone")}</span><strong>›</strong></button>
         {import.meta.env.DEV && (
           <button
             className="dev-action"

@@ -25,7 +25,7 @@ let states=[],completed;
 const events={onState:s=>states.push(s),onLevel(){},onTime(){},onComplete:(blob,duration)=>{completed={blob,duration};}};
 const recorder=new FieldRecorder(events);
 await recorder.start();now=1000;recorder.pause();now=3000;recorder.resume();now=4000;recorder.pause();now=6000;recorder.stop();
-assert.deepEqual(states,['requesting-permission','recording','paused','recording','paused','processing']);
+assert.deepEqual(states,['requesting-permission','recording','paused','recording','paused','processing','processing']);
 assert.equal(completed.duration,2);assert.equal(stops,1);
 console.log('PASS record / pause / resume / stop while paused; active duration 2s');
 let resolvePermission;permission=()=>new Promise(resolve=>resolvePermission=resolve);
@@ -36,3 +36,15 @@ console.log('PASS late microphone permission after cancel cannot start a ghost r
 permission=()=>Promise.reject(new DOMException('Denied','NotAllowedError'));
 states=[];await new FieldRecorder(events).start();assert.equal(states.at(-1),'error');
 console.log('PASS permission denial produces error state');
+
+let deadline;
+window.setTimeout=callback=>{deadline=callback;return 1;};
+permission=()=>Promise.resolve(stream);
+states=[];completed=undefined;
+const interrupted=new FieldRecorder(events);await interrupted.start();
+// A WebView returns chunks but never dispatches stop. Recovery must be bounded.
+interrupted.recorder.onstop=null;
+now+=1000;interrupted.stop();assert.equal(completed,undefined);
+deadline();assert.ok(completed.blob.size>0);assert.equal(completed.duration,1);
+const recovered=completed;interrupted.finish();assert.equal(completed,recovered);
+console.log('PASS missing stop event recovers captured bytes once instead of freezing');

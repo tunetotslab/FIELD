@@ -22,6 +22,7 @@ export class FieldRecorder {
   private discarded = false;
   private attempt = 0;
   private stoppedAt?: number;
+  private stopTimer?: number;
   private onVisibility = () => {
     if (document.hidden) this.pause();
   };
@@ -90,6 +91,8 @@ export class FieldRecorder {
       };
       this.recorder.onstop = () => this.finish();
       this.context = new AudioContext();
+      // Safari can create the analyser context suspended after microphone access.
+      void this.context.resume?.().catch(() => {});
       this.analyser = this.context.createAnalyser();
       this.analyser.fftSize = 256;
       this.context.createMediaStreamSource(this.stream).connect(this.analyser);
@@ -152,6 +155,15 @@ export class FieldRecorder {
       if (this.recorder.state === "paused")
         this.pausedTotal += this.stoppedAt - this.pausedAt;
       this.events.onState("processing");
+      // Some WebViews miss onstop after an interruption. Keep received chunks
+      // usable, and never leave the controls in an endless processing state.
+      this.stopTimer = window.setTimeout(() => {
+        if (this.chunks.some(chunk => chunk.size)) this.finish();
+        else {
+          this.cleanup();
+          this.events.onState('error', 'Recording could not finish. Please try again.');
+        }
+      }, 8000);
       this.recorder.stop();
     }
   }
@@ -160,7 +172,7 @@ export class FieldRecorder {
     this.discarded = true;
     if (this.recorder && this.recorder.state !== "inactive")
       this.recorder.stop();
-    else this.cleanup();
+    this.cleanup();
   }
 
   private tick = () => {
@@ -175,7 +187,9 @@ export class FieldRecorder {
       for (let index = 0; index < bytes.length; index++)
         raw[index] = (bytes[index] - 128) / 128;
     }
-    this.drawWaveform(raw);
+    try { this.drawWaveform(raw); } catch {
+      // A canvas/viewport interruption must not disable recording controls.
+    }
     const pause =
       this.recorder.state === "paused" ? performance.now() - this.pausedAt : 0;
     const now = performance.now();
@@ -232,6 +246,7 @@ export class FieldRecorder {
   }
 
   private finish() {
+    if (!this.recorder) return;
     if (this.discarded) {
       this.cleanup();
       return;
@@ -252,10 +267,14 @@ export class FieldRecorder {
         "error",
         "The recording is empty. Try again and record a little longer.",
       );
-    else this.events.onComplete(blob, duration);
+    else {
+      this.events.onState('processing');
+      this.events.onComplete(blob, duration);
+    }
   }
 
   private cleanup() {
+    window.clearTimeout(this.stopTimer);
     document.removeEventListener("visibilitychange", this.onVisibility);
     if (this.frame) cancelAnimationFrame(this.frame);
     this.stream?.getTracks().forEach((track) => {

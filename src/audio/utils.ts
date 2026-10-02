@@ -5,8 +5,17 @@ export const formatTime = (seconds: number) => {
 
 export async function decodeBlob(blob: Blob): Promise<AudioBuffer> {
   const context = new AudioContext();
-  try { return await context.decodeAudioData(await blob.arrayBuffer()); }
-  finally { await context.close(); }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      blob.arrayBuffer().then(bytes => context.decodeAudioData(bytes)),
+      new Promise<never>((_, reject) => {timer = setTimeout(() => reject(new Error('Audio decoding timed out; recorded bytes remain available')), 15000);}),
+    ]);
+  } finally {
+    clearTimeout(timer);
+    // Closing a stalled Safari context must not hold the UI forever either.
+    void context.close().catch(() => {});
+  }
 }
 
 export function peaksFromBuffer(buffer: AudioBuffer, count = 160): number[] {
