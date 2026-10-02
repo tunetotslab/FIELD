@@ -30,6 +30,7 @@ jobs:
           VITE_FIELD_API_URL: ${{ vars.FIELD_API_URL }}
         run: npm run sync:ios
       - name: Build simulator application (no signing required)
+        id: simulator_build
         run: |
           set -o pipefail
           xcodebuild -version
@@ -37,10 +38,12 @@ jobs:
       - name: Launch real Simulator and verify UI, file bridge and Keychain
         run: bash scripts/ios-simulator-smoke.sh
       - name: Build unsigned iPhone application
+        if: ${{ !cancelled() && steps.simulator_build.outcome == 'success' }}
         run: |
           set -o pipefail
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/FieldDeviceBuild" CODE_SIGNING_ALLOWED=NO build | tee "$RUNNER_TEMP/field-device-build.log"
       - name: Package simulator application
+        if: ${{ !cancelled() && steps.simulator_build.outcome == 'success' }}
         run: ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/FieldBuild/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/FIELD-simulator.zip"
       - uses: actions/upload-artifact@v4
         if: always()

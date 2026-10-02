@@ -3,8 +3,21 @@ set -euo pipefail
 # Fresh CI Simulator only: never launch this against a user's installed app.
 : "${RUNNER_TEMP:?GitHub runner temp directory required}"
 app="$RUNNER_TEMP/FieldBuild/Build/Products/Debug-iphonesimulator/App.app"
-runtime=$(xcrun simctl list runtimes --json | python3 -c 'import json,sys; r=[x for x in json.load(sys.stdin)["runtimes"] if x.get("isAvailable") and x["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")]; assert r,"No iOS Simulator runtime"; print(r[-1]["identifier"])')
-device_type=$(xcrun simctl list devicetypes --json | python3 -c 'import json,sys; r=[x for x in json.load(sys.stdin)["devicetypes"] if x["name"].startswith("iPhone")]; assert r; print(r[-1]["identifier"])')
+# Choose an already available runtime/device pairing. Picking the newest device
+# type independently can select hardware unsupported by the installed runtime.
+xcrun simctl list devices available --json > "$RUNNER_TEMP/field-simulators.json"
+pair=$(python3 - "$RUNNER_TEMP/field-simulators.json" <<'PYTHON'
+import json,sys
+catalogue=json.load(open(sys.argv[1]))["devices"]
+for runtime,devices in reversed(list(catalogue.items())):
+    if not runtime.startswith("com.apple.CoreSimulator.SimRuntime.iOS-"):continue
+    for device in devices:
+        if device.get("isAvailable") and device.get("name","").startswith("iPhone") and device.get("deviceTypeIdentifier"):
+            print(runtime,device["deviceTypeIdentifier"]);raise SystemExit(0)
+raise SystemExit("No compatible installed iPhone Simulator pairing")
+PYTHON
+)
+read -r runtime device_type <<< "$pair"
 simulator=$(xcrun simctl create 'FIELD CI verification' "$device_type" "$runtime")
 trap 'xcrun simctl shutdown "$simulator" >/dev/null 2>&1 || true; xcrun simctl delete "$simulator" >/dev/null 2>&1 || true' EXIT
 xcrun simctl boot "$simulator"
