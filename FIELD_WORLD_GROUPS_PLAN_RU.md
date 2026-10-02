@@ -254,6 +254,9 @@ World включается для контрольного теста польз
   больше не выдумывает `originalBlob`/`editState`. Ошибки 401 при поиске,
   World/list/playback и Group показывают локализованную инструкцию обновить
   Telegram-сессию; offline/lookup ошибки остаются отдельными.
+- Legacy city resolve сравнивает доступные названия на разных языках, а не только
+  переведённый display label. Повтор публикации проверяет R2 object через head;
+  существующая D1 row без WAV не выдаётся за успех и не удаляется.
 - Проверки текущего исправления: `typecheck`, `lint` (TypeScript), `npm test`,
   production build с `/FIELD/` — pass; браузерный Web Audio/isolated IndexedDB QA
   — 169 assertions. Предупреждение о размере JS bundle существовало до этого

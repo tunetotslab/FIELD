@@ -44,6 +44,7 @@ const DB = {
 };
 const stored = new Map();
 const AUDIO = {
+  async head(id) {return stored.has(id) ? {size:stored.get(id).byteLength} : null;},
   async put(id, stream) {
     stored.set(id, await new Response(stream).arrayBuffer());
   },
@@ -208,6 +209,11 @@ try {
   const published = await response.json(),
     id = published.id;
   assert.equal(stored.size, 1);
+  const retainedAudio=stored.get(id);
+  stored.delete(id);
+  assert.equal((await request('/world',1,{method:'POST',body:form()})).status,503,'Existing D1 row without R2 audio must never report success');
+  assert.equal(database.prepare('SELECT COUNT(*) n FROM sounds').get().n,1,'Missing audio check preserves metadata');
+  stored.set(id,retainedAudio);
   assert.deepEqual(await (await request(`/world/${id}/likes`,2,{method:'POST'})).json(),{likes:1,liked:1});
   assert.equal((await (await request(`/world/${id}/likes`,2,{method:'POST'})).json()).likes,1);
   assert.equal((await (await request(`/world/${id}/likes`,1,{method:'POST'})).json()).likes,2);

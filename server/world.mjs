@@ -214,13 +214,18 @@ export async function worldRoute(request, env, user, notify) {
     )
       .bind(user, data.id)
       .first();
-    if (existing)
-      return existing.published && existing.moderation_state === "visible"
-        ? json({ id: existing.id }, 200)
-        : json(
+    if (existing) {
+      if (!existing.published || existing.moderation_state !== "visible")
+        return json(
             { error: "This publication was removed; make a new local version" },
             409,
           );
+      // A D1 row alone cannot confirm a playable publication. Do not overwrite
+      // or delete uncertain user data when an R2 object is missing.
+      if (!(await env.AUDIO.head(existing.id)))
+        return json({error:'Published audio unavailable'},503);
+      return json({id:existing.id});
+    }
     const recent = await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM sounds WHERE user_id=? AND created_at>?",
     )
