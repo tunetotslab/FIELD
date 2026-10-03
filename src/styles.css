@@ -337,6 +337,12 @@ button:disabled {
   font-weight: 850;
 }
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  text-decoration: none;
+  text-align: center;
   width: 100%;
   min-height: 54px;
   border-radius: var(--radius-pill);

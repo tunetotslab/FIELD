@@ -1,0 +1,24 @@
+name: FIELD standalone WebKit regression
+on:
+  pull_request:
+  push:
+    branches: [main, fix/web-mobile-session]
+permissions:
+  contents: read
+jobs:
+  webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - run: npm run typecheck && npm test && npm run lint
+      - run: npm run build -- --base=/FIELD/
+        env:
+          VITE_FIELD_WORLD_ENABLED: 'true'
+          VITE_FIELD_GROUPS_ENABLED: 'true'
+      - run: npm run test:web

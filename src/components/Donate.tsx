@@ -1,7 +1,8 @@
+import { TelegramLink } from './TelegramLink';
 import { useState } from 'react';
 import { Shell } from './Shell';
 import { useI18n } from '../i18n';
-import { API_URL } from '../config';
+import { API_URL, EXTERNAL_LINKS } from '../config';
 import { Miley } from './Brand';
 import { dailyImageCollection } from '../data/taskImages';
 import { fetchWithDeadline } from '../network';
@@ -64,8 +65,8 @@ export function Donate({ go, random = false }: { go: (screen: Screen) => void; r
         <div className="donate-grid">{DONATION_AMOUNTS.map(value => <button key={value} disabled={busy} aria-pressed={amount === value} onClick={() => { setAmount(value); setNotice(''); }}>{format(value)} ⭐</button>)}</div>
       </>}
       <p className="donate-note">{t('donateConfirm')}</p>
-      {!API_URL ? <p role="status">{t('donateUnavailable')}</p> : !window.Telegram?.WebApp?.initData ? <p role="status">{t('donateTelegram')}</p> : null}
-      <button className="primary-button" disabled={!amount || busy || !API_URL || !window.Telegram?.WebApp?.initData} onClick={() => void pay()}>{busy ? '…' : `${t('donate')} ${amount ? `${format(amount)} ⭐` : ''}`}</button>
+      {!API_URL ? <p role="status">{t('donateUnavailable')}</p> : !window.Telegram?.WebApp?.initData ? <TelegramLink href={EXTERNAL_LINKS.FIELD_TELEGRAM_APP}>{t('donateTelegram')}</TelegramLink> : null}
+      {window.Telegram?.WebApp?.initData && <button className="primary-button" disabled={!amount || busy || !API_URL || !window.Telegram?.WebApp?.initData} onClick={() => void pay()}>{busy ? '…' : `${t('donate')} ${amount ? `${format(amount)} ⭐` : ''}`}</button>}
       {notice && <p role="status">{notice}</p>}
     </div>
   </Shell>;

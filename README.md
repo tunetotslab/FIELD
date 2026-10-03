@@ -20,7 +20,11 @@ Export sends the WAV to the user's private FIELD bot chat; Share opens Telegram'
 native recipient selector when supported, with the bot copy as the fallback.
 The signed session alone selects the recipient. Other browsers retain system file
 sharing/download. Private transfer stores a delivery receipt, not audio in World/R2.
-World requires a signed Telegram session; the ordinary-browser map explains this.
+Telegram Mini App uses signed Telegram data. Safari/PWA can sign in with explicit
+approval in the private FIELD bot and use the same Telegram identity, World and
+course memberships. World reads the shared D1/R2 archive, never the private Library.
+Safari, Telegram and installed PWA contexts can have separate local storage;
+private Library is not an account cloud backup or an automatic Telegram import.
 
 ## Run
 
@@ -72,3 +76,31 @@ Replace the clearly marked placeholders with approved source files for:
 - Daily challenge photography, beginning with `daily-metallic.jpg`
 
 Do not trace or regenerate these assets from the reference screenshots.
+
+## Standalone Safari/PWA
+
+Open Settings or World → Continue with Telegram → open the FIELD bot → compare
+six-digit codes and approve your own login → return to the same browser and confirm
+the displayed account. The proof stays in browser memory; bot links carry only the
+challenge ID. Login expires after 30 days or server revocation. Signing out affects
+only the separate `field-account` database, never `field-audio`.
+
+Save new sounds explicitly in Library, then close/reopen the same Safari/PWA
+context. Saves resolve after IndexedDB transaction commit, store audio bytes and
+request browser eviction protection where supported. Browser/private-mode storage
+policy can still remove local data; export valuable WAVs. No data wipe is required.
+The Library reloads on entry and foreground. The bottom menu follows the visible
+viewport on every screen. Mail actions share the primary pink/white pill design;
+Telegram and donation handoffs use actual links.
+
+WebKit regression (isolated profile, synthetic WAV and mocked backend/bot only):
+
+```bash
+npx playwright install webkit
+VITE_FIELD_WORLD_ENABLED=true VITE_FIELD_GROUPS_ENABLED=true npm run build -- --base=/FIELD/
+npm run test:web
+```
+
+The GitHub WebKit workflow runs these checks on pull requests. It is not a real
+phone microphone or live Telegram approval test. Native iOS work remains separately
+in PR #3; no paid Apple membership is needed for this PWA.
