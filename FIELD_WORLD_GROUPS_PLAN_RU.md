@@ -505,3 +505,10 @@ mailto controls, `.information-article a` задавал цвет текста �
 полноширинные pill-кнопки. Браузерная регрессия сравнивает каждую из пяти кнопок
 в «О FIELD», «Помощи» и «Ссылках» с реальной кнопкой Daily: цвет, белый текст,
 семейство/размер/вес шрифта, padding, line-height, radius и высоту.
+
+Вторая ошибка CI (`a74a0b7`) возникла уже после успешного входа и загрузки World:
+активный service worker запрашивал тестовый storage-модуль в обход Playwright
+route, получая SPA HTML вместо JavaScript. Все production assets и явные fixture
+modules теперь обслуживаются настоящим локальным HTTP-сервером. Service worker
+остаётся включённым; проверяется также offline reload с сохранной Library.
+Chrome прошёл полный сценарий; результат Linux WebKit ещё требуется подтвердить.

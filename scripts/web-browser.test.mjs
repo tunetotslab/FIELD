@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { resolve, extname } from "node:path";
 import { transformWithOxc } from "vite";
 import { createServer } from "node:http";
 import worker from "../server/worker.mjs";
@@ -11,47 +10,87 @@ import { webkit, chromium } from "playwright";
 const port = 4187,
   origin = `http://127.0.0.1:${port}`,
   base = origin + "/FIELD/";
-const server = spawn(
-  process.execPath,
-  [
-    "node_modules/vite/bin/vite.js",
-    "preview",
-    "--config",
-    "vite.config.ts",
-    "--host",
-    "127.0.0.1",
-    "--port",
-    String(port),
-    "--strictPort",
-    "--base=/FIELD/",
-  ],
-  { stdio: "pipe" },
-);
-let serverLog = "";
-server.stderr.on("data", (chunk) => {
-  serverLog += chunk;
+const mime = {
+  ".html": "text/html",
+  ".js": "application/javascript",
+  ".css": "text/css",
+  ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+};
+// Serve the production assets and explicit fixture modules over real HTTP.
+// This keeps service-worker fetches observable even in WebKit, whose routes
+// cannot intercept a module request made inside an active service worker.
+const server = createServer(async (req, res) => {
+  try {
+    const path = decodeURIComponent(new URL(req.url, origin).pathname);
+    if (!path.startsWith("/FIELD/") || path.includes("..")) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    const relative = path.slice("/FIELD/".length);
+    if (relative === "__qa/telegram.js") {
+      res.setHeader("Content-Type", "application/javascript");
+      res.end('window.Telegram={WebApp:{initData:""}};');
+      return;
+    }
+    if (relative.startsWith("__qa/src/") && relative.endsWith(".ts")) {
+      const file = relative.slice("__qa/".length);
+      let { code } = await transformWithOxc(
+        await readFile(resolve(file), "utf8"),
+        file,
+      );
+      code = code.replace(
+        /from (["'])(\.[^"']+)\1/g,
+        (_, q, p) => `from ${q}${p}.ts${q}`,
+      );
+      res.setHeader("Content-Type", "application/javascript");
+      res.end(code);
+      return;
+    }
+    const file = relative || "index.html";
+    let bytes = await readFile(resolve("dist", file));
+    if (file === "index.html")
+      bytes = Buffer.from(
+        bytes
+          .toString()
+          .replace(
+            "https://telegram.org/js/telegram-web-app.js?63",
+            "./__qa/telegram.js",
+          ),
+      );
+    res.setHeader(
+      "Content-Type",
+      mime[extname(file)] || "application/octet-stream",
+    );
+    res.end(bytes);
+  } catch {
+    res.writeHead(404);
+    res.end();
+  }
 });
 const apiOrigin = "http://127.0.0.1:4188";
 let browser, api;
 const deadline = setTimeout(() => {
   console.error("Browser regression exceeded 120 seconds");
-  server.kill();
+  server.close();
   api?.close();
   void browser?.close();
   process.exit(1);
 }, 120000);
 try {
-  let ready = false;
-  for (let i = 0; i < 100; i++) {
-    try {
-      if ((await fetch(base)).ok) {
-        ready = true;
-        break;
-      }
-    } catch {}
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  assert(ready, serverLog || "Preview did not start");
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", resolve);
+  });
   browser = process.env.FIELD_QA_CHROME
     ? await chromium.launch({
         executablePath: process.env.FIELD_QA_CHROME,
@@ -73,26 +112,6 @@ try {
   page.on("pageerror", (error) => {
     errors.push(error.message);
     console.error(error.message);
-  });
-  await context.route("https://telegram.org/**", (route) =>
-    route.fulfill({
-      contentType: "application/javascript",
-      body: 'window.Telegram={WebApp:{initData:""}};',
-    }),
-  );
-  // Expose real storage modules only through the test harness, outside dist.
-  await context.route("**/__qa/**", async (route) => {
-    const path = new URL(route.request().url()).pathname.split("/__qa/")[1];
-    assert(path.startsWith("src/") && !path.includes(".."));
-    let { code } = await transformWithOxc(
-      await readFile(resolve(path), "utf8"),
-      path,
-    );
-    code = code.replace(
-      /from (["'])(\.[^"']+)\1/g,
-      (_, q, p) => `from ${q}${p}.ts${q}`,
-    );
-    await route.fulfill({ contentType: "application/javascript", body: code });
   });
   const location = {
     placeId: "osm:relation:1",
@@ -198,7 +217,12 @@ try {
   });
   await page.goto(base);
   await page.locator(".bottom-nav").waitFor();
-  console.log("PWA opened");
+  await page.waitForFunction(
+    () => !!navigator.serviceWorker.controller,
+    undefined,
+    { timeout: 15000 },
+  );
+  console.log("PWA opened with active service worker");
   const nav = page.locator(".bottom-nav");
   async function checkNav() {
     const box = await nav.boundingBox();
@@ -305,13 +329,10 @@ try {
   console.log("Saved WAV and closed tab");
   const reopened = await context.newPage();
   reopened.setDefaultTimeout(15000);
-  // Routes on the first page do not automatically propagate to a new tab.
-  await reopened.route("https://telegram.org/**", (route) =>
-    route.fulfill({
-      contentType: "application/javascript",
-      body: 'window.Telegram={WebApp:{initData:""}};',
-    }),
-  );
+  reopened.on("pageerror", (error) => {
+    errors.push(error.message);
+    console.error(error.message);
+  });
   await reopened.goto(base);
   await reopened.locator(".bottom-nav").waitFor();
   await reopened
@@ -464,13 +485,22 @@ try {
       .getAttribute("href"),
     "https://t.me/field_sound_bot?startapp",
   );
+  await context.setOffline(true);
+  await reopened.reload();
+  await reopened
+    .locator(".bottom-nav")
+    .getByRole("button", { name: "LIBRARY", exact: true })
+    .click();
+  await reopened.getByText("WebKit saved sound", { exact: true }).waitFor();
+  await context.setOffline(false);
+  assert.deepEqual(errors, [], "No browser runtime errors after reopening/offline");
   console.log(
-    "PASS built PWA browser: fixed reachable navigation across screens/sizes; proof-based login; shared World; real committed WAV survives tab close/reopen; restored account; matching mail styles and real Telegram link",
+    "PASS built PWA browser: active service worker; reachable navigation across screens/sizes; proof-based login; shared World/Group publication; committed WAV survives tab close/reopen and offline reload; restored account; matching About/Help/Links mail styles and real Telegram links",
   );
   await context.close();
 } finally {
   clearTimeout(deadline);
-  server.kill();
+  server.close();
   api?.close();
   await browser?.close();
 }
