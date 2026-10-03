@@ -94,6 +94,7 @@ export interface SoundRecord {
     "originalBlob" | "processedBlob" | "processedDuration" | "processedWaveform"
   >;
   worldPublication?: {
+    ownerUserId?: number;
     state: "pending" | "published" | "failed";
     serverId?: string;
     clientId: string;

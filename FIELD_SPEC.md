@@ -1890,4 +1890,39 @@ not generalize this exception to other users or all legacy recordings. Keep the
 centralized compatibility and byte-storage readers. No native app work or new
 feature development is authorized by this acceptance update.
 
+## Standalone browser parity — October 3, 2026
+
+Current owner request prioritizes the existing web/PWA while paid Apple distribution
+is deferred. Native work already prepared in PR #3 stays separate; do not merge it
+into this web repair or start Android work here. No old private Telegram recording
+transfer is requested.
+
+Safari/PWA must save new recordings in its own durable local `field-audio` Library,
+reopen those bytes, and refresh Library on entry/foreground. Preserve the byte codec
+and transaction-complete save boundary. Request persistent storage where supported
+without making a rejected/unavailable persistence request fail an already committed
+save. Never clear or filter existing user data. Private browser/PWA/Telegram sandboxes
+are not a synchronized private cloud library; make that boundary explicit.
+
+World and course membership use the same backend and verified Telegram numeric ID.
+Standalone login uses private-bot approval, matching six-digit code and a client-only
+proof; explicitly confirm the returned account before exchanging for a 30-day,
+revocable bearer session. Store only hashes in D1; keep browser account state in a
+separate IndexedDB database, isolate logout/expiry from recordings, and prefer signed
+Mini App data inside Telegram. Revalidate World/Groups and cancel stale loads when
+account changes. Bind pending World publications to the initiating account.
+
+Do not treat a guest Safari empty map as the global archive: offer Telegram login.
+Use the same visible viewport height for every shell/root, keep navigation reachable
+and leave keyboard/browser chrome handling to measured viewport changes. Mail copy,
+compose and Gmail controls use the primary pink/white pill style. Donation and bot
+handoffs are real Telegram links; Stars payment remains signed Mini App only.
+Production builds restrict scripts with CSP and never cache authenticated requests.
+
+Extend regressions with browser-session restore/expiry/account switch, unchanged
+private bytes, browser bot approval and existing World/Group identity. Run real
+WebKit layout and tab-close/reopen tests against the repository production build.
+A shared Worker release requires the outstanding explicit production approval;
+prepared GitHub changes are not proof of deployed functionality.
+
 **END OF FIELD_SPEC.md**
