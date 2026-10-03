@@ -531,3 +531,8 @@ Backend/bot в browser regression — isolated fixtures; production данные
 Telegram-сообщения не использовались. Физические iPhone microphone/login checks
 остаются отдельной приёмкой. PR #4 готов к выпуску; live Worker/Pages пока прежние,
 до явного подтверждения общего production rollout владельцем.
+
+Финальный head с документацией `24f4947` также прошёл WebKit run
+https://github.com/tunetotslab/FIELD/actions/runs/37153810540. Убран параллельный
+push-trigger repair ветки: PR проверяется по `pull_request`, main по `push`.
+Это устраняет два одинаковых check names и отменённый дубль в статусе одного PR.

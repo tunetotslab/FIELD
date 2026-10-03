@@ -2,7 +2,7 @@ name: FIELD standalone WebKit regression
 on:
   pull_request:
   push:
-    branches: [main, fix/web-mobile-session]
+    branches: [main]
 concurrency:
   group: standalone-webkit-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
