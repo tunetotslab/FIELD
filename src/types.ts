@@ -86,6 +86,16 @@ export interface SoundDraft {
 }
 
 export interface SoundRecord {
+  librarySync?: {
+    ownerUserId: number;
+    recordId: string;
+    revision?: string;
+    mutationId: string;
+    syncedMutationId?: string;
+    renderHash?: string;
+    originalHash?: string | null;
+    deleted?: boolean;
+  };
   schemaVersion?: number;
   effectChain?: EffectSlot[];
   originalBlob?: Blob;

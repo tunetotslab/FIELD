@@ -1931,4 +1931,46 @@ the browser Worker/Cloudflare/web rollout on October 4, 2026. That release is
 recorded in `FIELD_WORLD_GROUPS_PLAN_RU.md`; the prior outstanding approval is
 resolved for this rollout. Future release approval is evaluated separately.
 
+## Private account Library — owner request October 4, 2026
+
+This request supersedes the October 3 exclusion of private Library sync/import.
+The owner confirmed Safari/Telegram code login, World publication and public/private
+Telegram Group delivery on two phones, and now explicitly requires the same personal
+Library across Telegram, Safari/PWA and other signed-in devices. Native work remains
+separate. Preserve existing World, Group, donations, recorder, editor and localization.
+
+Use the existing verified numeric Telegram identity, Worker, D1 and private R2. The
+private archive is separate from public sounds: no automatic World/Group publication,
+public audio URLs, bot messages or access by another account. Store both original and
+render bytes plus editable metadata. Centralized IndexedDB byte encoding and local
+commit-before-success remain authoritative for offline saves; never reset storage.
+New signed-in recordings sync after local save. Guest recordings stay local. Historical
+unowned recordings require explicit confirmation of the displayed account on their
+source device; Safari cannot directly read another WebView's IndexedDB. Do not claim
+legacy recordings already known to belong to another account.
+
+Use authenticated no-store list/audio routes, content hashes, revision checks,
+idempotent mutations and pagination. Retry interrupted uploads without duplicating
+records/bytes. Preserve conflicting edits as private copies rather than overwrite.
+Account switch/logout hides account-owned cached rows without deleting audio, cancels
+late requests and cannot place old-account data in the new account's visible Library.
+Foreground/online/Library-entry sync must not block recording or local save. Errors
+remain visible with a safe code and manual retry.
+
+Removal propagates a tombstone across Library devices; it does not remove World/Group
+publications. Cached/cloud recovery bytes remain private in this first release, with
+no automatic physical purge. Explain this in Privacy; full erasure currently needs
+support. Limits: 25 MB whole upload, 512 MiB reserved audio and 1,000 record identities
+per account including tombstones/orphans; retries reuse reservations. Never delete
+user data to make room. Additive 0008 migration only; preserve all earlier tables and
+R2 objects. Push source before production migration/deploy; use existing web deployment
+and shared Worker release process. Owner authorization to update the Worker/Cloudflare
+and web version remains applicable to this requested web follow-up.
+
+Regression coverage must include separate Safari/Telegram libraries, both audio parts,
+metadata-only sync, offline recovery, lost response, conflicts, removal, ownership,
+late account changes, quotas and unchanged public destinations. Run the production
+build in real WebKit CI, retain service worker/offline tests and verify paired live
+Worker/Pages versions. Physical two-phone acceptance remains a final device check.
+
 **END OF FIELD_SPEC.md**

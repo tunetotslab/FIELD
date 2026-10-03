@@ -9,6 +9,7 @@
 		"ADMIN_TELEGRAM_ID": "5232786567",
 		"GROUPS_ENABLED": "true",
 		"STANDALONE_AUTH_ENABLED": "true",
+		"LIBRARY_SYNC_ENABLED": "true",
 		"WORLD_ENABLED": "true",
 		"WORLD_TELEGRAM_CHAT": "@Fieldapp",
 		"SUPPORT_EMAIL": "tunetotslab@gmail.com"

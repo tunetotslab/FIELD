@@ -1,4 +1,4 @@
-const CACHE = 'field-shell-v8';
+const CACHE = 'field-shell-v9';
 const root = self.registration.scope;
 const SHELL = [
   '/',

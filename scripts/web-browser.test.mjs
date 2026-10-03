@@ -4,6 +4,8 @@ import { resolve, extname } from "node:path";
 import { transformWithOxc } from "vite";
 import { createServer } from "node:http";
 import worker from "../server/worker.mjs";
+import {libraryRoute} from '../server/library.mjs';
+import {DatabaseSync} from 'node:sqlite';
 import { webkit, chromium } from "playwright";
 // Use only a local build, isolated browser profile and test fixtures. No real
 // Telegram messages, production uploads or existing personal browser storage.
@@ -39,11 +41,12 @@ const server = createServer(async (req, res) => {
     const relative = path.slice("/FIELD/".length);
     if (relative === "__qa/telegram.js") {
       res.setHeader("Content-Type", "application/javascript");
-      res.end('window.Telegram={WebApp:{initData:""}};');
+      res.end(req.headers.cookie?.includes('qa_tma=1')?'window.Telegram={WebApp:{initData:"user=%7B%22id%22%3A41%7D",initDataUnsafe:{user:{id:41,username:"test_owner"}}}};':'window.Telegram={WebApp:{initData:""}};');
       return;
     }
     if (relative.startsWith("__qa/src/") && relative.endsWith(".ts")) {
       const file = relative.slice("__qa/".length);
+      if(file==='src/config.ts') {res.setHeader('Content-Type','application/javascript');res.end(`export const API_URL=${JSON.stringify(apiOrigin)};`);return;}
       let { code } = await transformWithOxc(
         await readFile(resolve(file), "utf8"),
         file,
@@ -78,6 +81,10 @@ const server = createServer(async (req, res) => {
   }
 });
 const apiOrigin = "http://127.0.0.1:4188";
+const libraryDb=new DatabaseSync(':memory:');
+libraryDb.exec(await readFile('server/migrations/0008_private_library.sql','utf8'));
+const libraryFiles=new Map();
+const libraryEnv={LIBRARY_SYNC_ENABLED:'true',DB:{prepare(sql){const bind=(...args)=>({first:async()=>libraryDb.prepare(sql).get(...args)||null,all:async()=>({results:libraryDb.prepare(sql).all(...args)}),run:async()=>({meta:{changes:Number(libraryDb.prepare(sql).run(...args).changes)}})});return {...bind(),bind};}},AUDIO:{async put(key,bytes){libraryFiles.set(key,new Uint8Array(bytes));},async get(key){const bytes=libraryFiles.get(key);return bytes?{body:bytes.slice()}:null;}}};
 let browser, api;
 const deadline = setTimeout(() => {
   console.error("Browser regression exceeded 120 seconds");
@@ -167,8 +174,12 @@ try {
           res.end();
           return;
         }
-        for await (const chunk of req) {
-          /* Consume bounded synthetic fixture input. */
+        const chunks=[];for await (const chunk of req) chunks.push(chunk);
+        if(path==='/library'||path.startsWith('/library/')) {
+          assert([`Bearer ${identity.token}`,'tma user=%7B%22id%22%3A41%7D'].includes(req.headers.authorization));
+          const response=await libraryRoute(new Request(apiOrigin+req.url,{method:req.method,headers:{'Content-Type':req.headers['content-type']||''},...(['POST','DELETE'].includes(req.method)?{body:Buffer.concat(chunks)}:{})}),libraryEnv,identity.userId);
+          res.writeHead(response.status,{'Content-Type':response.headers.get('Content-Type')||'application/json'});
+          res.end(Buffer.from(await response.arrayBuffer()));return;
         }
         let body = {};
         if (path === "/auth/browser/challenge") body = challenge;
@@ -357,6 +368,10 @@ try {
     original: 16044,
     sample: 1000,
   });
+  await reopened.getByRole('button',{name:/Sync recordings from this device/}).click();
+  await reopened.getByRole('button',{name:'Add to my private Library',exact:true}).click();
+  await reopened.getByText('Private Library is synced',{exact:true}).waitFor();
+  assert.equal(libraryDb.prepare('SELECT COUNT(*) n FROM private_library WHERE user_id=41').get().n,1);
   for (const destination of ["Add to World", "Add to Tune Tots Group"]) {
     console.log("Publishing saved WAV", destination);
     await reopened
@@ -395,6 +410,28 @@ try {
   }
   assert.equal(uploads, 2);
   assert(groupRequests > 0);
+
+  await reopened.getByText('Private Library is synced',{exact:true}).waitFor();
+  const telegramContext=await browser.newContext({viewport:{width:390,height:750},locale:'en-US',isMobile:true,hasTouch:true});
+  await telegramContext.addCookies([{name:'qa_tma',value:'1',url:origin}]);
+  const telegramPage=await telegramContext.newPage();telegramPage.setDefaultTimeout(15000);
+  telegramPage.on('pageerror',error=>errors.push(error.message));
+  await telegramPage.goto(base);
+  await telegramPage.locator('.bottom-nav').getByRole('button',{name:'LIBRARY',exact:true}).click();
+  await telegramPage.getByText('WebKit saved sound',{exact:true}).waitFor();
+  const remoteBytes=await telegramPage.evaluate(async()=>{
+    const {soundsDb}=await import('/FIELD/__qa/src/storage/db.ts');const row=(await soundsDb.getAll())[0];
+    return {render:row.audioBlob.size,original:row.originalBlob.size,sample:new DataView(await row.originalBlob.arrayBuffer()).getInt16(44,true),world:row.worldPublication?.state,group:row.groupPublication?.state};
+  });
+  assert.deepEqual(remoteBytes,{render:16044,original:16044,sample:1000,world:'published',group:'published'});
+  await telegramPage.getByRole('button',{name:'Favorite',exact:true}).click();
+  await telegramPage.locator('.favorite.active').waitFor();
+  await telegramPage.getByText('Private Library is synced',{exact:true}).waitFor();
+  await reopened.locator('.bottom-nav').getByRole('button',{name:'SETTINGS',exact:true}).click();
+  await reopened.locator('.bottom-nav').getByRole('button',{name:'LIBRARY',exact:true}).click();
+  await reopened.locator('.favorite.active').waitFor();
+  await telegramContext.close();
+  console.log('Two isolated browser/Telegram contexts share actual D1/R2 private Library bytes, publication metadata and favorite changes');
 
   assert(errors.length === 0, errors.join("\n"));
   await reopened
@@ -467,7 +504,8 @@ try {
     .locator(".bottom-nav")
     .getByRole("button", { name: "LIBRARY", exact: true })
     .click();
-  await reopened.getByText("WebKit saved sound", { exact: true }).waitFor();
+  assert.equal(await reopened.getByText('WebKit saved sound',{exact:true}).count(),0,'Logout hides account Library');
+  assert.equal(await reopened.evaluate(async()=>{const {soundsDb}=await import('/FIELD/__qa/src/storage/db.ts');return (await soundsDb.raw())[0].audioBlob.size;}),16044,'Logout retains cached private bytes');
   await reopened
     .locator(".bottom-nav")
     .getByRole("button", { name: "SETTINGS", exact: true })
@@ -485,6 +523,13 @@ try {
       .getAttribute("href"),
     "https://t.me/field_sound_bot?startapp",
   );
+  await reopened.locator('.bottom-nav').getByRole('button',{name:'SETTINGS',exact:true}).click();
+  await reopened.getByRole('button',{name:'Continue with Telegram',exact:true}).click();
+  await reopened.getByRole('button',{name:'Continue as Test owner',exact:true}).click();
+  await reopened.getByRole('button',{name:'Sign out',exact:true}).waitFor();
+  await reopened.locator('.bottom-nav').getByRole('button',{name:'LIBRARY',exact:true}).click();
+  await reopened.getByText('WebKit saved sound',{exact:true}).waitFor();
+  await reopened.getByText('Private Library is synced',{exact:true}).waitFor();
   // WebKit's protocol-level offline emulation rejects even literal SW responses
   // during navigation (microsoft/playwright#42775). Stop both real HTTP origins
   // instead, so fetch actually fails and the production SW must use its cache.
@@ -514,4 +559,5 @@ try {
   server.close();
   api?.close();
   await browser?.close();
+  libraryDb.close();
 }

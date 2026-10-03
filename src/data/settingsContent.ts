@@ -33,7 +33,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "Личные записи",
           "paragraphs": [
-            "Аудио и карточки Library хранятся на этом устройстве. Если нажать Export/Share внутри Telegram, WAV передаётся через FIELD в твой личный чат с ботом — его можно сохранить или переслать оттуда. Это не публикация в World или Group. Сохранение не публикует запись. Удаление локальной копии не удаляет её публикацию: сначала убери её из World, если она больше не должна быть публичной."
+            "Аудио и карточки Library сохраняются на устройстве. После входа новые записи также синхронизируются с личной библиотекой аккаунта в Cloudflare D1/R2 и доступны в Telegram, Safari и на других телефонах. Старые записи добавляются через подтверждение в Library на устройстве, где они хранятся. Без входа записи остаются только локальными. Удаление синхронизированной записи убирает её из Library на всех устройствах. Резервные аудиобайты пока сохраняются приватно для восстановления; это не полное стирание. Для полного удаления обратись в поддержку. Если нажать Export/Share внутри Telegram, WAV передаётся через FIELD в твой личный чат с ботом — его можно сохранить или переслать оттуда. Это не публикация в World или Group. Сохранение не публикует запись. Удаление локальной копии не удаляет её публикацию: сначала убери её из World, если она больше не должна быть публичной."
           ]
         },
         {
@@ -110,7 +110,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "Private recordings",
           "paragraphs": [
-            "Library audio and cards stay on this device. Tapping Export/Share inside Telegram transfers the WAV through FIELD to your own private bot chat, where you can save or forward it. This does not publish to World or Group. Saving does not publish them. Deleting a local copy does not remove a publication; remove it from World first if it should no longer be public."
+            "Library audio and cards are saved on this device. After sign-in, new recordings also sync to your private account Library in Cloudflare D1/R2 and become available in Telegram, Safari and on other phones. Add older recordings through the confirmation in Library on the device holding them. Without sign-in, recordings remain local. Removing a synced recording hides it from Library on all devices. Recovery audio bytes currently remain private; this is not permanent erasure. Contact support for full removal. Tapping Export/Share inside Telegram transfers the WAV through FIELD to your own private bot chat, where you can save or forward it. This does not publish to World or Group. Saving does not publish them. Deleting a local copy does not remove a publication; remove it from World first if it should no longer be public."
           ]
         },
         {
@@ -187,7 +187,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "Անձնական ձայնագրություններ",
           "paragraphs": [
-            "Ձայնադարանի ֆայլերը պահվում են այս սարքում։ Telegram-ում Export/Share սեղմելիս WAV-ը FIELD-ի միջոցով ուղարկվում է բոտի հետ քո անձնական չատին՝ պահելու կամ փոխանցելու համար։ Սա World կամ Group-ի հրապարակում չէ։ Պահելը չի հրապարակում։ Տեղական պատճենը ջնջելը չի հեռացնում հրապարակումը․ անհրաժեշտության դեպքում նախ հեռացրու այն World-ից։"
+            "Ձայնադարանի ֆայլերը պահվում են այս սարքում։ Մուտքից հետո նոր ձայնագրությունները համաժամացվում են նաև հաշվի անձնական ձայնադարանին՝ Cloudflare D1/R2-ում, և հասանելի են Telegram-ում, Safari-ում ու մյուս հեռախոսներում։ Հին ձայնագրությունները ավելացրու հաստատմամբ այն սարքի Library-ից, որտեղ դրանք պահված են։ Առանց մուտքի ձայները մնում են տեղական։ Համաժամացված ձայնագրությունը հեռացնելը այն թաքցնում է բոլոր սարքերի ձայնադարանից։ Վերականգնման աուդիոբայթերը առայժմ պահվում են անձնական ձևով․ ամբողջական ջնջման համար կապվիր աջակցությանը։ Telegram-ում Export/Share սեղմելիս WAV-ը FIELD-ի միջոցով ուղարկվում է բոտի հետ քո անձնական չատին՝ պահելու կամ փոխանցելու համար։ Սա World կամ Group-ի հրապարակում չէ։ Պահելը չի հրապարակում։ Տեղական պատճենը ջնջելը չի հեռացնում հրապարակումը․ անհրաժեշտության դեպքում նախ հեռացրու այն World-ից։"
           ]
         },
         {
@@ -264,7 +264,7 @@ const content: Record<Locale, Record<'privacy' | 'microphone' | 'help', Settings
         {
           "heading": "私人錄音",
           "paragraphs": [
-            "聲音庫的音訊與卡片存於此裝置。在 Telegram 中按 Export/Share，WAV 會透過 FIELD 傳送到你與機器人的私人聊天，供你儲存或轉傳。這不會發佈到 World 或 Group。儲存不會發佈。刪除本機副本不會移除公開發佈；若不再希望公開，請先從 World 移除。"
+            "聲音庫的音訊與卡片儲存在此裝置。登入後，新錄音也會同步至 Cloudflare D1/R2 中的私人帳號聲音庫，可在 Telegram、Safari 和其他手機使用。舊錄音須在保存它們的裝置上透過 Library 確認加入。未登入時，錄音只儲存在本機。移除已同步錄音會將它從所有裝置的聲音庫隱藏。復原用音訊目前仍以私人方式保留；這不是永久抹除。若需完整刪除，請聯絡支援。在 Telegram 中按 Export/Share，WAV 會透過 FIELD 傳送到你與機器人的私人聊天，供你儲存或轉傳。這不會發佈到 World 或 Group。儲存不會發佈。刪除本機副本不會移除公開發佈；若不再希望公開，請先從 World 移除。"
           ]
         },
         {

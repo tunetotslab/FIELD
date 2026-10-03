@@ -1,4 +1,5 @@
 import {allowedOrigin, nativeUser, nativeRoute, nativeBotUpdate, purgeExpiredNativeAuth} from './native-auth.mjs';
+import {libraryRoute} from './library.mjs';
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
 import links from '../shared/links.json' with { type: 'json' };
 import { helpText, linksText } from './bot-help.mjs';
@@ -276,6 +277,8 @@ async function route(request, env, ctx) {
   let user;
   try { user = request.headers.get('Authorization')?.startsWith('Bearer ') ? await nativeUser(request,env) : await authenticate((request.headers.get('Authorization') || '').replace(/^tma /,''), env.BOT_TOKEN); }
   catch { return json({error:'Unauthorized'},401); }
+  const libraryResponse=await libraryRoute(request,env,user);
+  if(libraryResponse)return libraryResponse;
   if(url.pathname==='/files/telegram' && request.method==='POST') return transferPrivateFile(request,env,user);
   if (url.pathname === '/donations' && request.method === 'POST') {
     if(request.headers.get('Authorization')?.startsWith('Bearer '))return json({error:'Use Telegram for donations'},403);
