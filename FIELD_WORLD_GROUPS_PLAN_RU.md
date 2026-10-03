@@ -512,3 +512,10 @@ route, получая SPA HTML вместо JavaScript. Все production assets
 modules теперь обслуживаются настоящим локальным HTTP-сервером. Service worker
 остаётся включённым; проверяется также offline reload с сохранной Library.
 Chrome прошёл полный сценарий; результат Linux WebKit ещё требуется подтвердить.
+
+Следующий run `f7dceda` прошёл вход, World/Group, WAV reopen и все почтовые стили,
+но упал на protocol-level `setOffline(true)` → reload. Это совпадает с известным
+Playwright WebKit issue https://github.com/microsoft/playwright/issues/42775.
+Offline regression теперь отключает оба реальных fixture HTTP-сервера, проверяет
+их недоступность и требует reload response именно от production service worker.
+Эмуляция offline применяется к уже открытому приложению для проверки Library.

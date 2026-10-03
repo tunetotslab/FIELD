@@ -485,8 +485,19 @@ try {
       .getAttribute("href"),
     "https://t.me/field_sound_bot?startapp",
   );
+  // WebKit's protocol-level offline emulation rejects even literal SW responses
+  // during navigation (microsoft/playwright#42775). Stop both real HTTP origins
+  // instead, so fetch actually fails and the production SW must use its cache.
+  for (const fixture of [server, api])
+    await new Promise((resolve, reject) => {
+      fixture.close((error) => (error ? reject(error) : resolve()));
+      fixture.closeAllConnections();
+    });
+  await assert.rejects(fetch(base), "The application origin must be unavailable");
+  await assert.rejects(fetch(apiOrigin), "The API origin must be unavailable");
+  const offlineResponse = await reopened.reload();
+  assert(offlineResponse?.fromServiceWorker(), "Offline shell must come from SW");
   await context.setOffline(true);
-  await reopened.reload();
   await reopened
     .locator(".bottom-nav")
     .getByRole("button", { name: "LIBRARY", exact: true })
