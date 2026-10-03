@@ -69,7 +69,12 @@ export function createSoundRepository(name = DB_NAME) {
   return {
     save: async (sound: SoundRecord) => {
       const row = await encodeSound(sound);
-      return tx(name, "readwrite", (store) => store.put(row));
+      const result = await tx(name, "readwrite", (store) => store.put(row));
+      // Ask for eviction protection when supported. Saving succeeds only after
+      // commit, independently of whether the browser grants this request.
+      if (typeof navigator !== 'undefined')
+        void navigator.storage?.persist?.().catch(() => {});
+      return result;
     },
     // Read-through migration: old raw rows remain intact until the user saves.
     getAll: async () =>

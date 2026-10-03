@@ -1,3 +1,6 @@
+import { FieldAccount } from './components/FieldAccount';
+import { TelegramLink } from './components/TelegramLink';
+import { isAuthenticated } from './auth/session';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -146,12 +149,10 @@ export default function App() {
       setRecords(
         (await soundsDb.getAll()).sort((a, b) => b.createdAt - a.createdAt),
       );
-    } catch {
-      setNotice(
-        "Library could not be opened. Private browsing may disable local storage.",
-      );
+    } catch (error) {
+      setNotice(publicationErrorMessage(error, t));
     }
-  }, []);
+  }, [t]);
   useEffect(() => {
     const cleanup = telegram.init();
     void loadLibrary();
@@ -161,12 +162,17 @@ export default function App() {
     if(!COMMUNITY_PUBLISHING_AVAILABLE) return;
     let active=true;
     const retry=()=>{void retryPendingWorld().then(()=>{if(active) void loadLibrary();});};
-    retry(); window.addEventListener('online',retry);
-    return ()=>{active=false;window.removeEventListener('online',retry);};
+    retry(); window.addEventListener('online',retry); window.addEventListener('field-auth-changed', retry);
+    return ()=>{active=false;window.removeEventListener('online',retry);window.removeEventListener('field-auth-changed',retry);};
   },[loadLibrary]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [screen]);
+  useEffect(() => {
+    if (screen !== 'library') return;
+    void loadLibrary();
+    return subscribeForeground(() => { void loadLibrary(); });
+  }, [screen, loadLibrary]);
   const go = (next: Screen) => {
     if (next === "daily") {
       refreshDaily();
@@ -1424,14 +1430,16 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const [groupError, setGroupError] = useState('');
   const [joining, setJoining] = useState(false);
   const loadGroups = useCallback(async (signal?: AbortSignal) => {
-    if (!GROUP_PUBLISHING_AVAILABLE) return;
-    try { setGroups(await fieldGroups(signal)); setGroupError(''); }
+    if (!GROUP_PUBLISHING_AVAILABLE || !isAuthenticated()) {setGroups([]);setGroupError('');return;}
+    try { const items=await fieldGroups(signal); if(!signal?.aborted) {setGroups(items);setGroupError('');} }
     catch (error) { if (!signal?.aborted) setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupsLoadFailed')); }
   }, [t]);
   useEffect(() => {
-    const controller = new AbortController();
-    void loadGroups(controller.signal);
-    return () => controller.abort();
+    let controller = new AbortController();
+    const refresh = () => { controller.abort(); controller = new AbortController(); setGroups([]); void loadGroups(controller.signal); };
+    refresh();
+    window.addEventListener('field-auth-changed', refresh);
+    return () => {controller.abort();window.removeEventListener('field-auth-changed', refresh);};
   }, [loadGroups]);
   const join = async () => {
     if (!code.trim()) return;
@@ -1444,7 +1452,8 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
     } catch (error) { setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'invalidGroupCode')); }
     finally { setJoining(false); }
   };
-  const groupEnabled = GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
+  const authenticated = isAuthenticated();
+  const groupEnabled = authenticated && GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
   const opts: [Visibility, string, string, boolean][] = [
     ["private", t("private"), t("privateCopy"), true],
     [
@@ -1453,7 +1462,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
       COMMUNITY_PUBLISHING_AVAILABLE
         ? t("worldCopy")
         : t("publicationUnavailable"),
-      COMMUNITY_PUBLISHING_AVAILABLE &&
+      authenticated && COMMUNITY_PUBLISHING_AVAILABLE &&
         hasResolvableCity(draft),
     ],
     ["group", t("group"), GROUP_PUBLISHING_AVAILABLE ? t("groupCopy") : t("backendRequired"), groupEnabled],
@@ -1461,6 +1470,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   return (
     <Shell title={t("shareTo")} back={back}>
       <p className="eyebrow">{t("shareWhere")}</p>
+      {!authenticated && <FieldAccount />}
       <DraftTitlePreview draft={draft} />
       <div className="option-list visibility-list">
         {opts.map(([id, label, copy, enabled]) => (
@@ -1476,7 +1486,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
               </strong>
               <small>
                 {id === "world" && !enabled && COMMUNITY_PUBLISHING_AVAILABLE
-                  ? t("cityRequired")
+                  ? t(authenticated ? 'cityRequired' : 'sessionExpired')
                   : copy}
               </small>
             </span>
@@ -1485,14 +1495,14 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
             ) : (
               <em>
                 {id === "world" && COMMUNITY_PUBLISHING_AVAILABLE
-                  ? t("cityRequired")
+                  ? t(authenticated ? 'cityRequired' : 'sessionExpired')
                   : t("soon")}
               </em>
             )}
           </button>
         ))}
       </div>
-      {GROUP_PUBLISHING_AVAILABLE && (
+      {GROUP_PUBLISHING_AVAILABLE && authenticated && (
         <section className="group-connect-panel">
           <strong>{t('yourGroups')}</strong>
           {groups.map(group => (
@@ -1507,7 +1517,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
           {groupError && <p role="alert" className="search-status">{groupError}</p>}
         </section>
       )}
-      <button className="primary-button" disabled={(draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
+      <button className="primary-button" disabled={(draft.visibility !== 'private' && !authenticated) || (draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
         {t("continue")}
       </button>
     </Shell>
@@ -1655,7 +1665,7 @@ export function ReadyScreen({
       {telegram.isTelegram && <p className="notice">{t('telegramFileNotice')}</p>}
       {fileBusy && <p className="notice" role="status">{t('transferringFile')}</p>}
       {fileStatus && <p className="notice" role="status">{fileStatus}</p>}
-      {botUrl && <button className="secondary-button" onClick={() => telegram.openChat(botUrl)}>{t('fileBotChat')}</button>}
+      {botUrl && <TelegramLink className="secondary-button" href={botUrl}>{t('fileBotChat')}</TelegramLink>}
       {!file && !error && <p className="notice" role="status">{t('preparing')}</p>}
       {draft.visibility!=='private' && <p className="notice">{t('publicationLengthNotice')}</p>}
       {notice===t('savedWorld') && <div className="world-success"><button className="primary-button" onClick={seeMap}>{t('seeMap')}</button><button className="secondary-button" onClick={done}>{t('done')}</button></div>}
@@ -1838,7 +1848,7 @@ export function Library({
         {!menuFile && !fileStatus && <p role="status">{t('preparing')}</p>}
         {actionBusy && <p role="status">{t('transferringFile')}</p>}
         {fileStatus && <p className="notice" role="status">{fileStatus}</p>}
-        {fileBotUrl && <button className="secondary-button" onClick={() => telegram.openChat(fileBotUrl)}>{t('fileBotChat')}</button>}
+        {fileBotUrl && <TelegramLink className="secondary-button" href={fileBotUrl}>{t('fileBotChat')}</TelegramLink>}
       </Dialog>}
       {renaming && (
         <div className="modal-backdrop">
@@ -1877,6 +1887,7 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   ];
   return (
     <Shell title={t("settings")} back={back}>
+      <FieldAccount />
       <div className="settings-list">
         <button onClick={() => go('donate')}><span>⭐ {t('donate')}</span><strong>›</strong></button>
         <fieldset className="language-picker">
@@ -2073,6 +2084,7 @@ function Links({ go }: { go: (s: Screen) => void }) {
   return (
     <Shell title={t("links")} back={() => go("settings")}>
       <div className="links-list">
+        <TelegramLink href={EXTERNAL_LINKS.FIELD_TELEGRAM_APP} className=""><strong>FIELD · Telegram</strong><small>@field_sound_bot</small><b>›</b></TelegramLink>
         <a
           href={EXTERNAL_LINKS.TUNE_TOTS_WEBSITE}
           target="_blank"

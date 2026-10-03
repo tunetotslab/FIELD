@@ -1,4 +1,4 @@
-import { fetchWithDeadline } from "./network";
+import {authenticationHeaders,authenticatedFetch} from './auth/session';
 import { API_URL } from "./config";
 import type { SoundRecord } from "./types";
 import { publicMetadata, requestError } from "./world";
@@ -14,11 +14,11 @@ export interface FieldGroup {
 }
 
 function auth() {
-  return { Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}` };
+  return { ...authenticationHeaders() };
 }
 
 export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
-  const response = await fetchWithDeadline(`${API_URL}/groups`, {
+  const response = await authenticatedFetch(`${API_URL}/groups`, {
     cache: 'no-store',
     headers: auth(),
     signal,
@@ -28,7 +28,7 @@ export async function fieldGroups(signal?: AbortSignal): Promise<FieldGroup[]> {
 }
 
 export async function joinFieldGroup(code: string): Promise<FieldGroup> {
-  const response = await fetchWithDeadline(`${API_URL}/groups/join`, {
+  const response = await authenticatedFetch(`${API_URL}/groups/join`, {
     method: "POST",
     headers: { ...auth(), "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
@@ -38,6 +38,7 @@ export async function joinFieldGroup(code: string): Promise<FieldGroup> {
 }
 
 export async function publishGroupSound(groupId: string, record: SoundRecord) {
+  const headers = auth();
   const prepared = await preparePublicationAudio(record);
   const form = new FormData();
   form.set(
@@ -45,11 +46,11 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
     JSON.stringify({ ...publicMetadata(prepared), id: record.id }),
   );
   form.set("audio", prepared.audioBlob, "sound.wav");
-  const response = await fetchWithDeadline(
+  const response = await authenticatedFetch(
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds`,
     {
       method: "POST",
-      headers: auth(),
+      headers,
       body: form,
     },
   );
@@ -60,7 +61,7 @@ export async function publishGroupSound(groupId: string, record: SoundRecord) {
   }>;
 }
 export async function retryGroupDelivery(groupId: string, id: string) {
-  const response = await fetchWithDeadline(
+  const response = await authenticatedFetch(
     `${API_URL}/groups/${encodeURIComponent(groupId)}/sounds/${encodeURIComponent(id)}/retry`,
     { method: "POST", headers: auth(),  },
   );

@@ -68,11 +68,13 @@ export const telegram = {
     };
     resize();
     window.visualViewport?.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("scroll", resize);
     window.addEventListener("resize", resize);
     webApp?.onEvent?.("viewportChanged", resize);
     const dispose = () => {
       cleanup();
       window.visualViewport?.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("scroll", resize);
       window.removeEventListener("resize", resize);
       webApp?.offEvent?.("viewportChanged", resize);
     };
@@ -101,11 +103,11 @@ export const telegram = {
     }
   },
   openBrowser(url: string) {
-    if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
+    if (telegram.isTelegram && window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
     else window.open(url, "_blank", "noopener,noreferrer");
   },
   openChat(url: string) {
-    if (window.Telegram?.WebApp?.openTelegramLink)
+    if (telegram.isTelegram && window.Telegram?.WebApp?.openTelegramLink)
       window.Telegram.WebApp.openTelegramLink(url);
     else window.open(url, "_blank", "noopener,noreferrer");
   },

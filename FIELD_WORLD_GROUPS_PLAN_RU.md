@@ -462,3 +462,77 @@ Lab с реальными звуковыми зарисовками. Собир�
 Trim/FX, сохранении WAV и обмене через Group. Новые функции и Capacitor/iOS/Android
 на этом шаге не начинать. Приложение и production данные этим обновлением статуса
 не меняются.
+
+
+### Safari/PWA — текущий приоритет, 3 октября 2026
+
+Владелец отложил платный Apple Developer/App Store и попросил довести веб-версию:
+сохранение новых записей после закрытия Safari, общий World и доступ к тем же
+Tune Tots Groups. Перенос старой личной Telegram Library не нужен. iOS-код остаётся
+в отдельном PR #3; текущая ветка основана на main и не содержит Capacitor.
+
+Причины различий: World был намеренно закрыт вне подписанного Telegram WebView;
+SDK присутствует в Safari, но не даёт signed initData. Исправление добавляет
+подтверждённый вход через личный FIELD-бот и общий backend/Telegram ID. Локальные
+библиотеки разных browser/PWA/WebView остаются отдельными. IndexedDB byte codec и
+commit-before-success сохранены; Library перечитывается при входе/возврате, браузер
+получает best-effort запрос защиты от вытеснения. Меню использует одну измеренную
+высоту viewport для всех экранов; почтовые кнопки — общий основной стиль, переходы
+в FIELD/Donate — настоящие Telegram-ссылки.
+
+Проверки: существующие audio/legacy/World/Group/bot/Stars регрессии плюс browser
+pairing, account restore/401/expiry/logout с сохранностью WAV. Отдельный WebKit CI
+проверяет production build, размеры/ориентацию, вход и закрытие/открытие вкладки.
+Это не подтверждение поведения микрофона на физическом iPhone.
+
+Статус выпуска: подготовлен код на GitHub, production Worker/Pages ещё не обновлены.
+Предыдущая автоматическая проверка отклонила общий Worker deploy из-за отсутствия
+явного согласия на обновление общего Telegram/World/Group/Stars backend. Выпуск
+остаётся отдельным финальным шагом после проверок и явного согласия владельца.
+
+
+### Продолжение Safari проверки — 4 октября 2026
+
+Письма об отказе относятся к коммиту 8549958: WebKit не прошёл cross-origin
+проверку входа в тесте, использовавшем перехват API-запросов. Тестовый API теперь
+изолирован на localhost HTTP и возвращает реальную CORS-политику Worker; production
+не используется для тестовых публикаций. Повторная CI проверка обязательна.
+
+Причина различий почтовых кнопок: `.article-links a` затрагивал вложенные Gmail/
+mailto controls, `.information-article a` задавал цвет текста статьи, а размер
+шрифта зависел от родительского блока. Селекторы ограничены ссылками статьи/верхнего
+уровня, основной шрифт кнопки задан явно; почтовые действия используют одинаковые
+полноширинные pill-кнопки. Браузерная регрессия сравнивает каждую из пяти кнопок
+в «О FIELD», «Помощи» и «Ссылках» с реальной кнопкой Daily: цвет, белый текст,
+семейство/размер/вес шрифта, padding, line-height, radius и высоту.
+
+Вторая ошибка CI (`a74a0b7`) возникла уже после успешного входа и загрузки World:
+активный service worker запрашивал тестовый storage-модуль в обход Playwright
+route, получая SPA HTML вместо JavaScript. Все production assets и явные fixture
+modules теперь обслуживаются настоящим локальным HTTP-сервером. Service worker
+остаётся включённым; проверяется также offline reload с сохранной Library.
+Chrome прошёл полный сценарий; результат Linux WebKit ещё требуется подтвердить.
+
+Следующий run `f7dceda` прошёл вход, World/Group, WAV reopen и все почтовые стили,
+но упал на protocol-level `setOffline(true)` → reload. Это совпадает с известным
+Playwright WebKit issue https://github.com/microsoft/playwright/issues/42775.
+Offline regression теперь отключает оба реальных fixture HTTP-сервера, проверяет
+их недоступность и требует reload response именно от production service worker.
+Эмуляция offline применяется к уже открытому приложению для проверки Library.
+
+Итог проверки: commit `8968f73`, Linux WebKit run
+https://github.com/tunetotslab/FIELD/actions/runs/37153611940 — success.
+Прошли весь `npm test`, typecheck, repository lint, production build и полный
+browser regression с активным service worker, четырьмя viewport размерами,
+browser login/restore, committed WAV reopen, Library → World/Group, одинаковыми
+пятью почтовыми кнопками в About/Help/Links, logout без потери звука и cached
+reload при отключённых HTTP origins. Chrome прошёл тот же сценарий локально.
+Backend/bot в browser regression — isolated fixtures; production данные и
+Telegram-сообщения не использовались. Физические iPhone microphone/login checks
+остаются отдельной приёмкой. PR #4 готов к выпуску; live Worker/Pages пока прежние,
+до явного подтверждения общего production rollout владельцем.
+
+Финальный head с документацией `24f4947` также прошёл WebKit run
+https://github.com/tunetotslab/FIELD/actions/runs/37153810540. Убран параллельный
+push-trigger repair ветки: PR проверяется по `pull_request`, main по `push`.
+Это устраняет два одинаковых check names и отменённый дубль в статусе одного PR.

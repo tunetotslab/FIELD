@@ -1,3 +1,5 @@
+import { isAuthenticated } from '../auth/session';
+import { FieldAccount } from './FieldAccount';
 import { useEffect, useRef, useState } from "react";
 import {
   worldAudio,
@@ -60,7 +62,10 @@ export function WorldMap({
       last = Date.now();
       setRefresh(value => value + 1);
     };
-    return subscribeForeground(revalidate);
+    const changed = () => {setRefresh(value => value + 1);setCities([]);setSelected(undefined);setSounds([]);blobs.current.clear();audioController.current?.abort();listController.current?.abort();player.stop();};
+    const cleanup=subscribeForeground(revalidate);
+    window.addEventListener('field-auth-changed', changed);
+    return () => {cleanup();window.removeEventListener('field-auth-changed', changed);};
   }, []);
   const [report, setReport] = useState<WorldSound>(),
     [reportBusy, setReportBusy] = useState(false),
@@ -103,7 +108,7 @@ export function WorldMap({
       setDownloadLinks((old) => ({ ...old, [sound.id]: { url, name } }));
       const app = window.Telegram?.WebApp;
       let native = false;
-      if (app?.downloadFile && app.isVersionAtLeast?.("8.0"))
+      if (telegram.isTelegram && app?.downloadFile && app.isVersionAtLeast?.("8.0"))
         try {
           app.downloadFile({ url, file_name: name });
           native = true;
@@ -146,9 +151,9 @@ export function WorldMap({
       setLoading(false);
       return;
     }
-    if (api === productionApi && !telegram.isTelegram) {
+    if (api === productionApi && !isAuthenticated()) {
       setCities([]); setSelected(undefined);
-      setError(t('worldTelegramOnly')); setLoading(false);
+      setSounds([]); setError(''); setLoading(false);
       return;
     }
     void api
@@ -159,7 +164,7 @@ export function WorldMap({
         setSelected(current => current ? items.find(city => city.id === current.id) : undefined);
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? (telegram.isTelegram ? 'sessionExpired' : 'worldTelegramOnly') : "worldLoadFailed"));
+        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -293,6 +298,7 @@ export function WorldMap({
           }
         />
       </div>
+      {api === productionApi && !isAuthenticated() && <FieldAccount />}
       <p className="world-privacy">{t("worldPrivacy")}</p>
       {loading ? (
         <p role="status">{t("worldLoading")}</p>

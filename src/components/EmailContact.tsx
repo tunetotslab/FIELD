@@ -26,15 +26,15 @@ export function EmailContact() {
   return <section className="email-contact">
     <input ref={field} aria-label="Tune Tots Lab email" value={email} readOnly onFocus={event => event.currentTarget.select()} />
     <div className="email-actions">
-      <button onClick={() => void copy()}>{t('copyEmail')}</button>
-      <button aria-expanded={compose} onClick={() => setCompose(value => !value)}>{t('emailUs')}</button>
-      <a href={gmail} target="_blank" rel="noopener noreferrer" onClick={event => {event.preventDefault();telegram.openBrowser(gmail);}}>Gmail ↗</a>
+      <button className="primary-button" onClick={() => void copy()}>{t('copyEmail')}</button>
+      <button className="primary-button" aria-expanded={compose} onClick={() => setCompose(value => !value)}>{t('emailUs')}</button>
+      <a className="primary-button" href={gmail} target="_blank" rel="noopener noreferrer" onClick={event => {event.preventDefault();telegram.openBrowser(gmail);}}>Gmail ↗</a>
     </div>
     {compose && <div className="email-composer">
       <p>{t('emailComposeChoice')}</p>
       <div className="email-actions">
-        <a href={EXTERNAL_LINKS.SUPPORT_EMAIL} target="_blank" rel="noopener noreferrer" onClick={() => setStatus(t('emailCopyFailed'))}>{t('defaultMail')}</a>
-        <a href={gmail} target="_blank" rel="noopener noreferrer" onClick={event => {event.preventDefault();telegram.openBrowser(gmail);}}>Gmail ↗</a>
+        <a className="primary-button" href={EXTERNAL_LINKS.SUPPORT_EMAIL} target="_blank" rel="noopener noreferrer" onClick={() => setStatus(t('emailCopyFailed'))}>{t('defaultMail')}</a>
+        <a className="primary-button" href={gmail} target="_blank" rel="noopener noreferrer" onClick={event => {event.preventDefault();telegram.openBrowser(gmail);}}>Gmail ↗</a>
       </div>
     </div>}
     {status && <p role="status">{status}</p>}

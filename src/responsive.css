@@ -23,18 +23,18 @@
   --color-pink-soft: #553047;
   --color-pink-dark: #ff80c8;
 }
-.app-shell { height: var(--field-viewport-height, var(--tg-viewport-stable-height, 100dvh)); min-height: 0; padding-bottom: 0; background: var(--surface); }
+.app-shell { margin: 0; height: var(--field-viewport-height, var(--tg-viewport-stable-height, 100dvh)); min-height: 0; padding-bottom: 0; background: var(--surface); }
 .app-header, .screen-title { flex-shrink: 0; }
 .app-header { grid-template-columns: minmax(44px, 1fr) auto minmax(44px, 1fr); }
 .header-right { flex-wrap: wrap; }
 .screen-content { overflow-x: hidden; flex: 1 1 auto; padding-bottom: 16px; }
 .screen-content > * { flex-shrink: 0; }
 .screen-content .brand-footer { display: block; margin-top: auto; padding: 28px 0 12px; min-height: 60px; }
-.information-article a { color: var(--color-pink-dark); text-decoration: underline; text-underline-offset: 3px; }
+.information-article a:not(.primary-button) { color: var(--color-pink-dark); text-decoration: underline; text-underline-offset: 3px; }
 .email-contact { padding: 16px 0; display: grid; gap: 12px; }
 .email-contact input { width: 100%; min-width: 0; border: 1px solid var(--color-line); border-radius: 10px; background: var(--surface-raised); padding: 12px; font-size: 15px; }
-.email-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.email-actions button, .email-actions a { width: auto; margin: 0; min-height: 44px; padding: 11px 16px; border: 1px solid var(--color-pink-dark); border-radius: 999px; background: var(--color-pink); color: var(--color-ink); font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.email-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.email-actions .primary-button { width: 100%; margin: 0; }
 .email-composer { display: grid; gap: 12px; }
 .information-article .inline-link { display: inline; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--color-pink-dark); text-decoration: underline; font: inherit; }
 .email-contact p { margin: 0; font-size: 13px; }
@@ -45,7 +45,7 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 .bottom-nav button { min-width: 0; min-height: 44px; font-size: 9px; overflow-wrap: anywhere; }
-.shell-home, .shell-world, .shell-fx { height: var(--tg-viewport-stable-height, 100dvh); padding-bottom: 0; }
+.shell-home, .shell-world, .shell-fx { height: var(--field-viewport-height, var(--tg-viewport-stable-height, 100dvh)); padding-bottom: 0; }
 .emoji-slots button { width: 72px; height: 76px; border: 0; border-radius: 0; background: none; gap: 4px; }
 .emoji-slots button.active { outline: none; }
 .emoji-slots small { font-family: var(--font-ui); border-bottom: 3px solid transparent; padding: 3px 12px; }
@@ -98,7 +98,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--color-pink); ou
 .globe-controls { position: absolute; right: 12px; bottom: 12px; display: grid; gap: 6px; }
 .globe-controls button { width: 42px; height: 42px; border: 1px solid var(--color-line); border-radius: 50%; background: var(--surface-raised); color: var(--color-ink); font-size: 25px; line-height: 1; box-shadow: 0 4px 12px #2b10231f; }
 @media (min-width: 600px) {
-  .app-shell, .shell-home, .shell-world, .shell-fx { width: 430px; height: min(880px, calc(100dvh - 32px)); min-height: 0; border-inline: 1px solid var(--color-line); }
+  .app-shell, .shell-home, .shell-world, .shell-fx { width: 430px; height: min(880px, calc(var(--field-viewport-height, 100dvh) - 32px)); min-height: 0; border-inline: 1px solid var(--color-line); }
 }
 @media (max-height: 500px) { .app-header { min-height: 48px; } .brand-logo { max-height: 44px; } }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -110,3 +110,9 @@ input:not([type="range"]), textarea, select { font-size: max(16px, 1em); }
 .world-record-actions > button { width: auto; flex: 1 1 auto; min-height: 44px; margin: 0; white-space: normal; }
 .world-record-actions > button[aria-pressed="true"] { color: var(--color-pink-dark); border-color: var(--color-pink); background: var(--surface-raised); }
 .world-download-link { display: block; padding: 12px 0; color: var(--color-ink); font-size: 14px; overflow-wrap: anywhere; }
+
+.viewport { height: var(--field-viewport-height, 100dvh); min-height: 0; }
+.field-account { border: 1px solid var(--color-line); border-radius: 20px; padding: 16px; display: grid; gap: 12px; margin-bottom: 16px; }
+.field-account p { margin: 0; line-height: 1.5; }
+.field-account .primary-button { margin: 0; }
+.field-login-code { font-size: 32px; letter-spacing: 4px; text-align: center; }

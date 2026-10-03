@@ -208,3 +208,34 @@ the private bot chat first. Requests are limited to ten new receipts per user/mi
 No initData, bot token, Telegram file ID or private audio is returned in public URLs.
 Regression `scripts/files.test.mjs` uses SQLite plus mocked Telegram; it sends no
 production messages and leaves production World/Group audio untouched.
+
+## Standalone browser login
+
+The shared pairing implementation is `native-auth.mjs`; browser endpoints are
+`POST /auth/browser/{challenge,status,exchange,logout}`. Enable only with
+`STANDALONE_AUTH_ENABLED=true`; existing `APP_ORIGIN` is required. Browser-only
+configuration does not admit `capacitor://localhost` or native pairing endpoints.
+`NATIVE_AUTH_ENABLED` remains a separate future native rollout switch.
+
+Before rollout, confirm additive `0007_native_auth.sql` exists on the target D1
+(it was applied to the existing production DB during iOS preparation). Do not apply
+`schema.sql` to existing production or remove auth tables on rollback. Migration
+adds challenge/session hashes only and does not modify sounds, R2, ACL or donations.
+Use the existing webhook; no BotFather replacement or bot-token change is needed.
+Private `/start field_web_<id>` and approval callbacks bind the same numeric
+Telegram user ID as the Mini App. Challenges expire in ten minutes, sessions in
+30 days; one-use proof exchange, revocation, origin/body/rate limits and cleanup
+are covered by SQLite regression tests. Stars remains Mini App-only.
+
+Release order: push reviewed FIELD code → verify migration/flags → explicit approval
+of the shared production Worker rollout → deploy Worker from that GitHub commit →
+verify health, Pages-origin preflight and guest challenge (no personal Telegram
+messages/uploads) → merge web PR for GitHub Pages → verify the published bundle.
+No production rollout is implied by local tests or a prepared PR. Rollback Worker
+and frontend together to the recorded prior versions; keep additive auth tables
+and the existing byte-envelope reader, and never clear browser storage.
+
+Physical acceptance: compare/approve your own code in FIELD bot, confirm the account
+in Safari, check an existing World sound and course, save/reopen a new WAV, then
+publish that Library recording to World/Group. Account expiry/logout must preserve
+local audio. A second phone should see and play the World publication after refresh.

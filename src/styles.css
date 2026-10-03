@@ -337,12 +337,21 @@ button:disabled {
   font-weight: 850;
 }
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  text-decoration: none;
+  text-align: center;
   width: 100%;
   min-height: 54px;
   border-radius: var(--radius-pill);
   color: white;
   background: var(--color-pink);
+  font-family: var(--font-ui);
+  font-size: 16px;
   font-weight: 850;
+  line-height: 1.25;
   letter-spacing: 0.03em;
   margin-top: auto;
   box-shadow: var(--shadow-card);
@@ -1126,7 +1135,7 @@ button:disabled {
   gap: 8px;
   padding-bottom: 20px;
 }
-.article-links a {
+.article-links > a {
   min-height: 52px;
   padding: 10px 13px;
   border: 1px solid var(--color-line);

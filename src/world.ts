@@ -1,7 +1,8 @@
+import {authenticationHeaders,authenticatedFetch} from './auth/session';
 import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
 import { preparePublicationAudio, PublicationAudioError } from "./audio/publication";
-import { fetchWithDeadline, NetworkRequestError } from './network';
+import { NetworkRequestError } from './network';
 import { StorageError } from './storage/errors';
 export type WorldSound = Pick<
   SoundRecord,
@@ -51,11 +52,11 @@ export async function worldRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetchWithDeadline(`${API_URL}${path}`, {
+  const response = await authenticatedFetch(`${API_URL}${path}`, {
     ...options,
     cache: 'no-store',
     headers: {
-      Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}`,
+      ...authenticationHeaders(),
       ...options.headers,
     },
   });
@@ -64,11 +65,12 @@ export async function worldRequest<T>(
   try {return await response.json();} catch {throw new FieldRequestError(response.status, 'Invalid service response');}
 }
 export async function publishSound(record: SoundRecord) {
+  const auth = authenticationHeaders();
   const prepared = await preparePublicationAudio(record);
   if (!record.location) throw Error("City required");
   const location = await worldRequest<SoundLocation>("/cities/resolve", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...auth, "Content-Type": "application/json" },
     body: JSON.stringify({
       placeId: record.location.placeId,
       city: record.location.city,
@@ -85,6 +87,7 @@ export async function publishSound(record: SoundRecord) {
   form.set("audio", prepared.audioBlob, "sound.wav");
   const result = await worldRequest<{ id: string }>("/world", {
     method: "POST",
+    headers: auth,
     body: form,
   });
   return { ...result, location };
@@ -131,10 +134,10 @@ export function reportWorldSound(
   });
 }
 export async function worldAudio(id: string, signal?: AbortSignal) {
-  const response = await fetchWithDeadline(`${API_URL}/audio/${encodeURIComponent(id)}`, {
+  const response = await authenticatedFetch(`${API_URL}/audio/${encodeURIComponent(id)}`, {
     cache: 'no-store',
     headers: {
-      Authorization: `tma ${window.Telegram?.WebApp?.initData || ""}`,
+      ...authenticationHeaders(),
     },
     signal,
   }, 30000);
