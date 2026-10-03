@@ -5,7 +5,7 @@ import { publishSound, removeWorldSound } from "../world";
 import type { SoundRecord, SoundLocation } from "../types";
 import { newId } from '../id';
 export function createWorldPublisher(
-  repository = soundsDb,
+  repository: Pick<typeof soundsDb, 'save' | 'getAll'> = soundsDb,
   api: {
     publishSound: (
       record: SoundRecord,

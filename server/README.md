@@ -247,3 +247,52 @@ schema migration was repeated. Health, Pages-origin CORS, browser challenge/stat
 and unsigned access restrictions passed live smoke checks. Native auth remains
 disabled. See `FIELD_WORLD_GROUPS_PLAN_RU.md` for paired Pages release and rollback
 versions. This resolves the prior approval gate for this release only.
+
+
+## Private account Library (October 4, 2026)
+
+`LIBRARY_SYNC_ENABLED=true` enables authenticated `/library` routes for the same
+numeric Telegram owner used by signed Mini App data and browser bearer sessions.
+No new login, bot destination or public `sounds` row is created by sync.
+
+- `GET /library?cursor=<record UUID>` returns at most 100 owned rows/tombstones and
+  an optional cursor. Absence from a page never implies deletion.
+- `POST /library/<record UUID>` takes counted multipart `manifest` plus changed
+  `render`/`original` files. Manifest includes baseRevision, mutationId, metadata,
+  SHA-256 hashes and MIME types. The first write supplies bytes; unchanged hashes
+  permit metadata-only updates. Both original and edited audio are preserved.
+- `GET /library/<UUID>/{render|original}?revision=<UUID>` requires fresh owner auth
+  and exact revision. Audio is never served from public `/audio` or ticket URLs.
+- `DELETE /library/<UUID>` takes a counted multipart revision/mutation manifest
+  and commits a tombstone. Conditional revisions return 409 instead of overwriting.
+  Replaying the last mutation is idempotent, including after a lost HTTP response.
+
+The Worker applies allowed-origin CORS and no-store to these routes. R2 keys are
+`private-library/<verified owner>/<content SHA-256>`; D1 primary keys include owner.
+Do not log credentials, private metadata or audio. Limits: 25,000,000 bytes for the
+whole multipart request, 512 MiB reserved unique audio and 1,000 record identities
+per account. Deleted identities and orphaned/recovery reservations count toward
+these limits. Failed uploads and quota errors preserve the local committed recording;
+retry of the same audio does not reserve storage twice. Private backups do not apply
+the World/Group 60-second limit.
+
+**Retention:** removal hides a record across synced Library devices and makes its
+Library audio URL unavailable; it retains source bytes locally and in private R2
+for recovery. There is currently no automatic physical purge or quota reclamation.
+Privacy explains this; full-erasure support must identify the verified owner,
+coordinate removal of that account's private rows/objects and prevent an old offline
+cache from re-uploading. Never remove public sounds, course audio or another owner
+while handling a private Library request.
+
+**Rollout:** push code → run regressions/build → apply only
+`migrations/0008_private_library.sql` to existing D1 → deploy Worker from the GitHub
+commit → merge frontend for Pages → verify live Worker/Pages. Do not replay schema.sql
+or earlier migrations against production. Existing auth, World, Group and donation
+bindings/secrets remain. Disable LIBRARY_SYNC_ENABLED to stop private network sync;
+local saves continue. Rollback Worker/frontend together while retaining additive
+private tables, private R2 bytes and the IndexedDB byte-envelope reader.
+
+Older local rows are uploaded only after explicit account confirmation on their
+source device. New signed-in rows auto-bind to that account. Guest rows stay local.
+Tests use isolated SQLite, fake IndexedDB and synthetic R2; no production Telegram
+messages, user recordings or publication requests are generated.

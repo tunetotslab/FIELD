@@ -6,6 +6,7 @@ import { indexedDB } from "fake-indexeddb";
 const modules = new Map();
 async function moduleUrl(path) {
   if (modules.has(path)) return modules.get(path);
+  if(path.endsWith('/config.ts')) return 'data:text/javascript,export const API_URL="https://field.test"';
   let { code } = await transformWithOxc(
     await readFile(new URL(path, import.meta.url), "utf8"),
     path,

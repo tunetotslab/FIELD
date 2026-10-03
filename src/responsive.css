@@ -35,6 +35,9 @@
 .email-contact input { width: 100%; min-width: 0; border: 1px solid var(--color-line); border-radius: 10px; background: var(--surface-raised); padding: 12px; font-size: 15px; }
 .email-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .email-actions .primary-button { width: 100%; margin: 0; }
+.library-sync-panel { display: grid; gap: 10px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--color-line); border-radius: 18px; }
+.library-sync-panel p { margin: 0; font-size: 14px; line-height: 1.5; }
+.library-sync-panel .primary-button, .library-sync-panel .secondary-button { margin: 0; }
 .email-composer { display: grid; gap: 12px; }
 .information-article .inline-link { display: inline; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--color-pink-dark); text-decoration: underline; font: inherit; }
 .email-contact p { margin: 0; font-size: 13px; }

@@ -1,6 +1,7 @@
 import { FieldAccount } from './components/FieldAccount';
+import {LibrarySyncControl,libraryCopy} from './components/LibrarySync';
 import { TelegramLink } from './components/TelegramLink';
-import { isAuthenticated } from './auth/session';
+import { isAuthenticated,currentUserId } from './auth/session';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -127,6 +128,7 @@ export default function App() {
     setActiveTask({...task, imageSrc: images[selectImageVariant(task.imageId, images.length, TASK_ROTATION_MODE, date)]});
   }, []);
   const [screen, setScreen] = useState<Screen>("home");
+  const screenRef=useRef(screen);screenRef.current=screen;
   useEffect(() => {
     if (screen !== 'daily') return;
     refreshDaily();
@@ -146,9 +148,9 @@ export default function App() {
 
   const loadLibrary = useCallback(async () => {
     try {
-      setRecords(
-        (await soundsDb.getAll()).sort((a, b) => b.createdAt - a.createdAt),
-      );
+      const owner=currentUserId();
+      const rows=(await soundsDb.getAll()).sort((a,b)=>b.createdAt-a.createdAt);
+      if(owner===currentUserId()) setRecords(rows);
     } catch (error) {
       setNotice(publicationErrorMessage(error, t));
     }
@@ -158,6 +160,20 @@ export default function App() {
     void loadLibrary();
     return () => { cleanup?.(); player.stop(); };
   }, [loadLibrary]);
+  useEffect(()=>{
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    const refresh=()=>{void loadLibrary();};
+    const sync=()=>{if(screenRef.current!=='record'&&screenRef.current!=='fx')void soundsDb.sync();};
+    const pending=()=>{clearTimeout(timer);timer=setTimeout(sync,700);};
+    const account=()=>{player.stop();setPlayingId(undefined);setRecords([]);soundsDb.accountChanged();void loadLibrary();sync();};
+    window.addEventListener('field-library-changed',refresh);
+    window.addEventListener('field-library-pending',pending);
+    window.addEventListener('field-auth-changed',account);
+    window.addEventListener('online',sync);
+    const foreground=subscribeForeground(sync,30000);
+    sync();
+    return()=>{clearTimeout(timer);foreground();soundsDb.accountChanged();window.removeEventListener('field-library-changed',refresh);window.removeEventListener('field-library-pending',pending);window.removeEventListener('field-auth-changed',account);window.removeEventListener('online',sync);};
+  },[loadLibrary]);
   useEffect(() => {
     if(!COMMUNITY_PUBLISHING_AVAILABLE) return;
     let active=true;
@@ -171,6 +187,7 @@ export default function App() {
   useEffect(() => {
     if (screen !== 'library') return;
     void loadLibrary();
+    void soundsDb.sync();
     return subscribeForeground(() => { void loadLibrary(); });
   }, [screen, loadLibrary]);
   const go = (next: Screen) => {
@@ -1700,7 +1717,7 @@ export function Library({
   const [query, setQuery] = useState("");
   const [renaming, setRenaming] = useState<SoundRecord>();
   const [menuRecord, setMenuRecord] = useState<SoundRecord>();
-  const { t } = useI18n();
+  const { t,locale } = useI18n();
   const [menuFile,setMenuFile] = useState<File>();
   const [fileStatus,setFileStatus] = useState('');
   const [fileBotUrl,setFileBotUrl] = useState<string>();
@@ -1732,7 +1749,7 @@ export function Library({
   const play = (r: SoundRecord) =>
     player.play(r.id, r.audioBlob, (v) => setPlayingId(v ? r.id : undefined));
   const remove = async (r: SoundRecord) => {
-    if (confirm(t('privateDelete'))) {
+    if (confirm(r.librarySync?libraryCopy[locale].delete:t('privateDelete'))) {
       player.stop();
       await soundsDb.remove(r.id);
       await reload();
@@ -1763,6 +1780,7 @@ export function Library({
   };
   return (
     <Shell title="LIBRARY" back={back}>
+      <LibrarySyncControl records={records} login={()=>go('settings')} />
       <div className="tabs">
         {(["all", "favorites", "recents"] as const).map((v) => (
           <button
@@ -1814,6 +1832,7 @@ export function Library({
                   {formatTime(r.duration)} · {r.emojis.join(" ")}
                 </small>
                 <small className="publication-state">{r.worldPublication?t(r.worldPublication.state==='published'?'publishedState':r.worldPublication.state==='pending'?'pendingState':'failedState'):t('localState')}{r.groupPublication?.state==='published'?` · ${t('groupPublishedState')}: ${r.groupPublication.groupName||r.groupName||''}`:''}</small>
+                {r.librarySync&&<small>{libraryCopy[locale][r.librarySync.mutationId===r.librarySync.syncedMutationId?'saved':'pending']}</small>}
               </div>
               <button
                 className={r.favorite ? "favorite active" : "favorite"}
