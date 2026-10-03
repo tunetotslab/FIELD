@@ -536,3 +536,34 @@ Telegram-сообщения не использовались. Физическ�
 https://github.com/tunetotslab/FIELD/actions/runs/37153810540. Убран параллельный
 push-trigger repair ветки: PR проверяется по `pull_request`, main по `push`.
 Это устраняет два одинаковых check names и отменённый дубль в статусе одного PR.
+
+### Разрешённый production выпуск — 4 октября 2026
+
+Владелец явно разрешил обновить Worker/Cloudflare и веб-версию. Предыдущий approval
+gate закрыт для этого выпуска. До этого разрешения сайт действительно оставался
+на старой версии; подготовленный PR не объявлялся опубликованным обновлением.
+
+- Worker выпущен из проверенного GitHub commit `30298d1`:
+  version `72710ed1-7117-4ed8-922c-16fc541e42a5`, прежняя version
+  `451978c8-64b4-4df7-a96a-1aefd01af72c`. Existing D1/R2/bot secrets сохранены;
+  повторной schema migration не было. `STANDALONE_AUTH_ENABLED=true`.
+- Live smoke: health 200, Pages-origin preflight 204/no-store, browser challenge
+  201 и pending status 200, native route 503, unsigned World 401. Создан только
+  один неподтверждённый краткоживущий guest challenge, без сообщений/аудиопубликаций.
+- PR #4 merged в main (`e45e4ad`), Pages run
+  https://github.com/tunetotslab/FIELD/actions/runs/37155948391 — success.
+  Живые assets: `/FIELD/assets/index-DO-ExmL9.js`,
+  `/FIELD/assets/index-DqGbd_HC.css`; production Worker origin, browser login,
+  новые mail/viewport selectors и `field-shell-v8` подтверждены через HTTP.
+- Изолированный браузер проверил именно live сайт: четыре mobile/landscape
+  viewport, неподвижное доступное меню на REC/Library/Daily/Map/Settings,
+  все 15 expanded email controls в About/Help/Links совпадают с Daily по розовому
+  фону, белому тексту, typography/padding/radius/height; login UI и bot link есть.
+  Runtime errors нет. Пользовательская Library/storage не открывались/не очищались.
+- Физический iPhone ещё требует проверки: закрыть/открыть FIELD без очистки данных,
+  войти из Safari через свой FIELD bot, сохранить новый WAV → закрыть/открыть →
+  Library → World/Group; второй телефон должен видеть/проигрывать World sound.
+  Private Library в разных browser/WebView sandbox остаётся раздельной.
+- Native PR #3 не merged; платного Apple enrollment и Android работ не было.
+  Rollback выполняется парой Worker/frontend через GitHub; additive auth tables
+  и audio byte reader остаются, пользовательские данные не удаляются.

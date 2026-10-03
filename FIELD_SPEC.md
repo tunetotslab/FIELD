@@ -1925,7 +1925,10 @@ Production builds restrict scripts with CSP and never cache authenticated reques
 Extend regressions with browser-session restore/expiry/account switch, unchanged
 private bytes, browser bot approval and existing World/Group identity. Run real
 WebKit layout and tab-close/reopen tests against the repository production build.
-A shared Worker release requires the outstanding explicit production approval;
-prepared GitHub changes are not proof of deployed functionality.
+Shared Worker releases require explicit production approval; prepared GitHub
+changes are not proof of deployed functionality. The owner explicitly authorized
+the browser Worker/Cloudflare/web rollout on October 4, 2026. That release is
+recorded in `FIELD_WORLD_GROUPS_PLAN_RU.md`; the prior outstanding approval is
+resolved for this rollout. Future release approval is evaluated separately.
 
 **END OF FIELD_SPEC.md**

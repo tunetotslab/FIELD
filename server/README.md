@@ -239,3 +239,11 @@ Physical acceptance: compare/approve your own code in FIELD bot, confirm the acc
 in Safari, check an existing World sound and course, save/reopen a new WAV, then
 publish that Library recording to World/Group. Account expiry/logout must preserve
 local audio. A second phone should see and play the World publication after refresh.
+
+Production browser rollout was explicitly approved by the owner on October 4,
+2026 and released from GitHub commit `30298d1` as Worker version
+`72710ed1-7117-4ed8-922c-16fc541e42a5`. Existing D1/R2/secrets were retained; no
+schema migration was repeated. Health, Pages-origin CORS, browser challenge/status
+and unsigned access restrictions passed live smoke checks. Native auth remains
+disabled. See `FIELD_WORLD_GROUPS_PLAN_RU.md` for paired Pages release and rollback
+versions. This resolves the prior approval gate for this release only.
