@@ -519,3 +519,15 @@ Playwright WebKit issue https://github.com/microsoft/playwright/issues/42775.
 Offline regression теперь отключает оба реальных fixture HTTP-сервера, проверяет
 их недоступность и требует reload response именно от production service worker.
 Эмуляция offline применяется к уже открытому приложению для проверки Library.
+
+Итог проверки: commit `8968f73`, Linux WebKit run
+https://github.com/tunetotslab/FIELD/actions/runs/37153611940 — success.
+Прошли весь `npm test`, typecheck, repository lint, production build и полный
+browser regression с активным service worker, четырьмя viewport размерами,
+browser login/restore, committed WAV reopen, Library → World/Group, одинаковыми
+пятью почтовыми кнопками в About/Help/Links, logout без потери звука и cached
+reload при отключённых HTTP origins. Chrome прошёл тот же сценарий локально.
+Backend/bot в browser regression — isolated fixtures; production данные и
+Telegram-сообщения не использовались. Физические iPhone microphone/login checks
+остаются отдельной приёмкой. PR #4 готов к выпуску; live Worker/Pages пока прежние,
+до явного подтверждения общего production rollout владельцем.
