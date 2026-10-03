@@ -383,23 +383,51 @@ try {
   await reopened
     .getByRole("button", { name: "Sign out", exact: true })
     .waitFor();
-  await reopened.getByRole("button", { name: /^Links/ }).click();
-  const buttons = reopened.locator(".email-actions .primary-button");
-  const styles = await buttons.evaluateAll((elements) =>
-    elements.map((el) => {
-      const c = getComputedStyle(el);
-      return { color: c.color, bg: c.backgroundColor, radius: c.borderRadius };
-    }),
-  );
-  assert(styles.length >= 3);
-  assert(
-    styles.every(
-      (s) =>
-        s.color === "rgb(255, 255, 255)" &&
-        s.bg === styles[0].bg &&
-        s.radius === styles[0].radius,
-    ),
-  );
+  const buttonStyle = (element) => {
+    const c = getComputedStyle(element);
+    return {
+      color: c.color,
+      bg: c.backgroundColor,
+      radius: c.borderRadius,
+      fontFamily: c.fontFamily,
+      fontSize: c.fontSize,
+      fontWeight: c.fontWeight,
+      lineHeight: c.lineHeight,
+      letterSpacing: c.letterSpacing,
+      padding: c.padding,
+      height: element.getBoundingClientRect().height,
+    };
+  };
+  await reopened
+    .locator(".bottom-nav")
+    .getByRole("button", { name: "DAILY", exact: true })
+    .click();
+  const reference = await reopened
+    .locator(".daily-card .primary-button")
+    .evaluate(buttonStyle);
+  assert.equal(reference.bg, "rgb(245, 49, 164)");
+  assert.equal(reference.color, "rgb(255, 255, 255)");
+  for (const label of ["About FIELD", "Help & Support", "Links"]) {
+    await reopened
+      .locator(".bottom-nav")
+      .getByRole("button", { name: "SETTINGS", exact: true })
+      .click();
+    await reopened
+      .locator(".settings-list")
+      .getByRole("button", { name: new RegExp("^" + label) })
+      .click();
+    await reopened
+      .getByRole("button", { name: "EMAIL US", exact: true })
+      .click();
+    const controls = reopened.locator(".email-actions .primary-button");
+    assert.equal(await controls.count(), 5);
+    for (const control of await controls.all())
+      assert.deepEqual(
+        await control.evaluate(buttonStyle),
+        reference,
+        `Mail action on ${label} must match the task button`,
+      );
+  }
   assert.equal(
     await reopened
       .locator('a[href="https://t.me/field_sound_bot?startapp"]')

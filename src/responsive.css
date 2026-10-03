@@ -30,11 +30,11 @@
 .screen-content { overflow-x: hidden; flex: 1 1 auto; padding-bottom: 16px; }
 .screen-content > * { flex-shrink: 0; }
 .screen-content .brand-footer { display: block; margin-top: auto; padding: 28px 0 12px; min-height: 60px; }
-.information-article a { color: var(--color-pink-dark); text-decoration: underline; text-underline-offset: 3px; }
+.information-article a:not(.primary-button) { color: var(--color-pink-dark); text-decoration: underline; text-underline-offset: 3px; }
 .email-contact { padding: 16px 0; display: grid; gap: 12px; }
 .email-contact input { width: 100%; min-width: 0; border: 1px solid var(--color-line); border-radius: 10px; background: var(--surface-raised); padding: 12px; font-size: 15px; }
-.email-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.email-actions .primary-button { width: auto; margin: 0; padding: 11px 16px; font-size: 13px; }
+.email-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.email-actions .primary-button { width: 100%; margin: 0; }
 .email-composer { display: grid; gap: 12px; }
 .information-article .inline-link { display: inline; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--color-pink-dark); text-decoration: underline; font: inherit; }
 .email-contact p { margin: 0; font-size: 13px; }

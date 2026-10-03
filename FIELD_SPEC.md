@@ -1915,7 +1915,10 @@ account changes. Bind pending World publications to the initiating account.
 Do not treat a guest Safari empty map as the global archive: offer Telegram login.
 Use the same visible viewport height for every shell/root, keep navigation reachable
 and leave keyboard/browser chrome handling to measured viewport changes. Mail copy,
-compose and Gmail controls use the primary pink/white pill style. Donation and bot
+compose and Gmail controls use the same primary pink/white pill style, UI font,
+font size/weight, padding and 54px minimum height as the Daily Record Now button.
+Article/link prose selectors must not restyle nested mail actions. Verify this on
+About, Help and Links, including the expanded default-mail choices. Donation and bot
 handoffs are real Telegram links; Stars payment remains signed Mini App only.
 Production builds restrict scripts with CSP and never cache authenticated requests.
 

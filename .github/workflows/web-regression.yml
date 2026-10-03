@@ -3,6 +3,9 @@ on:
   pull_request:
   push:
     branches: [main, fix/web-mobile-session]
+concurrency:
+  group: standalone-webkit-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
