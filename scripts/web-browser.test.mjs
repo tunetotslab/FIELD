@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { transformWithOxc } from "vite";
+import { createServer } from "node:http";
+import worker from "../server/worker.mjs";
 import { webkit, chromium } from "playwright";
 // Use only a local build, isolated browser profile and test fixtures. No real
 // Telegram messages, production uploads or existing personal browser storage.
@@ -29,10 +31,12 @@ let serverLog = "";
 server.stderr.on("data", (chunk) => {
   serverLog += chunk;
 });
-let browser;
+const apiOrigin = "http://127.0.0.1:4188";
+let browser, api;
 const deadline = setTimeout(() => {
   console.error("Browser regression exceeded 120 seconds");
   server.kill();
+  api?.close();
   void browser?.close();
   process.exit(1);
 }, 120000);
@@ -116,60 +120,82 @@ try {
     worldRequests = 0,
     groupRequests = 0,
     uploads = 0;
-  await context.route(
-    "https://field-api.nikolachenmusic.workers.dev/**",
-    (route) => {
-      const req = route.request(),
-        path = new URL(req.url()).pathname;
-      const headers = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-      };
-      if (req.method() === "OPTIONS")
-        return route.fulfill({ status: 204, headers });
-      let body = {};
-      if (path === "/auth/browser/challenge") body = challenge;
-      else if (path === "/auth/browser/status")
-        body = approved
-          ? { state: "approved", userId: 41, displayName: "Test owner" }
-          : { state: "pending" };
-      else if (path === "/auth/browser/exchange") {
-        assert(approved);
-        body = identity;
-      } else if (path === "/auth/browser/logout") body = { ok: true };
-      else {
-        assert.equal(req.headers().authorization, `Bearer ${identity.token}`);
-        if (path === "/world/cities") {
-          worldRequests++;
-          body = [{ ...location, id: location.placeId, count: 1 }];
-        } else if (path === "/groups") {
-          groupRequests++;
-          body = [
-            {
-              id: "course",
-              name: "Existing course",
-              role: "member",
-              telegramTitle: "Tune Tots",
-            },
-          ];
-        } else if (path === "/cities/resolve") body = location;
-        else if (path === "/world") {
-          uploads++;
-          body = { id: "public-sound", location };
-        } else if (path === "/groups/course/sounds") {
-          uploads++;
-          body = { id: "group-sound", telegramDeliveryState: "delivered" };
-        } else throw Error(`Unexpected test request ${path}`);
-      }
-      return route.fulfill({
-        status: 200,
-        headers,
-        contentType: "application/json",
-        body: JSON.stringify(body),
-      });
-    },
+  // Real cross-origin HTTP fixture uses the Worker's actual CORS policy.
+  // WebKit preflights must never escape to the production API.
+  assert(
+    (await readFile("dist/index.html", "utf8")).includes(apiOrigin),
+    "Build browser regression with VITE_FIELD_API_URL=http://127.0.0.1:4188",
   );
+  await new Promise((resolve) => {
+    api = createServer(async (req, res) => {
+      const path = new URL(req.url, apiOrigin).pathname;
+      try {
+        const cors = await worker.fetch(
+          new Request(apiOrigin + path, {
+            method: "OPTIONS",
+            headers: { Origin: req.headers.origin || origin },
+          }),
+          { APP_ORIGIN: origin },
+        );
+        cors.headers.forEach((value, key) => res.setHeader(key, value));
+        if (req.method === "OPTIONS") {
+          console.log(
+            "WebKit preflight",
+            path,
+            req.headers["access-control-request-headers"] || "",
+          );
+          res.writeHead(204);
+          res.end();
+          return;
+        }
+        for await (const chunk of req) {
+          /* Consume bounded synthetic fixture input. */
+        }
+        let body = {};
+        if (path === "/auth/browser/challenge") body = challenge;
+        else if (path === "/auth/browser/status")
+          body = approved
+            ? { state: "approved", userId: 41, displayName: "Test owner" }
+            : { state: "pending" };
+        else if (path === "/auth/browser/exchange") {
+          assert(approved);
+          body = identity;
+        } else if (path === "/auth/browser/logout") body = { ok: true };
+        else {
+          assert.equal(req.headers.authorization, `Bearer ${identity.token}`);
+          if (path === "/world/cities") {
+            worldRequests++;
+            body = [{ ...location, id: location.placeId, count: 1 }];
+          } else if (path === "/groups") {
+            groupRequests++;
+            body = [
+              {
+                id: "course",
+                name: "Existing course",
+                role: "member",
+                telegramTitle: "Tune Tots",
+              },
+            ];
+          } else if (path === "/cities/resolve") body = location;
+          else if (path === "/world") {
+            uploads++;
+            body = { id: "public-sound", location };
+          } else if (path === "/groups/course/sounds") {
+            uploads++;
+            body = { id: "group-sound", telegramDeliveryState: "delivered" };
+          } else throw Error(`Unexpected test request ${path}`);
+        }
+
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(body));
+      } catch (error) {
+        errors.push(error.message);
+        res.writeHead(500);
+        res.end();
+      }
+    });
+    api.listen(4188, "127.0.0.1", resolve);
+  });
   await page.goto(base);
   await page.locator(".bottom-nav").waitFor();
   console.log("PWA opened");
@@ -417,5 +443,6 @@ try {
 } finally {
   clearTimeout(deadline);
   server.kill();
+  api?.close();
   await browser?.close();
 }

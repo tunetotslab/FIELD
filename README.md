@@ -97,7 +97,7 @@ WebKit regression (isolated profile, synthetic WAV and mocked backend/bot only):
 
 ```bash
 npx playwright install webkit
-VITE_FIELD_WORLD_ENABLED=true VITE_FIELD_GROUPS_ENABLED=true npm run build -- --base=/FIELD/
+VITE_FIELD_API_URL=http://127.0.0.1:4188 VITE_FIELD_WORLD_ENABLED=true VITE_FIELD_GROUPS_ENABLED=true npm run build -- --base=/FIELD/
 npm run test:web
 ```
 

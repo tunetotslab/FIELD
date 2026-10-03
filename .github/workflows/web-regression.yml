@@ -21,4 +21,5 @@ jobs:
         env:
           VITE_FIELD_WORLD_ENABLED: 'true'
           VITE_FIELD_GROUPS_ENABLED: 'true'
+          VITE_FIELD_API_URL: http://127.0.0.1:4188
       - run: npm run test:web
