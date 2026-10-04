@@ -104,16 +104,22 @@ in `server/README.md`. The bottom menu follows the visible
 viewport on every screen. Mail actions share the primary pink/white pill design;
 Telegram and donation handoffs use actual links.
 
-WebKit regression (isolated profiles, synthetic WAV, real private Library route/SQLite/R2 adapter and fixture bot/publication services):
+Cross-platform regression (isolated profiles, synthetic audio, real private Library route/SQLite/R2 adapter and fixture bot/publication services):
 
 ```bash
-npx playwright install webkit
+npx playwright install webkit chromium
 VITE_FIELD_API_URL=http://127.0.0.1:4188 VITE_FIELD_WORLD_ENABLED=true VITE_FIELD_GROUPS_ENABLED=true npm run build -- --base=/FIELD/
-npm run test:web
+FIELD_QA_BROWSER=webkit npm run test:web
+FIELD_QA_BROWSER=chromium npm run test:web
 ```
 
 The regression includes separate Safari and Telegram contexts restoring private bytes
 and publication state and exchanging favorites through the private account archive.
-The GitHub WebKit workflow runs these checks on pull requests. It is not a real
-phone microphone or live Telegram approval test. Native iOS work remains separately
+The GitHub workflow runs real WebKit and Chromium engines on pull requests. Each
+checks ordinary browser, a separate standalone-profile simulation and Telegram SDK
+fixtures. Chromium also verifies installability in a normal profile and records
+through its synthetic microphone using actual MediaRecorder Opus/WebM, then decodes,
+edits/previews, exports PCM WAV and reopens the committed local recording. These are
+not physical-phone, OS installation or live Telegram approval tests. See
+`FIELD_PWA_AUDIT.md` for scope, evidence, installation steps and remaining device checks. Native iOS work remains separately
 in PR #3; no paid Apple membership is needed for this PWA.

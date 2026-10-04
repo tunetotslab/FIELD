@@ -1973,4 +1973,36 @@ late account changes, quotas and unchanged public destinations. Run the producti
 build in real WebKit CI, retain service worker/offline tests and verify paired live
 Worker/Pages versions. Physical two-phone acceptance remains a final device check.
 
+## Cross-platform PWA audit — October 4, 2026
+
+The owner now requests coverage of iOS Safari, installed iOS PWA, Android Chrome,
+installed Android PWA, Telegram iOS and Telegram Android. This is web/PWA validation
+and repair, not native Android/Capacitor work. Latest owner acceptance confirms
+private Library sync between Safari and Telegram on one real iPhone; a second phone
+and an older Redmi are not available during this audit. Do not report emulator,
+desktop browser or SDK-fixture results as physical-device acceptance.
+
+Run both real Chromium and WebKit engines against the production build. Cover
+normal-browser, separate standalone-surface simulations and Telegram SDK fixtures,
+including shared account Library, World/Group, WAV export/private Telegram relay,
+offline reopen, mobile controls and safe areas. Verify actual Chromium manifest and
+installability in a clean normal profile (incognito installation is restricted).
+A synthetic microphone checks actual Chromium MediaRecorder Opus capture, pause,
+resume, decode/editor/FX, WAV export and durable local save; physical microphone,
+OS installation/launcher, keyboard, external app handoff and battery interruptions
+must remain clearly marked as manual checks.
+
+Telegram's native sheet can resize without browser visualViewport/innerHeight
+updates. Bound the shell to native viewportStableHeight and visible browser height,
+using viewportHeight only when stable height is unavailable. Do not follow an
+unstable native animation or resize for pinch zoom; a smaller keyboard-visible
+viewport wins. Preserve browser/iOS safe-area layout and all existing data.
+
+FIELD stays installable through supported browser menus. Verify the existing
+manifest identity/start URL/scope/icons; do not create a second app identity.
+Document Chrome Android installation and browser-dependent alternatives plus iOS
+Home Screen setup. Never promise a WebAPK on every Android browser/device. Use
+GitHub CI/deployment for any repair; preserve the current Worker and data unless
+backend changes are actually needed.
+
 **END OF FIELD_SPEC.md**
