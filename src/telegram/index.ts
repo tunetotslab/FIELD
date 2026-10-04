@@ -13,6 +13,8 @@ type ThemeParams = Partial<{
 type TelegramWebApp = {
   initData?: string;
   platform?: string;
+  viewportHeight?: number;
+  viewportStableHeight?: number;
   isVersionAtLeast?: (version: string) => boolean;
   downloadFile?: (
     params: { url: string; file_name: string },
@@ -60,11 +62,22 @@ export const telegram = {
     const cleanup = initTheme();
     const resize = () => {
       const viewport = window.visualViewport;
-      if (!viewport || viewport.scale === 1)
-        document.documentElement.style.setProperty(
-          "--field-viewport-height",
-          `${viewport?.height || window.innerHeight}px`,
-        );
+      if (viewport && viewport.scale !== 1) return;
+      // Telegram can change its native sheet without resizing the browser's
+      // visual viewport. Use its stable height to avoid following animations;
+      // a smaller visual viewport still wins when the keyboard covers content.
+      const visible = viewport?.height || window.innerHeight;
+      const native = telegram.isTelegram
+        ? webApp?.viewportStableHeight || webApp?.viewportHeight
+        : undefined;
+      const height =
+        native && Number.isFinite(native) && native > 0
+          ? Math.min(visible, native)
+          : visible;
+      document.documentElement.style.setProperty(
+        "--field-viewport-height",
+        `${height}px`,
+      );
     };
     resize();
     window.visualViewport?.addEventListener("resize", resize);
@@ -103,7 +116,8 @@ export const telegram = {
     }
   },
   openBrowser(url: string) {
-    if (telegram.isTelegram && window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
+    if (telegram.isTelegram && window.Telegram?.WebApp?.openLink)
+      window.Telegram.WebApp.openLink(url);
     else window.open(url, "_blank", "noopener,noreferrer");
   },
   openChat(url: string) {

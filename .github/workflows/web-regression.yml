@@ -1,16 +1,21 @@
-name: FIELD standalone WebKit regression
+name: FIELD cross-platform PWA regression
 on:
   pull_request:
   push:
     branches: [main]
 concurrency:
-  group: standalone-webkit-${{ github.head_ref || github.ref_name }}
+  group: pwa-platform-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 permissions:
   contents: read
 jobs:
-  webkit:
+  browsers:
+    name: ${{ matrix.browser }} · browser / PWA / Telegram
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [webkit, chromium]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,11 +23,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps webkit
-      - run: npm run typecheck && npm test && npm run lint
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - if: matrix.browser == 'webkit'
+        run: npm run typecheck && npm test && npm run lint
       - run: npm run build -- --base=/FIELD/
         env:
           VITE_FIELD_WORLD_ENABLED: 'true'
           VITE_FIELD_GROUPS_ENABLED: 'true'
           VITE_FIELD_API_URL: http://127.0.0.1:4188
       - run: npm run test:web
+        env:
+          FIELD_QA_BROWSER: ${{ matrix.browser }}
