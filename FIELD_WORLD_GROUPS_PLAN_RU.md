@@ -585,10 +585,42 @@ World/Group не получают публикаций от синхрониза
 Лимиты и порядок аддитивной миграции 0008 описаны в server/README.md.
 
 Добавлены проверки реального Worker + D1/SQLite + R2 + клиентского хранилища и
-двух раздельных браузерных контекстов Safari/Telegram. До production rollout этот
-раздел описывает подготовленную реализацию, а не доказательство выпуска.
+двух раздельных браузерных контекстов Safari/Telegram. Результат выпуска ниже;
+приёмка личной Library на реальных телефонах остаётся отдельной проверкой.
 
 Физическая приёмка: открыть Telegram Library с прежними треками → синхронизировать
 записи этого устройства, подтвердив свой аккаунт → дождаться статуса синхронизации →
 открыть Safari Library под тем же аккаунтом → проверить звук/избранное → сделать
 новую запись в Safari и проверить её появление в Telegram. Ничего не очищать.
+
+
+### Выпуск приватной Library и фактическая проверка
+
+- Реализация GitHub `da6da4bc6b8b7823413f1f24c1a8121066fd4e44`, PR #5:
+  https://github.com/tunetotslab/FIELD/pull/5 — merged, main
+  `e0bf8abba27b50f2aad0af12ad9165381186e588`.
+- PR WebKit https://github.com/tunetotslab/FIELD/actions/runs/37163327193 — success.
+  Main WebKit https://github.com/tunetotslab/FIELD/actions/runs/37163520602 — success.
+  Pages https://github.com/tunetotslab/FIELD/actions/runs/37163520570 — success.
+- Аддитивная `0008_private_library.sql` применена к существующей D1; только две
+  новые таблицы. Прежние schema/auth/sounds/groups/donations не переприменялись.
+- Worker из `da6da4b`: `07924a24-14f0-4ba3-a598-d8af88c4cbb2`,
+  LIBRARY_SYNC_ENABLED=true; прежние bindings/secrets сохранены, native выключен.
+- Live health 200; неподписанная Library 401/no-store; Pages preflight 204;
+  чужой origin 403; неподписанный World 401; native challenge 503.
+- Реальные Pages assets: `/FIELD/assets/index-hg4rf-Qv.js`,
+  `/FIELD/assets/index-CVAjko6k.css`, service worker `field-shell-v9`.
+  Изолированный Chrome подтвердил новый Library Sign in control, четыре viewport,
+  стабильное меню и 15 почтовых кнопок с прежним правильным дизайном; runtime errors
+  отсутствуют. Live проверки гостевые: реальные личные записи не читались/не менялись.
+- Полный npm test, typecheck, lint (TypeScript), build, Worker dry run и расширенная
+  двухконтекстная Chrome/WebKit проверка прошли. Новые тесты также проверяют потерю
+  HTTP подтверждения, идемпотентный retry и единый архив signed TMA/Bearer identity.
+- Быстрая остановка синхронизации: отключить LIBRARY_SYNC_ENABLED в текущем Worker;
+  локальные saves продолжат работать. Предыдущий Worker:
+  `72710ed1-7117-4ed8-922c-16fc541e42a5`; предыдущий main `c792d59`.
+  При rollback не удалять private tables/R2/IndexedDB; сохранять новый reader,
+  owner filtering и tombstones, чтобы чужие/удалённые cached rows не стали видимыми.
+
+Остаётся только описанная выше физическая приёмка личной Library. Подтверждение
+владельца двухтелефонных World/Group/login сценариев относится к предыдущему выпуску.

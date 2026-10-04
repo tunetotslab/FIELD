@@ -290,9 +290,19 @@ commit → merge frontend for Pages → verify live Worker/Pages. Do not replay 
 or earlier migrations against production. Existing auth, World, Group and donation
 bindings/secrets remain. Disable LIBRARY_SYNC_ENABLED to stop private network sync;
 local saves continue. Rollback Worker/frontend together while retaining additive
-private tables, private R2 bytes and the IndexedDB byte-envelope reader.
+private tables, private R2 bytes, the IndexedDB byte-envelope reader and account
+filtering/tombstones. Old frontend code without ownership filtering can reveal hidden
+cached rows; prefer disabling sync in the current Worker to stop network writes.
 
 Older local rows are uploaded only after explicit account confirmation on their
 source device. New signed-in rows auto-bind to that account. Guest rows stay local.
 Tests use isolated SQLite, fake IndexedDB and synthetic R2; no production Telegram
 messages, user recordings or publication requests are generated.
+
+
+Released from GitHub `da6da4b` (PR #5) as Worker
+`07924a24-14f0-4ba3-a598-d8af88c4cbb2`. Additive 0008 was applied to the existing
+D1 before deploy. Paired main `e0bf8ab` passed WebKit and Pages; the live web uses
+shell v9. Guest-only live checks confirmed health, allowed-origin CORS and unsigned
+private-route restrictions. No real private audio was read/written by release checks.
+Full two-phone private Library acceptance requires the owner's source-device consent.
