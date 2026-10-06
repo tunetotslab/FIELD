@@ -436,10 +436,15 @@ try {
     return box.y;
   }
   for (const size of [
+    { width: 320, height: 568 },
     { width: 360, height: 640 },
     { width: 375, height: 640 },
     { width: 375, height: 540 },
     { width: 390, height: 750 },
+    { width: 430, height: 932 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 },
     { width: 812, height: 375 },
   ]) {
     await page.setViewportSize(size);
@@ -1121,6 +1126,30 @@ try {
       "Real Chromium synthetic microphone → Opus chunks → decode/pause/resume → editor/FX → PCM export → committed guest Library reopen passed",
     );
   }
+  const blockedStoragePage = await context.newPage();
+  const blockedStorageErrors = [];
+  blockedStoragePage.on("pageerror", (error) =>
+    blockedStorageErrors.push(error.message),
+  );
+  await blockedStoragePage.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new DOMException("Storage is blocked", "SecurityError");
+    };
+    Storage.prototype.setItem = () => {
+      throw new DOMException("Storage is blocked", "SecurityError");
+    };
+  });
+  await blockedStoragePage.goto(base);
+  await blockedStoragePage
+    .getByRole("button", { name: "TAP TO RECORD", exact: true })
+    .waitFor();
+  assert.deepEqual(
+    blockedStorageErrors,
+    [],
+    "Blocked localStorage must not cause a startup white screen",
+  );
+  await blockedStoragePage.close();
+  console.log("Blocked localStorage falls back to an in-memory language session");
   // WebKit's protocol-level offline emulation rejects even literal SW responses
   // during navigation (microsoft/playwright#42775). Stop both real HTTP origins
   // instead, so fetch actually fails and the production SW must use its cache.

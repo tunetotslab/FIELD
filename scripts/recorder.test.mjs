@@ -48,3 +48,19 @@ now+=1000;interrupted.stop();assert.equal(completed,undefined);
 deadline();assert.ok(completed.blob.size>0);assert.equal(completed.duration,1);
 const recovered=completed;interrupted.finish();assert.equal(completed,recovered);
 console.log('PASS missing stop event recovers captured bytes once instead of freezing');
+
+// Recording itself, not only the publication renderer, enforces the product's
+// 60-second maximum and exposes exactly 60 seconds to the UI/completion event.
+let frame;
+globalThis.requestAnimationFrame=callback=>{frame=callback;return 1;};
+window.setTimeout=()=>1;
+states=[];completed=undefined;now=0;
+const times=[];
+const limited=new FieldRecorder({...events,onTime:value=>times.push(value)});
+await limited.start();
+now=60000;frame();
+assert.equal(limited.recorder,undefined);
+assert.equal(completed.duration,60);
+assert.equal(times.at(-1),60);
+assert.ok(states.includes('processing'));
+console.log('PASS recording stops automatically at the exact 60-second limit');

@@ -36,6 +36,10 @@ export function publicationErrorMessage(error: unknown, t: (key: 'sessionExpired
 }
 export const isAuthenticationError = (error: unknown) =>
   error instanceof FieldRequestError && error.status === 401;
+function interfaceLanguage() {
+  try { return localStorage.getItem("field-locale") || "en"; }
+  catch { return "en"; }
+}
 export function publicMetadata(record: SoundRecord) {
   return {
     id: record.worldPublication?.clientId || record.id,
@@ -76,7 +80,7 @@ export async function publishSound(record: SoundRecord) {
       city: record.location.city,
       countryCode: record.location.countryCode,
       region: record.location.region,
-      language: (() => {try {return localStorage.getItem('field-locale') || 'en';} catch {return 'en';}})(),
+      language: interfaceLanguage(),
     }),
   });
   const form = new FormData();
@@ -129,7 +133,7 @@ export function reportWorldSound(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       reason,
-      language: localStorage.getItem("field-locale") || "en",
+      language: interfaceLanguage(),
     }),
   });
 }
