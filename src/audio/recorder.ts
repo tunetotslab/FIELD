@@ -1,5 +1,7 @@
 import type { RecorderState } from "../types";
 
+export const MAX_RECORDING_SECONDS = 60;
+
 export interface RecorderEvents {
   onState: (state: RecorderState, message?: string) => void;
   onTime: (seconds: number) => void;
@@ -193,11 +195,16 @@ export class FieldRecorder {
     const pause =
       this.recorder.state === "paused" ? performance.now() - this.pausedAt : 0;
     const now = performance.now();
+    const elapsed =
+      (now - this.startedAt - this.pausedTotal - pause) / 1000;
     if (now - this.lastTimeUpdate >= 100) {
-      this.events.onTime(
-        (now - this.startedAt - this.pausedTotal - pause) / 1000,
-      );
+      this.events.onTime(Math.min(elapsed, MAX_RECORDING_SECONDS));
       this.lastTimeUpdate = now;
+    }
+    if (elapsed >= MAX_RECORDING_SECONDS) {
+      this.events.onTime(MAX_RECORDING_SECONDS);
+      this.stop();
+      return;
     }
     this.frame = requestAnimationFrame(this.tick);
   };

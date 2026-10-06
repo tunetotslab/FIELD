@@ -608,15 +608,25 @@ const Context = createContext<{
   setLocale: (locale: Locale) => void;
   t: (key: Key) => string;
 }>({ locale: "en", setLocale: () => {}, t: (key) => en[key] });
+function storedLocale(): Locale {
+  try {
+    const locale = localStorage.getItem("field-locale");
+    return locale && locale in dictionaries ? (locale as Locale) : "en";
+  } catch {
+    return "en";
+  }
+}
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setState] = useState<Locale>(
-    () => (localStorage.getItem("field-locale") as Locale) || "en",
-  );
+  const [locale, setState] = useState<Locale>(storedLocale);
   const value = useMemo(
     () => ({
       locale,
       setLocale: (next: Locale) => {
-        localStorage.setItem("field-locale", next);
+        try {
+          localStorage.setItem("field-locale", next);
+        } catch {
+          // Keep the selected language for this session when storage is blocked.
+        }
         document.documentElement.lang = next;
         setState(next);
       },
