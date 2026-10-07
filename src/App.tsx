@@ -1,7 +1,7 @@
-import { FieldAccount } from './components/FieldAccount';
-import {LibrarySyncControl,libraryCopy} from './components/LibrarySync';
-import { TelegramLink } from './components/TelegramLink';
-import { isAuthenticated,currentUserId } from './auth/session';
+import { FieldAccount } from "./components/FieldAccount";
+import { LibrarySyncControl, libraryCopy } from "./components/LibrarySync";
+import { TelegramLink } from "./components/TelegramLink";
+import { isAuthenticated, currentUserId } from "./auth/session";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -14,27 +14,45 @@ import type {
 } from "./types";
 import { FieldRecorder } from "./audio/recorder";
 import { analyze, effectLabel, renderDraft } from "./audio/processing";
-import { changesAudio, patchDraft } from './audio/draft';
-import { prepareWavFile, runFileAction, fileActionErrorMessage } from './audio/fileActions';
-import { newId } from './id';
+import { changesAudio, patchDraft } from "./audio/draft";
+import {
+  prepareWavFile,
+  runFileAction,
+  fileActionErrorMessage,
+} from "./audio/fileActions";
+import { newId } from "./id";
 import { formatTime } from "./audio/utils";
 import { PlaybackManager } from "./audio/player";
 import { soundsDb } from "./storage/db";
-import { hasResolvableCity, publicationStart } from './storage/normalize';
-import { subscribeForeground } from './lifecycle';
-import { isAuthenticationError, publicationErrorMessage } from './world';
+import { hasResolvableCity, publicationStart } from "./storage/normalize";
+import { subscribeForeground } from "./lifecycle";
+import { isAuthenticationError, publicationErrorMessage } from "./world";
 import { telegram } from "./telegram";
-import { Dialog } from './components/Dialog';
-import { Donate } from './components/Donate';
-import { uploadWorld, unpublishWorld, retryPendingWorld } from './storage/publication';
-import { WorldMap } from './components/WorldMap';
-import { fieldGroups, joinFieldGroup, publishGroupSound, retryGroupDelivery, type FieldGroup } from './groups';
-import { getThemePreference, setThemePreference, type ThemePreference } from './theme';
+import { Dialog } from "./components/Dialog";
+import { Donate } from "./components/Donate";
+import {
+  uploadWorld,
+  unpublishWorld,
+  retryPendingWorld,
+} from "./storage/publication";
+import { WorldMap } from "./components/WorldMap";
+import {
+  fieldGroups,
+  joinFieldGroup,
+  publishGroupSound,
+  retryGroupDelivery,
+  type FieldGroup,
+} from "./groups";
+import {
+  getThemePreference,
+  setThemePreference,
+  type ThemePreference,
+} from "./theme";
 import { AppNavigationProvider, Shell } from "./components/Shell";
 import { FieldWordmark, Miley } from "./components/Brand";
 import { Waveform } from "./components/Waveform";
 import { ErrorPanel } from "./components/ErrorPanel";
-import { EmailContact } from './components/EmailContact';
+import { EmailContact } from "./components/EmailContact";
 import { FxArtwork } from "./components/FieldArtwork";
 import { Daily } from "./components/Daily";
 import { tasks, type Task } from "./data/tasks";
@@ -48,8 +66,12 @@ import {
 } from "./data/taskRotation";
 import { emojiCategories, searchEmoji, type EmojiCategory } from "./data/emoji";
 import { useI18n, type Locale } from "./i18n";
-import { COMMUNITY_PUBLISHING_AVAILABLE, EXTERNAL_LINKS, GROUP_PUBLISHING_AVAILABLE } from "./config";
-import { countries, searchCities, type CountryOption } from "./data/geo";
+import {
+  COMMUNITY_PUBLISHING_AVAILABLE,
+  EXTERNAL_LINKS,
+  GROUP_PUBLISHING_AVAILABLE,
+} from "./config";
+import { isWorldRestrictedLocation, searchCities } from "./data/geo";
 import { settingsContent, type SettingsArticle } from "./data/settingsContent";
 
 const STYLES = [
@@ -75,13 +97,10 @@ const EFFECTS: EffectId[] = [
   "destroy",
 ];
 const player = new PlaybackManager();
-const selectTask = createTaskSelector(
-  dailyTaskIds(tasks),
-  {
-    getItem: (key) => window.localStorage.getItem(key),
-    setItem: (key, value) => window.localStorage.setItem(key, value),
-  },
-);
+const selectTask = createTaskSelector(dailyTaskIds(tasks), {
+  getItem: (key) => window.localStorage.getItem(key),
+  setItem: (key, value) => window.localStorage.setItem(key, value),
+});
 
 function newDraft(
   blob: Blob,
@@ -116,21 +135,33 @@ const selectImageVariant = createImageVariantSelector({
 export default function App() {
   const { t } = useI18n();
   const [activeTask, setActiveTask] = useState<Task & { imageSrc: string }>();
-  const dailyDate = useRef('');
+  const dailyDate = useRef("");
   const refreshDaily = useCallback(() => {
     const date = new Date();
     const day = localDate(date);
     if (dailyDate.current === day) return;
     dailyDate.current = day;
     const id = selectTask(TASK_ROTATION_MODE, date);
-    const task = tasks.find(task => task.id === id)!;
+    const task = tasks.find((task) => task.id === id)!;
     const images = taskImages[task.imageId];
-    setActiveTask({...task, imageSrc: images[selectImageVariant(task.imageId, images.length, TASK_ROTATION_MODE, date)]});
+    setActiveTask({
+      ...task,
+      imageSrc:
+        images[
+          selectImageVariant(
+            task.imageId,
+            images.length,
+            TASK_ROTATION_MODE,
+            date,
+          )
+        ],
+    });
   }, []);
   const [screen, setScreen] = useState<Screen>("home");
-  const screenRef=useRef(screen);screenRef.current=screen;
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
   useEffect(() => {
-    if (screen !== 'daily') return;
+    if (screen !== "daily") return;
     refreshDaily();
     return subscribeForeground(refreshDaily, 30000);
   }, [screen, refreshDaily]);
@@ -140,7 +171,9 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [playingId, setPlayingId] = useState<string>();
   const [mapCity, setMapCity] = useState<string>();
-  const [savePhase, setSavePhase] = useState<'preparing'|'uploading'|'groupUpload'>('preparing');
+  const [savePhase, setSavePhase] = useState<
+    "preparing" | "uploading" | "groupUpload"
+  >("preparing");
   const settingsReturn = useRef<Screen>("home");
   const workflowReturn = useRef<Screen | undefined>(undefined);
   const pendingChallenge = useRef<string | undefined>(undefined);
@@ -148,9 +181,11 @@ export default function App() {
 
   const loadLibrary = useCallback(async () => {
     try {
-      const owner=currentUserId();
-      const rows=(await soundsDb.getAll()).sort((a,b)=>b.createdAt-a.createdAt);
-      if(owner===currentUserId()) setRecords(rows);
+      const owner = currentUserId();
+      const rows = (await soundsDb.getAll()).sort(
+        (a, b) => b.createdAt - a.createdAt,
+      );
+      if (owner === currentUserId()) setRecords(rows);
     } catch (error) {
       setNotice(publicationErrorMessage(error, t));
     }
@@ -158,37 +193,75 @@ export default function App() {
   useEffect(() => {
     const cleanup = telegram.init();
     void loadLibrary();
-    return () => { cleanup?.(); player.stop(); };
+    return () => {
+      cleanup?.();
+      player.stop();
+    };
   }, [loadLibrary]);
-  useEffect(()=>{
-    let timer:ReturnType<typeof setTimeout>|undefined;
-    const refresh=()=>{void loadLibrary();};
-    const sync=()=>{if(screenRef.current!=='record'&&screenRef.current!=='fx')void soundsDb.sync();};
-    const pending=()=>{clearTimeout(timer);timer=setTimeout(sync,700);};
-    const account=()=>{player.stop();setPlayingId(undefined);setRecords([]);soundsDb.accountChanged();void loadLibrary();sync();};
-    window.addEventListener('field-library-changed',refresh);
-    window.addEventListener('field-library-pending',pending);
-    window.addEventListener('field-auth-changed',account);
-    window.addEventListener('online',sync);
-    const foreground=subscribeForeground(sync,30000);
-    sync();
-    return()=>{clearTimeout(timer);foreground();soundsDb.accountChanged();window.removeEventListener('field-library-changed',refresh);window.removeEventListener('field-library-pending',pending);window.removeEventListener('field-auth-changed',account);window.removeEventListener('online',sync);};
-  },[loadLibrary]);
   useEffect(() => {
-    if(!COMMUNITY_PUBLISHING_AVAILABLE) return;
-    let active=true;
-    const retry=()=>{void retryPendingWorld().then(()=>{if(active) void loadLibrary();});};
-    retry(); window.addEventListener('online',retry); window.addEventListener('field-auth-changed', retry);
-    return ()=>{active=false;window.removeEventListener('online',retry);window.removeEventListener('field-auth-changed',retry);};
-  },[loadLibrary]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      void loadLibrary();
+    };
+    const sync = () => {
+      if (screenRef.current !== "record" && screenRef.current !== "fx")
+        void soundsDb.sync();
+    };
+    const pending = () => {
+      clearTimeout(timer);
+      timer = setTimeout(sync, 700);
+    };
+    const account = () => {
+      player.stop();
+      setPlayingId(undefined);
+      setRecords([]);
+      soundsDb.accountChanged();
+      void loadLibrary();
+      sync();
+    };
+    window.addEventListener("field-library-changed", refresh);
+    window.addEventListener("field-library-pending", pending);
+    window.addEventListener("field-auth-changed", account);
+    window.addEventListener("online", sync);
+    const foreground = subscribeForeground(sync, 30000);
+    sync();
+    return () => {
+      clearTimeout(timer);
+      foreground();
+      soundsDb.accountChanged();
+      window.removeEventListener("field-library-changed", refresh);
+      window.removeEventListener("field-library-pending", pending);
+      window.removeEventListener("field-auth-changed", account);
+      window.removeEventListener("online", sync);
+    };
+  }, [loadLibrary]);
+  useEffect(() => {
+    if (!COMMUNITY_PUBLISHING_AVAILABLE) return;
+    let active = true;
+    const retry = () => {
+      void retryPendingWorld().then(() => {
+        if (active) void loadLibrary();
+      });
+    };
+    retry();
+    window.addEventListener("online", retry);
+    window.addEventListener("field-auth-changed", retry);
+    return () => {
+      active = false;
+      window.removeEventListener("online", retry);
+      window.removeEventListener("field-auth-changed", retry);
+    };
+  }, [loadLibrary]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [screen]);
   useEffect(() => {
-    if (screen !== 'library') return;
+    if (screen !== "library") return;
     void loadLibrary();
     void soundsDb.sync();
-    return subscribeForeground(() => { void loadLibrary(); });
+    return subscribeForeground(() => {
+      void loadLibrary();
+    });
   }, [screen, loadLibrary]);
   const go = (next: Screen) => {
     if (next === "daily") {
@@ -196,9 +269,16 @@ export default function App() {
     }
     if (
       next === "settings" &&
-      !["settings", "donate", "randomDonate", "links", "privacy", "microphone", "about", "help"].includes(
-        screen,
-      )
+      ![
+        "settings",
+        "donate",
+        "randomDonate",
+        "links",
+        "privacy",
+        "microphone",
+        "about",
+        "help",
+      ].includes(screen)
     )
       settingsReturn.current = screen;
     if (["library", "daily", "map"].includes(next)) {
@@ -216,7 +296,8 @@ export default function App() {
       else if (
         [
           "settings",
-          "donate", "randomDonate",
+          "donate",
+          "randomDonate",
           "links",
           "privacy",
           "microphone",
@@ -233,36 +314,84 @@ export default function App() {
     setScreen(next);
   };
   const update = (patch: Partial<SoundDraft>) => {
-    const newVersion=(!!reusedRecord.current || records.some(record=>record.id===draft?.id)) && changesAudio(patch);
-    if(newVersion) reusedRecord.current=undefined;
+    const newVersion =
+      (!!reusedRecord.current ||
+        records.some((record) => record.id === draft?.id)) &&
+      changesAudio(patch);
+    if (newVersion) reusedRecord.current = undefined;
     setDraft((current) =>
       current
         ? {
             ...patchDraft(current, patch),
-            ...(newVersion?{id:newId(),createdAt:Date.now(),visibility:'private' as const}:{}),
+            ...(newVersion
+              ? {
+                  id: newId(),
+                  createdAt: Date.now(),
+                  visibility: "private" as const,
+                }
+              : {}),
           }
         : current,
     );
   };
-  const cacheReady = useCallback((source: SoundDraft, rendered: {blob:Blob;duration:number;waveform:number[]}) => {
-    setDraft(current => current === source ? {...current,processedBlob:rendered.blob,processedDuration:rendered.duration,processedWaveform:rendered.waveform} : current);
-  }, []);
+  const cacheReady = useCallback(
+    (
+      source: SoundDraft,
+      rendered: { blob: Blob; duration: number; waveform: number[] },
+    ) => {
+      setDraft((current) =>
+        current === source
+          ? {
+              ...current,
+              processedBlob: rendered.blob,
+              processedDuration: rendered.duration,
+              processedWaveform: rendered.waveform,
+            }
+          : current,
+      );
+    },
+    [],
+  );
 
   const save = async () => {
     if (!draft) return;
     setBusy(true);
-    setSavePhase('preparing');
+    setSavePhase("preparing");
     setNotice("");
     try {
-      const previous = (await soundsDb.getAll()).find(record=>record.id===draft.id);
-      const rendered = reusedRecord.current ? {blob:reusedRecord.current.audioBlob,duration:reusedRecord.current.duration,waveform:reusedRecord.current.waveform} : draft.processedBlob ? {blob:draft.processedBlob,duration:draft.processedDuration ?? draft.duration,waveform:draft.processedWaveform ?? draft.waveform} : await renderDraft(draft);
+      const previous = (await soundsDb.getAll()).find(
+        (record) => record.id === draft.id,
+      );
+      const rendered = reusedRecord.current
+        ? {
+            blob: reusedRecord.current.audioBlob,
+            duration: reusedRecord.current.duration,
+            waveform: reusedRecord.current.waveform,
+          }
+        : draft.processedBlob
+          ? {
+              blob: draft.processedBlob,
+              duration: draft.processedDuration ?? draft.duration,
+              waveform: draft.processedWaveform ?? draft.waveform,
+            }
+          : await renderDraft(draft);
       const record: SoundRecord = {
         ...previous,
         ...reusedRecord.current,
         // Metadata-only publication must not turn a legacy render into a claimed
         // pre-FX original or invent editable settings that were never saved.
-        originalBlob: reusedRecord.current ? reusedRecord.current.originalBlob : draft.originalBlob,
-        editState: reusedRecord.current ? reusedRecord.current.editState : (({originalBlob: _original, processedBlob: _processed, processedDuration: _duration, processedWaveform: _peaks, ...state}) => state)(draft),
+        originalBlob: reusedRecord.current
+          ? reusedRecord.current.originalBlob
+          : draft.originalBlob,
+        editState: reusedRecord.current
+          ? reusedRecord.current.editState
+          : (({
+              originalBlob: _original,
+              processedBlob: _processed,
+              processedDuration: _duration,
+              processedWaveform: _peaks,
+              ...state
+            }) => state)(draft),
         id: draft.id,
         title: draft.title?.trim() || "Untitled Sound",
         emojis: draft.emojis,
@@ -271,38 +400,85 @@ export default function App() {
         createdAt: draft.createdAt,
         favorite: previous?.favorite || reusedRecord.current?.favorite || false,
         location: draft.location,
-        visibility: 'private',
+        visibility: "private",
         groupId: draft.groupId,
         groupName: draft.groupName,
         effect: reusedRecord.current?.effect || draft.effect,
         effectChain: reusedRecord.current?.effectChain || draft.effectChain,
         effectMix: reusedRecord.current?.effectMix ?? draft.effectMix,
         echoDelayMs: reusedRecord.current?.echoDelayMs ?? draft.echoDelayMs,
-        dailyChallenge: reusedRecord.current?.dailyChallenge || draft.dailyChallenge,
+        dailyChallenge:
+          reusedRecord.current?.dailyChallenge || draft.dailyChallenge,
         audioBlob: rendered.blob,
         waveform: rendered.waveform,
       };
       await soundsDb.save(record);
       // Export/preview stay usable even when the destination rejects upload.
-      setDraft({...draft,processedBlob:rendered.blob,processedWaveform:rendered.waveform,processedDuration:rendered.duration});
-      if (draft.visibility === 'world' && COMMUNITY_PUBLISHING_AVAILABLE) {
-        setSavePhase('uploading');
-        try { const saved = await uploadWorld(record); setMapCity(saved.location?.placeId); if(saved.worldPublication?.state!=='published') {await loadLibrary();setNotice(t('offlinePending'));return;} }
-        catch (error) { await loadLibrary(); setNotice(publicationErrorMessage(error, t)); return; }
+      setDraft({
+        ...draft,
+        processedBlob: rendered.blob,
+        processedWaveform: rendered.waveform,
+        processedDuration: rendered.duration,
+      });
+      if (draft.visibility === "world" && COMMUNITY_PUBLISHING_AVAILABLE) {
+        setSavePhase("uploading");
+        try {
+          const saved = await uploadWorld(record);
+          setMapCity(saved.location?.placeId);
+          if (saved.worldPublication?.state !== "published") {
+            await loadLibrary();
+            setNotice(t("offlinePending"));
+            return;
+          }
+        } catch (error) {
+          await loadLibrary();
+          setNotice(publicationErrorMessage(error, t));
+          return;
+        }
       }
-      if (draft.visibility === 'group' && GROUP_PUBLISHING_AVAILABLE && draft.groupId) {
-        setSavePhase('groupUpload');
-        record.groupPublication={state:'pending',groupId:draft.groupId,groupName:draft.groupName};
+      if (
+        draft.visibility === "group" &&
+        GROUP_PUBLISHING_AVAILABLE &&
+        draft.groupId
+      ) {
+        setSavePhase("groupUpload");
+        record.groupPublication = {
+          state: "pending",
+          groupId: draft.groupId,
+          groupName: draft.groupName,
+        };
         await soundsDb.save(record);
         try {
           const published = await publishGroupSound(draft.groupId, record);
-          await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:published.telegramDeliveryState==='delivered'?'published':'failed',serverId:published.id}});
-          if (published.telegramDeliveryState !== 'delivered') {
+          await soundsDb.save({
+            ...record,
+            groupPublication: {
+              ...record.groupPublication,
+              state:
+                published.telegramDeliveryState === "delivered"
+                  ? "published"
+                  : "failed",
+              serverId: published.id,
+            },
+          });
+          if (published.telegramDeliveryState !== "delivered") {
             await loadLibrary();
-            setNotice(published.telegramDeliveryState === 'unconnected' ? t('savedGroupUnconnected') : t('savedGroupDeliveryFailed'));
+            setNotice(
+              published.telegramDeliveryState === "unconnected"
+                ? t("savedGroupUnconnected")
+                : t("savedGroupDeliveryFailed"),
+            );
             return;
           }
-        } catch (error) { await soundsDb.save({...record,groupPublication:{...record.groupPublication,state:'failed'}}); await loadLibrary(); setNotice(publicationErrorMessage(error, t)); return; }
+        } catch (error) {
+          await soundsDb.save({
+            ...record,
+            groupPublication: { ...record.groupPublication, state: "failed" },
+          });
+          await loadLibrary();
+          setNotice(publicationErrorMessage(error, t));
+          return;
+        }
       }
       await loadLibrary();
       telegram.success();
@@ -319,10 +495,10 @@ export default function App() {
             ? t("savedWorld")
             : draft.visibility === "group"
               ? t("savedGroup")
-            : t("savedPrivate"),
+              : t("savedPrivate"),
       );
     } catch (error) {
-      setNotice(publicationErrorMessage(error,t));
+      setNotice(publicationErrorMessage(error, t));
     } finally {
       setBusy(false);
     }
@@ -336,7 +512,7 @@ export default function App() {
         return (
           <RecordScreen
             onDone={(value) => {
-              reusedRecord.current=undefined;
+              reusedRecord.current = undefined;
               setDraft({ ...value, dailyChallenge: pendingChallenge.current });
               pendingChallenge.current = undefined;
               go("edit");
@@ -431,13 +607,13 @@ export default function App() {
               draft={draft}
               busy={busy}
               phase={savePhase}
-              seeMap={() => go('map')}
-              done={() => go('library')}
+              seeMap={() => go("map")}
+              done={() => go("library")}
               notice={notice}
               save={save}
               prepared={cacheReady}
               fresh={() => {
-                reusedRecord.current=undefined;
+                reusedRecord.current = undefined;
                 setDraft(undefined);
                 go("home");
               }}
@@ -452,19 +628,54 @@ export default function App() {
           <Library
             editRecord={async (record, destination) => {
               player.stop();
-              if(destination) {
-                reusedRecord.current=record;
-                setDraft({...newDraft(record.audioBlob,record.duration,record.waveform),...record.editState,id:record.id,originalBlob:record.originalBlob||record.audioBlob,title:record.title,emojis:record.emojis,styleId:record.styleId,location:record.location,createdAt:record.createdAt,processedBlob:record.audioBlob,processedDuration:record.duration,processedWaveform:record.waveform,visibility:destination});
+              if (destination) {
+                reusedRecord.current = record;
+                setDraft({
+                  ...newDraft(
+                    record.audioBlob,
+                    record.duration,
+                    record.waveform,
+                  ),
+                  ...record.editState,
+                  id: record.id,
+                  originalBlob: record.originalBlob || record.audioBlob,
+                  title: record.title,
+                  emojis: record.emojis,
+                  styleId: record.styleId,
+                  location: record.location,
+                  createdAt: record.createdAt,
+                  processedBlob: record.audioBlob,
+                  processedDuration: record.duration,
+                  processedWaveform: record.waveform,
+                  visibility: destination,
+                });
                 go(publicationStart(record, destination));
               } else {
-                reusedRecord.current=undefined;
-                const base=record.originalBlob||record.audioBlob;
-                const analyzed=await analyze(base);
-                setDraft({...newDraft(base,analyzed.duration,analyzed.waveform),...record.editState,title:record.title,emojis:record.emojis,location:record.location,styleId:record.styleId,id:newId(),originalBlob:base,visibility:'private',createdAt:Date.now()});
-                go('edit');setNotice(t(record.originalBlob?'editVersion':'legacyEdit'));
+                reusedRecord.current = undefined;
+                const base = record.originalBlob || record.audioBlob;
+                const analyzed = await analyze(base);
+                setDraft({
+                  ...newDraft(base, analyzed.duration, analyzed.waveform),
+                  ...record.editState,
+                  title: record.title,
+                  emojis: record.emojis,
+                  location: record.location,
+                  styleId: record.styleId,
+                  id: newId(),
+                  originalBlob: base,
+                  visibility: "private",
+                  createdAt: Date.now(),
+                });
+                go("edit");
+                setNotice(
+                  t(record.originalBlob ? "editVersion" : "legacyEdit"),
+                );
               }
             }}
-            seeMap={record => {setMapCity(record.location?.placeId);go('map');}}
+            seeMap={(record) => {
+              setMapCity(record.location?.placeId);
+              go("map");
+            }}
             records={records}
             reload={loadLibrary}
             go={go}
@@ -514,8 +725,10 @@ export default function App() {
         );
       case "settings":
         return <Settings go={go} back={() => go(settingsReturn.current)} />;
-      case 'donate': return <Donate go={go} />;
-      case 'randomDonate': return <Donate key="random" go={go} random />;
+      case "donate":
+        return <Donate go={go} />;
+      case "randomDonate":
+        return <Donate key="random" go={go} random />;
       case "links":
         return <Links go={go} />;
       case "privacy":
@@ -579,13 +792,25 @@ function RecordScreen({
   const recorder = useRef<FieldRecorder | undefined>(undefined);
   const liveCanvas = useRef<HTMLCanvasElement | null>(null);
   const captureGeneration = useRef(0);
-  const rawCapture = useRef<{blob: Blob; duration: number} | undefined>(undefined);
-  const decodeCapture = async (blob: Blob, duration: number, generation: number) => {
+  const rawCapture = useRef<{ blob: Blob; duration: number } | undefined>(
+    undefined,
+  );
+  const decodeCapture = async (
+    blob: Blob,
+    duration: number,
+    generation: number,
+  ) => {
     try {
       const result = await analyze(blob);
       if (generation !== captureGeneration.current) return;
-      const value = newDraft(blob, result.duration || duration, result.waveform);
-      setCaptured(value); setTime(value.duration); setState("ready");
+      const value = newDraft(
+        blob,
+        result.duration || duration,
+        result.waveform,
+      );
+      setCaptured(value);
+      setTime(value.duration);
+      setState("ready");
     } catch {
       if (generation !== captureGeneration.current) return;
       setState("error");
@@ -607,10 +832,12 @@ function RecordScreen({
         setState(next);
         if (message) setError(message);
       },
-      onTime: seconds => {if (generation === captureGeneration.current) setTime(seconds);},
+      onTime: (seconds) => {
+        if (generation === captureGeneration.current) setTime(seconds);
+      },
       onComplete: (blob, duration) => {
         if (generation !== captureGeneration.current) return;
-        rawCapture.current = {blob, duration};
+        rawCapture.current = { blob, duration };
         void decodeCapture(blob, duration, generation);
       },
     });
@@ -641,11 +868,21 @@ function RecordScreen({
       }}
     >
       {state === "error" ? (
-        <ErrorPanel message={error} retry={() => {
-          const capture = rawCapture.current;
-          if (capture) {setError("");setState("processing");void decodeCapture(capture.blob, capture.duration, captureGeneration.current);}
-          else start();
-        }} />
+        <ErrorPanel
+          message={error}
+          retry={() => {
+            const capture = rawCapture.current;
+            if (capture) {
+              setError("");
+              setState("processing");
+              void decodeCapture(
+                capture.blob,
+                capture.duration,
+                captureGeneration.current,
+              );
+            } else start();
+          }}
+        />
       ) : (
         <>
           <div className="timer">{formatTime(time)}</div>
@@ -777,7 +1014,11 @@ function EditScreen({
       player.pause();
       setPlaying(false);
     } else {
-      const rendered = await renderDraft({ ...draft, effect: "original",effectChain:[] });
+      const rendered = await renderDraft({
+        ...draft,
+        effect: "original",
+        effectChain: [],
+      });
       player.play("draft", rendered.blob, setPlaying, draft.loop);
     }
   };
@@ -903,17 +1144,54 @@ export function FxScreen({
   const [rendering, setRendering] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
   const [previewError, setPreviewError] = useState("");
-  const [activeSlot,setActiveSlot]=useState(()=>Math.max(0,draft.effectChain?.findIndex(slot=>slot.effect===draft.effect&&slot.mix===draft.effectMix&&slot.pitchSemitones===draft.pitchSemitones&&slot.echoDelayMs===draft.echoDelayMs)??0));
-  const chain=draft.effectChain || (draft.effect==='original'?[]:[{effect:draft.effect,mix:draft.effectMix,pitchSemitones:draft.pitchSemitones,echoDelayMs:draft.echoDelayMs}]);
-  const chainPatch=(patch:Partial<SoundDraft>):Partial<SoundDraft>=> {
-    if(patch.effectChain) return patch;
-    if(patch.effect==='original') return {...patch,effectChain:[]};
-    if(!Object.keys(patch).length)return patch;
-    const next=chain.slice();
-    const index=Math.min(activeSlot,next.length);
-    const current=next[index] || {effect:'original' as const,mix:70,pitchSemitones:7,echoDelayMs:340};
-    next[index]={...current,...(patch.effect?{effect:patch.effect}:{}),...(patch.effectMix!==undefined?{mix:patch.effectMix}:{}),...(patch.pitchSemitones!==undefined?{pitchSemitones:patch.pitchSemitones}:{}),...(patch.echoDelayMs!==undefined?{echoDelayMs:patch.echoDelayMs}:{})};
-    return {...patch,effectChain:next.slice(0,3)};
+  const [activeSlot, setActiveSlot] = useState(() =>
+    Math.max(
+      0,
+      draft.effectChain?.findIndex(
+        (slot) =>
+          slot.effect === draft.effect &&
+          slot.mix === draft.effectMix &&
+          slot.pitchSemitones === draft.pitchSemitones &&
+          slot.echoDelayMs === draft.echoDelayMs,
+      ) ?? 0,
+    ),
+  );
+  const chain =
+    draft.effectChain ||
+    (draft.effect === "original"
+      ? []
+      : [
+          {
+            effect: draft.effect,
+            mix: draft.effectMix,
+            pitchSemitones: draft.pitchSemitones,
+            echoDelayMs: draft.echoDelayMs,
+          },
+        ]);
+  const chainPatch = (patch: Partial<SoundDraft>): Partial<SoundDraft> => {
+    if (patch.effectChain) return patch;
+    if (patch.effect === "original") return { ...patch, effectChain: [] };
+    if (!Object.keys(patch).length) return patch;
+    const next = chain.slice();
+    const index = Math.min(activeSlot, next.length);
+    const current = next[index] || {
+      effect: "original" as const,
+      mix: 70,
+      pitchSemitones: 7,
+      echoDelayMs: 340,
+    };
+    next[index] = {
+      ...current,
+      ...(patch.effect ? { effect: patch.effect } : {}),
+      ...(patch.effectMix !== undefined ? { mix: patch.effectMix } : {}),
+      ...(patch.pitchSemitones !== undefined
+        ? { pitchSemitones: patch.pitchSemitones }
+        : {}),
+      ...(patch.echoDelayMs !== undefined
+        ? { echoDelayMs: patch.echoDelayMs }
+        : {}),
+    };
+    return { ...patch, effectChain: next.slice(0, 3) };
   };
   useEffect(
     () => () => {
@@ -924,7 +1202,7 @@ export function FxScreen({
     [],
   );
   const preview = async (patch: Partial<SoundDraft>, dry = false) => {
-    patch=chainPatch(patch);
+    patch = chainPatch(patch);
     const token = ++sequence.current;
     renderController.current?.abort();
     const controller = new AbortController();
@@ -932,7 +1210,7 @@ export function FxScreen({
     const nextDraft = {
       ...draft,
       ...patch,
-      ...(dry ? { effect: "original" as const,effectChain:[] } : {}),
+      ...(dry ? { effect: "original" as const, effectChain: [] } : {}),
     };
     if (!dry) update({ ...patch, processedBlob: undefined });
     setRendering(true);
@@ -967,13 +1245,97 @@ export function FxScreen({
     <Shell variant="fx" title={t("fx")} back={back}>
       <p className="eyebrow">{t("makeWeird")}</p>
       <div className="fx-chain">
-        {chain.map((slot,index)=><div className={index===activeSlot?'fx-slot active':'fx-slot'} key={index}>
-          <button onClick={()=>{setActiveSlot(index);update({effect:slot.effect,effectMix:slot.mix,pitchSemitones:slot.pitchSemitones,echoDelayMs:slot.echoDelayMs,effectChain:chain});}}>{index+1} · {effectLabel[slot.effect]}</button>
-          <button aria-pressed={!!slot.bypassed} onClick={()=>void preview({effectChain:chain.map((s,i)=>i===index?{...s,bypassed:!s.bypassed}:s)})}>{t('fxBypass')}</button>
-          <button disabled={index===0} onClick={()=>{const next=chain.slice();[next[index-1],next[index]]=[next[index],next[index-1]];setActiveSlot(index-1);void preview({effectChain:next,effect:next[index-1].effect,effectMix:next[index-1].mix,pitchSemitones:next[index-1].pitchSemitones,echoDelayMs:next[index-1].echoDelayMs});}} aria-label={t('fxMove')}>↑</button>
-          <button aria-label={t('fxRemove')} onClick={()=>{const next=chain.filter((_,i)=>i!==index);setActiveSlot(0);void preview({effectChain:next,effect:next[0]?.effect||'original',effectMix:next[0]?.mix||70,pitchSemitones:next[0]?.pitchSemitones||7,echoDelayMs:next[0]?.echoDelayMs||340});}}>×</button>
-        </div>)}
-        <button className="secondary-button" disabled={chain.length>=3} onClick={()=>{setActiveSlot(chain.length);update({effect:'original',effectMix:70,pitchSemitones:7,echoDelayMs:340,effectChain:[...chain,{effect:'original',mix:70,pitchSemitones:7,echoDelayMs:340}]});}}>{t('fxAdd')}</button>
+        {chain.map((slot, index) => (
+          <div
+            className={index === activeSlot ? "fx-slot active" : "fx-slot"}
+            key={index}
+          >
+            <button
+              onClick={() => {
+                setActiveSlot(index);
+                update({
+                  effect: slot.effect,
+                  effectMix: slot.mix,
+                  pitchSemitones: slot.pitchSemitones,
+                  echoDelayMs: slot.echoDelayMs,
+                  effectChain: chain,
+                });
+              }}
+            >
+              {index + 1} · {effectLabel[slot.effect]}
+            </button>
+            <button
+              aria-pressed={!!slot.bypassed}
+              onClick={() =>
+                void preview({
+                  effectChain: chain.map((s, i) =>
+                    i === index ? { ...s, bypassed: !s.bypassed } : s,
+                  ),
+                })
+              }
+            >
+              {t("fxBypass")}
+            </button>
+            <button
+              disabled={index === 0}
+              onClick={() => {
+                const next = chain.slice();
+                [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                setActiveSlot(index - 1);
+                void preview({
+                  effectChain: next,
+                  effect: next[index - 1].effect,
+                  effectMix: next[index - 1].mix,
+                  pitchSemitones: next[index - 1].pitchSemitones,
+                  echoDelayMs: next[index - 1].echoDelayMs,
+                });
+              }}
+              aria-label={t("fxMove")}
+            >
+              ↑
+            </button>
+            <button
+              aria-label={t("fxRemove")}
+              onClick={() => {
+                const next = chain.filter((_, i) => i !== index);
+                setActiveSlot(0);
+                void preview({
+                  effectChain: next,
+                  effect: next[0]?.effect || "original",
+                  effectMix: next[0]?.mix || 70,
+                  pitchSemitones: next[0]?.pitchSemitones || 7,
+                  echoDelayMs: next[0]?.echoDelayMs || 340,
+                });
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button
+          className="secondary-button"
+          disabled={chain.length >= 3}
+          onClick={() => {
+            setActiveSlot(chain.length);
+            update({
+              effect: "original",
+              effectMix: 70,
+              pitchSemitones: 7,
+              echoDelayMs: 340,
+              effectChain: [
+                ...chain,
+                {
+                  effect: "original",
+                  mix: 70,
+                  pitchSemitones: 7,
+                  echoDelayMs: 340,
+                },
+              ],
+            });
+          }}
+        >
+          {t("fxAdd")}
+        </button>
       </div>
       <div className="effect-grid">
         {EFFECTS.map((effect) => (
@@ -983,7 +1345,7 @@ export function FxScreen({
             aria-pressed={draft.effect === effect}
             onClick={() => {
               telegram.impact();
-              if(effect==='original')setActiveSlot(0);
+              if (effect === "original") setActiveSlot(0);
               void preview({ effect });
             }}
           >
@@ -1005,10 +1367,12 @@ export function FxScreen({
             step="1"
             value={draft.pitchSemitones}
             onChange={(e) =>
-              update(chainPatch({
-                pitchSemitones: Number(e.target.value),
-                processedBlob: undefined,
-              }))
+              update(
+                chainPatch({
+                  pitchSemitones: Number(e.target.value),
+                  processedBlob: undefined,
+                }),
+              )
             }
             onKeyUp={(e) =>
               void preview({ pitchSemitones: Number(e.currentTarget.value) })
@@ -1037,7 +1401,9 @@ export function FxScreen({
             max="1000"
             step="10"
             value={draft.echoDelayMs}
-            onChange={(e) => update(chainPatch({ echoDelayMs: Number(e.target.value) }))}
+            onChange={(e) =>
+              update(chainPatch({ echoDelayMs: Number(e.target.value) }))
+            }
             onKeyUp={(e) =>
               void preview({ echoDelayMs: Number(e.currentTarget.value) })
             }
@@ -1057,10 +1423,12 @@ export function FxScreen({
           disabled={draft.effect === "original"}
           value={draft.effectMix}
           onChange={(e) =>
-            update(chainPatch({
-              effectMix: Number(e.target.value),
-              processedBlob: undefined,
-            }))
+            update(
+              chainPatch({
+                effectMix: Number(e.target.value),
+                processedBlob: undefined,
+              }),
+            )
           }
           onKeyUp={(e) =>
             void preview({ effectMix: Number(e.currentTarget.value) })
@@ -1139,7 +1507,7 @@ export function EmojiScreen({ draft, update, next, back }: StepProps) {
             className={slot === i ? "active" : ""}
             key={i}
             aria-pressed={slot === i}
-            aria-label={`${i + 1}: ${draft.emojis[i] || '—'}`}
+            aria-label={`${i + 1}: ${draft.emojis[i] || "—"}`}
             onClick={() => setSlot(i)}
           >
             <span>{draft.emojis[i] || "·"}</span>
@@ -1267,56 +1635,56 @@ function StyleScreen({ draft, update, next, back }: StepProps) {
 }
 function LocationScreen({ draft, update, next, back }: StepProps) {
   const { t, locale } = useI18n();
-  const allCountries = useMemo(() => countries(locale), [locale]);
-  const [countryQuery, setCountryQuery] = useState(
-    draft.location?.country || "",
-  );
-  const [selectedCountry, setSelectedCountry] = useState<
-    CountryOption | undefined
-  >(() => {
-    if (!draft.location) return undefined;
-    return allCountries.find(country => country.code === draft.location?.countryCode ||
-      country.searchNames.some(name => name.toLocaleLowerCase() === draft.location?.country?.trim().toLocaleLowerCase()));
-  });
   const [cityQuery, setCityQuery] = useState(draft.location?.city || "");
   const [results, setResults] = useState<SoundLocation[]>([]);
   const [placeState, setPlaceState] = useState<
     "idle" | "loading" | "empty" | "error"
   >("idle");
-  const [placeError, setPlaceError] = useState('');
-  const countryResults =
-    countryQuery.trim().length && countryQuery !== selectedCountry?.name
-      ? allCountries
-          .filter((item) =>
-            item.searchNames.some((name) =>
-              name
-                .toLocaleLowerCase()
-                .includes(countryQuery.trim().toLocaleLowerCase()),
-            ),
-          )
-          .slice(0, 10)
-      : [];
+  const [placeError, setPlaceError] = useState("");
   const searchController = useRef<AbortController | null>(null);
   useEffect(() => () => searchController.current?.abort(), []);
   // Prefix search is served from the FIELD country catalogue, not Nominatim.
   useEffect(() => {
-    if (!selectedCountry || Array.from(cityQuery.trim()).length < 2 ||
-      (hasResolvableCity(draft) && draft.location?.city === cityQuery)) return;
+    if (
+      Array.from(cityQuery.trim()).length < 2 ||
+      (hasResolvableCity(draft) && draft.location?.city === cityQuery)
+    )
+      return;
     const timer = window.setTimeout(() => void findCity(), 450);
     return () => {
       window.clearTimeout(timer);
       searchController.current?.abort();
     };
-  }, [cityQuery, selectedCountry?.code, locale]);
+  }, [cityQuery, locale]);
   const findCity = async () => {
-    if (!selectedCountry || cityQuery.trim().length < 2) return;
+    if (cityQuery.trim().length < 2) return;
     searchController.current?.abort();
-    const controller = new AbortController(); searchController.current = controller;
-    setPlaceState('loading'); setResults([]);
+    const controller = new AbortController();
+    searchController.current = controller;
+    setPlaceState("loading");
+    setResults([]);
     try {
-      const found = await searchCities(cityQuery.trim(), selectedCountry, locale, controller.signal);
-      if (!controller.signal.aborted) {setResults(found); setPlaceState(found.length ? 'idle' : 'empty');}
-    } catch (error) { if (!controller.signal.aborted) {setPlaceState('error');setPlaceError(t(isAuthenticationError(error) ? 'sessionExpired' : 'placeSearchError'));} }
+      const found = await searchCities(
+        cityQuery.trim(),
+        locale,
+        controller.signal,
+      );
+      if (!controller.signal.aborted) {
+        setResults(found);
+        setPlaceState(found.length ? "idle" : "empty");
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setPlaceState("error");
+        setPlaceError(
+          t(
+            isAuthenticationError(error)
+              ? "sessionExpired"
+              : "placeSearchError",
+          ),
+        );
+      }
+    }
   };
   return (
     <Shell title={t("chooseLocation")} back={back}>
@@ -1324,48 +1692,28 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
       <DraftTitlePreview draft={draft} />
       <div className="location-search">
         <label>
-          <span>{t("country")}</span>
-          <input
-            className="text-input"
-            value={countryQuery}
-            placeholder={t("countrySearch")}
-            onChange={(event) => {searchController.current?.abort();setCountryQuery(event.target.value);setSelectedCountry(undefined);setResults([]);setPlaceState('idle');update({location:undefined});}}
-          />
-        </label>
-        {countryResults.length > 0 && (
-          <div className="search-results">
-            {countryResults.map((item) => (
-              <button
-                key={item.code}
-                onClick={() => {
-                  searchController.current?.abort();setPlaceState('idle');
-                  setSelectedCountry(item);
-                  setCountryQuery(item.name);
-                  setCityQuery("");
-                  setResults([]);
-                  update({ location: undefined });
-                }}
-              >
-                {item.name}
-                <small>{item.code}</small>
-              </button>
-            ))}
-          </div>
-        )}
-        <label>
           <span>{t("city")}</span>
           <input
             className="text-input"
             value={cityQuery}
-            disabled={!selectedCountry}
-            placeholder={
-              selectedCountry ? t("citySearch") : t("chooseCountryFirst")
-            }
-            onChange={(event) => {searchController.current?.abort();setResults([]);setPlaceState('idle');setCityQuery(event.target.value); update({location:undefined});}}
+            placeholder={t("citySearch")}
+            onChange={(event) => {
+              searchController.current?.abort();
+              setResults([]);
+              setPlaceState("idle");
+              setCityQuery(event.target.value);
+              update({ location: undefined });
+            }}
           />
         </label>
-        <button className="secondary-button" disabled={!selectedCountry || cityQuery.trim().length<2 || placeState==='loading'} onClick={() => void findCity()}>{t('searchCityButton')}</button>
-        <p className="world-privacy">{t('worldPrivacy')}</p>
+        <button
+          className="secondary-button"
+          disabled={cityQuery.trim().length < 2 || placeState === "loading"}
+          onClick={() => void findCity()}
+        >
+          {t("searchCityButton")}
+        </button>
+        <p className="world-privacy">{t("worldPrivacy")}</p>
         {placeState === "loading" && (
           <p className="search-status">{t("searchingPlaces")}</p>
         )}
@@ -1390,12 +1738,31 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
                       setResults([]);
                     }}
                   >
-                    {place.city}
-                    <small>
-                      {[place.englishCity !== place.city ? place.englishCity : undefined,
-                        place.nativeCity !== place.city && place.nativeCity !== place.englishCity ? place.nativeCity : undefined,
-                        place.region, place.country].filter(Boolean).join(" · ")}
-                    </small>
+                    <span className="city-mini-map" aria-hidden="true">
+                      <i
+                        style={{
+                          left: `${((place.lng + 180) / 360) * 100}%`,
+                          top: `${((90 - place.lat) / 180) * 100}%`,
+                        }}
+                      />
+                    </span>
+                    <span className="place-copy">
+                      <strong>{place.city}</strong>
+                      <small>
+                        {[
+                          place.englishCity !== place.city
+                            ? place.englishCity
+                            : undefined,
+                          place.nativeCity !== place.city &&
+                          place.nativeCity !== place.englishCity
+                            ? place.nativeCity
+                            : undefined,
+                          place.region,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </small>
+                    </span>
                   </button>
                 ),
             )}
@@ -1404,11 +1771,7 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
         {hasResolvableCity(draft) && draft.location && (
           <div className="selected-place">
             <strong>✓ {draft.location.city}</strong>
-            <small>
-              {[draft.location.region, draft.location.country]
-                .filter(Boolean)
-                .join(", ")}
-            </small>
+            <small>{draft.location.region}</small>
           </div>
         )}
         <a
@@ -1434,7 +1797,11 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
           <i />
         </button>
       </div>
-      <button className="primary-button" disabled={draft.visibility === 'world' && !hasResolvableCity(draft)} onClick={next}>
+      <button
+        className="primary-button"
+        disabled={draft.visibility === "world" && !hasResolvableCity(draft)}
+        onClick={next}
+      >
         {t("continue")}
       </button>
     </Shell>
@@ -1443,34 +1810,71 @@ function LocationScreen({ draft, update, next, back }: StepProps) {
 export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const { t } = useI18n();
   const [groups, setGroups] = useState<FieldGroup[]>([]);
-  const [code, setCode] = useState('');
-  const [groupError, setGroupError] = useState('');
+  const [code, setCode] = useState("");
+  const [groupError, setGroupError] = useState("");
   const [joining, setJoining] = useState(false);
-  const loadGroups = useCallback(async (signal?: AbortSignal) => {
-    if (!GROUP_PUBLISHING_AVAILABLE || !isAuthenticated()) {setGroups([]);setGroupError('');return;}
-    try { const items=await fieldGroups(signal); if(!signal?.aborted) {setGroups(items);setGroupError('');} }
-    catch (error) { if (!signal?.aborted) setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'groupsLoadFailed')); }
-  }, [t]);
+  const loadGroups = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!GROUP_PUBLISHING_AVAILABLE || !isAuthenticated()) {
+        setGroups([]);
+        setGroupError("");
+        return;
+      }
+      try {
+        const items = await fieldGroups(signal);
+        if (!signal?.aborted) {
+          setGroups(items);
+          setGroupError("");
+        }
+      } catch (error) {
+        if (!signal?.aborted)
+          setGroupError(
+            t(
+              isAuthenticationError(error)
+                ? "sessionExpired"
+                : "groupsLoadFailed",
+            ),
+          );
+      }
+    },
+    [t],
+  );
   useEffect(() => {
     let controller = new AbortController();
-    const refresh = () => { controller.abort(); controller = new AbortController(); setGroups([]); void loadGroups(controller.signal); };
+    const refresh = () => {
+      controller.abort();
+      controller = new AbortController();
+      setGroups([]);
+      void loadGroups(controller.signal);
+    };
     refresh();
-    window.addEventListener('field-auth-changed', refresh);
-    return () => {controller.abort();window.removeEventListener('field-auth-changed', refresh);};
+    window.addEventListener("field-auth-changed", refresh);
+    return () => {
+      controller.abort();
+      window.removeEventListener("field-auth-changed", refresh);
+    };
   }, [loadGroups]);
   const join = async () => {
     if (!code.trim()) return;
-    setJoining(true); setGroupError('');
+    setJoining(true);
+    setGroupError("");
     try {
       const group = await joinFieldGroup(code);
       await loadGroups();
-      update({ visibility:'group', groupId:group.id, groupName:group.name });
-      setCode('');
-    } catch (error) { setGroupError(t(isAuthenticationError(error) ? 'sessionExpired' : 'invalidGroupCode')); }
-    finally { setJoining(false); }
+      update({ visibility: "group", groupId: group.id, groupName: group.name });
+      setCode("");
+    } catch (error) {
+      setGroupError(
+        t(isAuthenticationError(error) ? "sessionExpired" : "invalidGroupCode"),
+      );
+    } finally {
+      setJoining(false);
+    }
   };
   const authenticated = isAuthenticated();
-  const groupEnabled = authenticated && GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
+  const groupEnabled =
+    authenticated && GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
+  const worldRestricted = isWorldRestrictedLocation(draft.location);
   const opts: [Visibility, string, string, boolean][] = [
     ["private", t("private"), t("privateCopy"), true],
     [
@@ -1479,10 +1883,17 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
       COMMUNITY_PUBLISHING_AVAILABLE
         ? t("worldCopy")
         : t("publicationUnavailable"),
-      authenticated && COMMUNITY_PUBLISHING_AVAILABLE &&
-        hasResolvableCity(draft),
+      authenticated &&
+        COMMUNITY_PUBLISHING_AVAILABLE &&
+        hasResolvableCity(draft) &&
+        !worldRestricted,
     ],
-    ["group", t("group"), GROUP_PUBLISHING_AVAILABLE ? t("groupCopy") : t("backendRequired"), groupEnabled],
+    [
+      "group",
+      t("group"),
+      GROUP_PUBLISHING_AVAILABLE ? t("groupCopy") : t("backendRequired"),
+      groupEnabled,
+    ],
   ];
   return (
     <Shell title={t("shareTo")} back={back}>
@@ -1495,7 +1906,14 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
             key={id}
             disabled={!enabled}
             className={draft.visibility === id ? "selected" : ""}
-            onClick={() => update({ visibility: id,...(id==='group' && !draft.groupId && groups.length===1?{groupId:groups[0].id,groupName:groups[0].name}:{}) })}
+            onClick={() =>
+              update({
+                visibility: id,
+                ...(id === "group" && !draft.groupId && groups.length === 1
+                  ? { groupId: groups[0].id, groupName: groups[0].name }
+                  : {}),
+              })
+            }
           >
             <span>
               <strong>
@@ -1503,7 +1921,13 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
               </strong>
               <small>
                 {id === "world" && !enabled && COMMUNITY_PUBLISHING_AVAILABLE
-                  ? t(authenticated ? 'cityRequired' : 'sessionExpired')
+                  ? t(
+                      authenticated
+                        ? worldRestricted
+                          ? "worldRestricted"
+                          : "cityRequired"
+                        : "sessionExpired",
+                    )
                   : copy}
               </small>
             </span>
@@ -1512,7 +1936,13 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
             ) : (
               <em>
                 {id === "world" && COMMUNITY_PUBLISHING_AVAILABLE
-                  ? t(authenticated ? 'cityRequired' : 'sessionExpired')
+                  ? t(
+                      authenticated
+                        ? worldRestricted
+                          ? "worldRestricted"
+                          : "cityRequired"
+                        : "sessionExpired",
+                    )
                   : t("soon")}
               </em>
             )}
@@ -1521,20 +1951,60 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
       </div>
       {GROUP_PUBLISHING_AVAILABLE && authenticated && (
         <section className="group-connect-panel">
-          <strong>{t('yourGroups')}</strong>
-          {groups.map(group => (
-            <button key={group.id} className={`group-choice ${draft.groupId === group.id ? 'selected' : ''}`} onClick={() => update({visibility:'group',groupId:group.id,groupName:group.name})}>
-              <span><b>{group.name}</b><small>{group.telegramTitle || t('telegramNotConnected')}</small></span><i />
+          <strong>{t("yourGroups")}</strong>
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              className={`group-choice ${draft.groupId === group.id ? "selected" : ""}`}
+              onClick={() =>
+                update({
+                  visibility: "group",
+                  groupId: group.id,
+                  groupName: group.name,
+                })
+              }
+            >
+              <span>
+                <b>{group.name}</b>
+                <small>
+                  {group.telegramTitle || t("telegramNotConnected")}
+                </small>
+              </span>
+              <i />
             </button>
           ))}
           <div className="group-code-row">
-            <input className="text-input" value={code} onChange={event => setCode(event.target.value.toUpperCase())} placeholder={t('groupCode')} maxLength={16} />
-            <button disabled={joining || !code.trim()} onClick={() => void join()}>{joining ? '…' : t('joinGroup')}</button>
+            <input
+              className="text-input"
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+              placeholder={t("groupCode")}
+              maxLength={16}
+            />
+            <button
+              disabled={joining || !code.trim()}
+              onClick={() => void join()}
+            >
+              {joining ? "…" : t("joinGroup")}
+            </button>
           </div>
-          {groupError && <p role="alert" className="search-status">{groupError}</p>}
+          {groupError && (
+            <p role="alert" className="search-status">
+              {groupError}
+            </p>
+          )}
         </section>
       )}
-      <button className="primary-button" disabled={(draft.visibility !== 'private' && !authenticated) || (draft.visibility === 'group' && !draft.groupId) || (draft.visibility === 'world' && !hasResolvableCity(draft))} onClick={next}>
+      <button
+        className="primary-button"
+        disabled={
+          (draft.visibility !== "private" && !authenticated) ||
+          (draft.visibility === "group" && !draft.groupId) ||
+          (draft.visibility === "world" &&
+            (!hasResolvableCity(draft) || worldRestricted))
+        }
+        onClick={next}
+      >
         {t("continue")}
       </button>
     </Shell>
@@ -1542,7 +2012,9 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
 }
 
 export function ReadyScreen({
-  phase, seeMap, done,
+  phase,
+  seeMap,
+  done,
   draft,
   busy,
   notice,
@@ -1554,7 +2026,7 @@ export function ReadyScreen({
   playing,
   setPlaying,
 }: {
-  phase: 'preparing'|'uploading'|'groupUpload';
+  phase: "preparing" | "uploading" | "groupUpload";
   seeMap: () => void;
   done: () => void;
   draft: SoundDraft;
@@ -1562,7 +2034,10 @@ export function ReadyScreen({
   notice: string;
   save: () => void;
   exportSound?: (blob: Blob) => void;
-  prepared?: (source: SoundDraft, result: {blob:Blob;duration:number;waveform:number[]}) => void;
+  prepared?: (
+    source: SoundDraft,
+    result: { blob: Blob; duration: number; waveform: number[] },
+  ) => void;
   fresh: () => void;
   back: () => void;
   playing: boolean;
@@ -1572,24 +2047,60 @@ export function ReadyScreen({
   const [error, setError] = useState("");
   const [confirmWorld, setConfirmWorld] = useState(false);
   const [file, setFile] = useState<File>();
-  const [fileBusy,setFileBusy] = useState(false);
-  const [fileStatus,setFileStatus] = useState('');
-  const [botUrl,setBotUrl] = useState<string>();
+  const [fileBusy, setFileBusy] = useState(false);
+  const [fileStatus, setFileStatus] = useState("");
+  const [botUrl, setBotUrl] = useState<string>();
   useEffect(() => {
     let active = true;
-    setFile(undefined); setError('');
-    void (draft.processedBlob ? Promise.resolve({blob:draft.processedBlob,duration:draft.processedDuration ?? draft.duration,waveform:draft.processedWaveform ?? draft.waveform}) : renderDraft(draft))
-      .then(async result => {const preparedFile=await prepareWavFile(result.blob,draft.title || 'Untitled Sound');if (active) {setFile(preparedFile);if (!draft.processedBlob) prepared?.(draft,result);}})
-      .catch(error => {if (active) setError(fileActionErrorMessage(error,t));});
-    return () => {active=false;};
+    setFile(undefined);
+    setError("");
+    void (
+      draft.processedBlob
+        ? Promise.resolve({
+            blob: draft.processedBlob,
+            duration: draft.processedDuration ?? draft.duration,
+            waveform: draft.processedWaveform ?? draft.waveform,
+          })
+        : renderDraft(draft)
+    )
+      .then(async (result) => {
+        const preparedFile = await prepareWavFile(
+          result.blob,
+          draft.title || "Untitled Sound",
+        );
+        if (active) {
+          setFile(preparedFile);
+          if (!draft.processedBlob) prepared?.(draft, result);
+        }
+      })
+      .catch((error) => {
+        if (active) setError(fileActionErrorMessage(error, t));
+      });
+    return () => {
+      active = false;
+    };
   }, [draft, t, prepared]);
-  const fileAction = async (action:'share'|'export') => {
-    if(!file || fileBusy) return;
-    if(action==='export' && exportSound) {exportSound(file);return;}
-    setFileBusy(true);setFileStatus('');setError('');
-    try {const result=await runFileAction(file,action);if(result.destination==='telegram') {setFileStatus(t('fileDelivered'));setBotUrl(result.botUrl);}}
-    catch(error) {if(!(error instanceof Error && error.name==='AbortError')) setError(fileActionErrorMessage(error,t));}
-    finally {setFileBusy(false);}
+  const fileAction = async (action: "share" | "export") => {
+    if (!file || fileBusy) return;
+    if (action === "export" && exportSound) {
+      exportSound(file);
+      return;
+    }
+    setFileBusy(true);
+    setFileStatus("");
+    setError("");
+    try {
+      const result = await runFileAction(file, action);
+      if (result.destination === "telegram") {
+        setFileStatus(t("fileDelivered"));
+        setBotUrl(result.botUrl);
+      }
+    } catch (error) {
+      if (!(error instanceof Error && error.name === "AbortError"))
+        setError(fileActionErrorMessage(error, t));
+    } finally {
+      setFileBusy(false);
+    }
   };
   const play = async () => {
     if (playing) {
@@ -1626,11 +2137,7 @@ export function ReadyScreen({
             <h2 className={`style-${draft.styleId}`}>
               {draft.title || "Untitled Sound"}
             </h2>
-            <p>
-              {draft.location?.city
-                ? `${draft.location.city}, ${draft.location.country}`
-                : draft.location?.country || "Private sound"}
-            </p>
+            <p>{draft.location?.city || "Private sound"}</p>
           </div>
           <div className="emoji-row">{draft.emojis.join(" ")}</div>
         </div>
@@ -1658,41 +2165,99 @@ export function ReadyScreen({
       <div className="ready-actions">
         <button
           disabled={busy || !file}
-          onClick={() => draft.visibility==='world' ? setConfirmWorld(true) : void save()}
+          onClick={() =>
+            draft.visibility === "world" ? setConfirmWorld(true) : void save()
+          }
           aria-label={t("save")}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m5 12 4.2 4.2L19 6.8" />
           </svg>
-          <span>{busy ? t(phase) : !file ? t('preparing') : t("save")}</span>
+          <span>{busy ? t(phase) : !file ? t("preparing") : t("save")}</span>
         </button>
-        <button disabled={!file || fileBusy} onClick={() => void fileAction('export')}>
+        <button
+          disabled={!file || fileBusy}
+          onClick={() => void fileAction("export")}
+        >
           ⇧<span>EXPORT WAV</span>
         </button>
         <button
           disabled={!file || fileBusy}
-          onClick={() => void fileAction('share')}
+          onClick={() => void fileAction("share")}
         >
-          ↗<span>{t('shareWav')}</span>
+          ↗<span>{t("shareWav")}</span>
         </button>
         <button onClick={fresh}>
           ＋<span>NEW</span>
         </button>
       </div>
-      {telegram.isTelegram && <p className="notice">{t('telegramFileNotice')}</p>}
-      {fileBusy && <p className="notice" role="status">{t('transferringFile')}</p>}
-      {fileStatus && <p className="notice" role="status">{fileStatus}</p>}
-      {botUrl && <TelegramLink className="secondary-button" href={botUrl}>{t('fileBotChat')}</TelegramLink>}
-      {!file && !error && <p className="notice" role="status">{t('preparing')}</p>}
-      {draft.visibility!=='private' && <p className="notice">{t('publicationLengthNotice')}</p>}
-      {notice===t('savedWorld') && <div className="world-success"><button className="primary-button" onClick={seeMap}>{t('seeMap')}</button><button className="secondary-button" onClick={done}>{t('done')}</button></div>}
-      {confirmWorld && <Dialog title={t('worldConfirm')} close={() => setConfirmWorld(false)}><p>{t('worldConsent')}</p><p>{draft.location?.city}, {draft.location?.country}</p><p>{t('publicationLengthNotice')}</p><div className="dialog-actions"><button className="primary-button" onClick={() => {setConfirmWorld(false);void save();}}>{t('publish')}</button><button className="secondary-button" onClick={() => setConfirmWorld(false)}>{t('cancel')}</button></div></Dialog>}
+      {telegram.isTelegram && (
+        <p className="notice">{t("telegramFileNotice")}</p>
+      )}
+      {fileBusy && (
+        <p className="notice" role="status">
+          {t("transferringFile")}
+        </p>
+      )}
+      {fileStatus && (
+        <p className="notice" role="status">
+          {fileStatus}
+        </p>
+      )}
+      {botUrl && (
+        <TelegramLink className="secondary-button" href={botUrl}>
+          {t("fileBotChat")}
+        </TelegramLink>
+      )}
+      {!file && !error && (
+        <p className="notice" role="status">
+          {t("preparing")}
+        </p>
+      )}
+      {draft.visibility !== "private" && (
+        <p className="notice">{t("publicationLengthNotice")}</p>
+      )}
+      {notice === t("savedWorld") && (
+        <div className="world-success">
+          <button className="primary-button" onClick={seeMap}>
+            {t("seeMap")}
+          </button>
+          <button className="secondary-button" onClick={done}>
+            {t("done")}
+          </button>
+        </div>
+      )}
+      {confirmWorld && (
+        <Dialog title={t("worldConfirm")} close={() => setConfirmWorld(false)}>
+          <p>{t("worldConsent")}</p>
+          <p>{draft.location?.city}</p>
+          <p>{t("publicationLengthNotice")}</p>
+          <div className="dialog-actions">
+            <button
+              className="primary-button"
+              onClick={() => {
+                setConfirmWorld(false);
+                void save();
+              }}
+            >
+              {t("publish")}
+            </button>
+            <button
+              className="secondary-button"
+              onClick={() => setConfirmWorld(false)}
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </Dialog>
+      )}
     </Shell>
   );
 }
 
 export function Library({
-  editRecord, seeMap,
+  editRecord,
+  seeMap,
   records,
   reload,
   go,
@@ -1702,8 +2267,11 @@ export function Library({
   notice,
   back,
 }: {
-  editRecord: (record:SoundRecord,destination?:'world'|'group') => Promise<void>;
-  seeMap: (record:SoundRecord) => void;
+  editRecord: (
+    record: SoundRecord,
+    destination?: "world" | "group",
+  ) => Promise<void>;
+  seeMap: (record: SoundRecord) => void;
   records: SoundRecord[];
   reload: () => Promise<void>;
   go: (s: Screen) => void;
@@ -1717,39 +2285,111 @@ export function Library({
   const [query, setQuery] = useState("");
   const [renaming, setRenaming] = useState<SoundRecord>();
   const [menuRecord, setMenuRecord] = useState<SoundRecord>();
-  const { t,locale } = useI18n();
-  const [menuFile,setMenuFile] = useState<File>();
-  const [fileStatus,setFileStatus] = useState('');
-  const [fileBotUrl,setFileBotUrl] = useState<string>();
+  const { t, locale } = useI18n();
+  const [menuFile, setMenuFile] = useState<File>();
+  const [fileStatus, setFileStatus] = useState("");
+  const [fileBotUrl, setFileBotUrl] = useState<string>();
   useEffect(() => {
-    let active=true;setMenuFile(undefined);setFileStatus('');setFileBotUrl(undefined);
-    if(menuRecord) void prepareWavFile(menuRecord.audioBlob,menuRecord.title).then(file=>{if(active)setMenuFile(file);}).catch(error=>{if(active)setFileStatus(fileActionErrorMessage(error,t));});
-    return () => {active=false;};
-  },[menuRecord,t]);
+    let active = true;
+    setMenuFile(undefined);
+    setFileStatus("");
+    setFileBotUrl(undefined);
+    if (menuRecord)
+      void prepareWavFile(menuRecord.audioBlob, menuRecord.title)
+        .then((file) => {
+          if (active) setMenuFile(file);
+        })
+        .catch((error) => {
+          if (active) setFileStatus(fileActionErrorMessage(error, t));
+        });
+    return () => {
+      active = false;
+    };
+  }, [menuRecord, t]);
   const [renameValue, setRenameValue] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
-  const retryGroup = async (r:SoundRecord) => {
-    if(!r.groupPublication||!confirm(t('groupRetryWarning')))return;setActionBusy(true);
+  const retryGroup = async (r: SoundRecord) => {
+    if (!r.groupPublication || !confirm(t("groupRetryWarning"))) return;
+    setActionBusy(true);
     try {
-      const result=r.groupPublication.serverId?await retryGroupDelivery(r.groupPublication.groupId,r.groupPublication.serverId):await publishGroupSound(r.groupPublication.groupId,r);
-      await soundsDb.save({...r,groupPublication:{...r.groupPublication,serverId:result.id,state:result.telegramDeliveryState==='delivered'?'published':'failed'}});
-      if(result.telegramDeliveryState!=='delivered')setNotice(t('savedGroupDeliveryFailed'));
-    } catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);setMenuRecord(undefined);try {await reload();} catch(error) {setNotice(publicationErrorMessage(error,t));}}
+      const result = r.groupPublication.serverId
+        ? await retryGroupDelivery(
+            r.groupPublication.groupId,
+            r.groupPublication.serverId,
+          )
+        : await publishGroupSound(r.groupPublication.groupId, r);
+      await soundsDb.save({
+        ...r,
+        groupPublication: {
+          ...r.groupPublication,
+          serverId: result.id,
+          state:
+            result.telegramDeliveryState === "delivered"
+              ? "published"
+              : "failed",
+        },
+      });
+      if (result.telegramDeliveryState !== "delivered")
+        setNotice(t("savedGroupDeliveryFailed"));
+    } catch (error) {
+      setNotice(publicationErrorMessage(error, t));
+    } finally {
+      setActionBusy(false);
+      setMenuRecord(undefined);
+      try {
+        await reload();
+      } catch (error) {
+        setNotice(publicationErrorMessage(error, t));
+      }
+    }
   };
-  const retryWorld = async (r:SoundRecord) => {setActionBusy(true);try {await uploadWorld(r);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);setMenuRecord(undefined);try {await reload();} catch(error) {setNotice(publicationErrorMessage(error,t));}}};
-  const removePublication = async (r:SoundRecord) => {if(!confirm(t('removeWorldConfirm'))) return;setActionBusy(true);try {await unpublishWorld(r);await reload();setMenuRecord(undefined);} catch (error) {setNotice(publicationErrorMessage(error, t));} finally {setActionBusy(false);}};
+  const retryWorld = async (r: SoundRecord) => {
+    setActionBusy(true);
+    try {
+      await uploadWorld(r);
+    } catch (error) {
+      setNotice(publicationErrorMessage(error, t));
+    } finally {
+      setActionBusy(false);
+      setMenuRecord(undefined);
+      try {
+        await reload();
+      } catch (error) {
+        setNotice(publicationErrorMessage(error, t));
+      }
+    }
+  };
+  const removePublication = async (r: SoundRecord) => {
+    if (!confirm(t("removeWorldConfirm"))) return;
+    setActionBusy(true);
+    try {
+      await unpublishWorld(r);
+      await reload();
+      setMenuRecord(undefined);
+    } catch (error) {
+      setNotice(publicationErrorMessage(error, t));
+    } finally {
+      setActionBusy(false);
+    }
+  };
   const shown = useMemo(
     () =>
       records
         .filter((r) => filter !== "favorites" || r.favorite)
-        .filter((r) => r.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+        .filter((r) =>
+          r.title
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase()),
+        )
         .slice(0, filter === "recents" ? 10 : undefined),
     [records, filter, query],
   );
   const play = (r: SoundRecord) =>
     player.play(r.id, r.audioBlob, (v) => setPlayingId(v ? r.id : undefined));
   const remove = async (r: SoundRecord) => {
-    if (confirm(r.librarySync?libraryCopy[locale].delete:t('privateDelete'))) {
+    if (
+      confirm(r.librarySync ? libraryCopy[locale].delete : t("privateDelete"))
+    ) {
       player.stop();
       await soundsDb.remove(r.id);
       await reload();
@@ -1768,19 +2408,26 @@ export function Library({
     setRenaming(undefined);
     await reload();
   };
-  const fileAction = async (action:'share'|'export') => {
-    if(!menuFile || actionBusy) return;
-    setActionBusy(true);setFileStatus('');
+  const fileAction = async (action: "share" | "export") => {
+    if (!menuFile || actionBusy) return;
+    setActionBusy(true);
+    setFileStatus("");
     try {
-      const result=await runFileAction(menuFile,action);
-      if(result.destination==='telegram') {setFileStatus(t('fileDelivered'));setFileBotUrl(result.botUrl);}
+      const result = await runFileAction(menuFile, action);
+      if (result.destination === "telegram") {
+        setFileStatus(t("fileDelivered"));
+        setFileBotUrl(result.botUrl);
+      }
     } catch (error) {
-      if (!(error instanceof Error && error.name === "AbortError")) setFileStatus(fileActionErrorMessage(error,t));
-    } finally {setActionBusy(false);}
+      if (!(error instanceof Error && error.name === "AbortError"))
+        setFileStatus(fileActionErrorMessage(error, t));
+    } finally {
+      setActionBusy(false);
+    }
   };
   return (
     <Shell title="LIBRARY" back={back}>
-      <LibrarySyncControl records={records} login={()=>go('settings')} />
+      <LibrarySyncControl records={records} login={() => go("settings")} />
       <div className="tabs">
         {(["all", "favorites", "recents"] as const).map((v) => (
           <button
@@ -1811,7 +2458,15 @@ export function Library({
           </div>
         ) : (
           shown.map((r) => (
-            <article key={r.id} onClick={event=>{if(!(event.target as Element).closest('button,[role="button"]'))play(r);}}>
+            <article
+              key={r.id}
+              onClick={(event) => {
+                if (
+                  !(event.target as Element).closest('button,[role="button"]')
+                )
+                  play(r);
+              }}
+            >
               <button
                 className="row-play"
                 onClick={() => play(r)}
@@ -1824,15 +2479,46 @@ export function Library({
                 <strong
                   className={`record-title style-${r.styleId || "grotesk"}`}
                   onClick={() => play(r)}
-                  role="button" tabIndex={0} onKeyDown={event => {if(event.key==='Enter'||event.key===' ') {event.preventDefault();play(r);}}}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      play(r);
+                    }
+                  }}
                 >
                   {r.title}
                 </strong>
                 <small>
                   {formatTime(r.duration)} · {r.emojis.join(" ")}
                 </small>
-                <small className="publication-state">{r.worldPublication?t(r.worldPublication.state==='published'?'publishedState':r.worldPublication.state==='pending'?'pendingState':'failedState'):t('localState')}{r.groupPublication?.state==='published'?` · ${t('groupPublishedState')}: ${r.groupPublication.groupName||r.groupName||''}`:''}</small>
-                {r.librarySync&&<small>{libraryCopy[locale][r.librarySync.mutationId===r.librarySync.syncedMutationId?'saved':'pending']}</small>}
+                <small className="publication-state">
+                  {r.worldPublication
+                    ? t(
+                        r.worldPublication.state === "published"
+                          ? "publishedState"
+                          : r.worldPublication.state === "pending"
+                            ? "pendingState"
+                            : "failedState",
+                      )
+                    : t("localState")}
+                  {r.groupPublication?.state === "published"
+                    ? ` · ${t("groupPublishedState")}: ${r.groupPublication.groupName || r.groupName || ""}`
+                    : ""}
+                </small>
+                {r.librarySync && (
+                  <small>
+                    {
+                      libraryCopy[locale][
+                        r.librarySync.mutationId ===
+                        r.librarySync.syncedMutationId
+                          ? "saved"
+                          : "pending"
+                      ]
+                    }
+                  </small>
+                )}
               </div>
               <button
                 className={r.favorite ? "favorite active" : "favorite"}
@@ -1841,34 +2527,153 @@ export function Library({
               >
                 ♡
               </button>
-              <button className="sound-menu-trigger" aria-label={t('soundActions')} onClick={() => setMenuRecord(r)}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+              <button
+                className="sound-menu-trigger"
+                aria-label={t("soundActions")}
+                onClick={() => setMenuRecord(r)}
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                </svg>
               </button>
             </article>
           ))
         )}
       </div>
-      {menuRecord && <Dialog title={menuRecord.title} close={() => setMenuRecord(undefined)}>
-        <div className="sound-actions">
-          <button disabled={actionBusy} onClick={() => {void editRecord(menuRecord).catch(()=>setNotice(t('storageFailed')));setMenuRecord(undefined);}}>{t('editSaved')}</button>
-          {COMMUNITY_PUBLISHING_AVAILABLE && menuRecord.worldPublication?.state!=='published' && <button onClick={() => {void editRecord(menuRecord,'world');setMenuRecord(undefined);}}>{t('publishWorld')}</button>}
-          {GROUP_PUBLISHING_AVAILABLE && <button onClick={() => {void editRecord(menuRecord,'group');setMenuRecord(undefined);}}>{t('publishGroup')}</button>}
-          {menuRecord.worldPublication?.state==='published' && <><button onClick={() => seeMap(menuRecord)}>{t('seeMap')}</button><button disabled={actionBusy} onClick={() => void removePublication(menuRecord)}>{t('removeWorld')}</button></>}
-          {menuRecord.worldPublication && menuRecord.worldPublication.state!=='published' && <button disabled={actionBusy} onClick={() => void retryWorld(menuRecord)}>{t('retry')}</button>}
-          {menuRecord.groupPublication && menuRecord.groupPublication.state!=='published' && <button disabled={actionBusy} onClick={() => void retryGroup(menuRecord)}>{t('retry')} · {menuRecord.groupPublication.groupName||t('group')}</button>}
-          <button onClick={() => { void favorite(menuRecord); setMenuRecord(undefined); }}>{t(menuRecord.favorite ? 'unfavorite' : 'favorite')}</button>
-          <button onClick={() => { setRenaming(menuRecord); setRenameValue(menuRecord.title); setMenuRecord(undefined); }}>{t('rename')}</button>
-          <button disabled={!menuFile || actionBusy} onClick={() => void fileAction('export')}>{t('exportWav')}</button>
-          <button disabled={!menuFile || actionBusy} onClick={() => void fileAction('share')}>{t('share')}</button>
-          <button className="danger-text" onClick={() => { void remove(menuRecord); setMenuRecord(undefined); }}>{t('delete')}</button>
-          <button onClick={() => setMenuRecord(undefined)}>{t('cancel')}</button>
-        </div>
-        {telegram.isTelegram && <p className="notice">{t('telegramFileNotice')}</p>}
-        {!menuFile && !fileStatus && <p role="status">{t('preparing')}</p>}
-        {actionBusy && <p role="status">{t('transferringFile')}</p>}
-        {fileStatus && <p className="notice" role="status">{fileStatus}</p>}
-        {fileBotUrl && <TelegramLink className="secondary-button" href={fileBotUrl}>{t('fileBotChat')}</TelegramLink>}
-      </Dialog>}
+      {menuRecord && (
+        <Dialog title={menuRecord.title} close={() => setMenuRecord(undefined)}>
+          <div className="sound-actions">
+            <button
+              disabled={actionBusy}
+              onClick={() => {
+                void editRecord(menuRecord).catch(() =>
+                  setNotice(t("storageFailed")),
+                );
+                setMenuRecord(undefined);
+              }}
+            >
+              {t("editSaved")}
+            </button>
+            {COMMUNITY_PUBLISHING_AVAILABLE &&
+              menuRecord.worldPublication?.state !== "published" && (
+                <button
+                  onClick={() => {
+                    void editRecord(menuRecord, "world");
+                    setMenuRecord(undefined);
+                  }}
+                >
+                  {t("publishWorld")}
+                </button>
+              )}
+            {GROUP_PUBLISHING_AVAILABLE && (
+              <button
+                onClick={() => {
+                  void editRecord(menuRecord, "group");
+                  setMenuRecord(undefined);
+                }}
+              >
+                {t("publishGroup")}
+              </button>
+            )}
+            {menuRecord.worldPublication?.state === "published" && (
+              <>
+                <button onClick={() => seeMap(menuRecord)}>
+                  {t("seeMap")}
+                </button>
+                <button
+                  disabled={actionBusy}
+                  onClick={() => void removePublication(menuRecord)}
+                >
+                  {t("removeWorld")}
+                </button>
+              </>
+            )}
+            {menuRecord.worldPublication &&
+              menuRecord.worldPublication.state !== "published" && (
+                <button
+                  disabled={actionBusy}
+                  onClick={() => void retryWorld(menuRecord)}
+                >
+                  {t("retry")}
+                </button>
+              )}
+            {menuRecord.groupPublication &&
+              menuRecord.groupPublication.state !== "published" && (
+                <button
+                  disabled={actionBusy}
+                  onClick={() => void retryGroup(menuRecord)}
+                >
+                  {t("retry")} ·{" "}
+                  {menuRecord.groupPublication.groupName || t("group")}
+                </button>
+              )}
+            <button
+              onClick={() => {
+                void favorite(menuRecord);
+                setMenuRecord(undefined);
+              }}
+            >
+              {t(menuRecord.favorite ? "unfavorite" : "favorite")}
+            </button>
+            <button
+              onClick={() => {
+                setRenaming(menuRecord);
+                setRenameValue(menuRecord.title);
+                setMenuRecord(undefined);
+              }}
+            >
+              {t("rename")}
+            </button>
+            <button
+              disabled={!menuFile || actionBusy}
+              onClick={() => void fileAction("export")}
+            >
+              {t("exportWav")}
+            </button>
+            <button
+              disabled={!menuFile || actionBusy}
+              onClick={() => void fileAction("share")}
+            >
+              {t("share")}
+            </button>
+            <button
+              className="danger-text"
+              onClick={() => {
+                void remove(menuRecord);
+                setMenuRecord(undefined);
+              }}
+            >
+              {t("delete")}
+            </button>
+            <button onClick={() => setMenuRecord(undefined)}>
+              {t("cancel")}
+            </button>
+          </div>
+          {telegram.isTelegram && (
+            <p className="notice">{t("telegramFileNotice")}</p>
+          )}
+          {!menuFile && !fileStatus && <p role="status">{t("preparing")}</p>}
+          {actionBusy && <p role="status">{t("transferringFile")}</p>}
+          {fileStatus && (
+            <p className="notice" role="status">
+              {fileStatus}
+            </p>
+          )}
+          {fileBotUrl && (
+            <TelegramLink className="secondary-button" href={fileBotUrl}>
+              {t("fileBotChat")}
+            </TelegramLink>
+          )}
+        </Dialog>
+      )}
       {renaming && (
         <div className="modal-backdrop">
           <div
@@ -1908,10 +2713,25 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
     <Shell title={t("settings")} back={back}>
       <FieldAccount />
       <div className="settings-list">
-        <button onClick={() => go('donate')}><span>⭐ {t('donate')}</span><strong>›</strong></button>
+        <button onClick={() => go("donate")}>
+          <span>⭐ {t("donate")}</span>
+          <strong>›</strong>
+        </button>
         <fieldset className="language-picker">
-          <legend>{t('appearance')}</legend>
-          {(['light', 'system'] as const).map((value) => <button key={value} aria-pressed={theme === value} className={theme === value ? 'selected' : ''} onClick={() => { setTheme(value); setThemePreference(value); }}>{t(value === 'light' ? 'lightTheme' : 'systemTheme')}</button>)}
+          <legend>{t("appearance")}</legend>
+          {(["light", "dark"] as const).map((value) => (
+            <button
+              key={value}
+              aria-pressed={theme === value}
+              className={theme === value ? "selected" : ""}
+              onClick={() => {
+                setTheme(value);
+                setThemePreference(value);
+              }}
+            >
+              {t(value === "light" ? "lightTheme" : "darkTheme")}
+            </button>
+          ))}
         </fieldset>
         <div>
           <span>{t("audioQuality")}</span>
@@ -1930,11 +2750,26 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
             </button>
           ))}
         </fieldset>
-        <button onClick={() => go("about")}><span>{t("about")}</span><strong>›</strong></button>
-        <button onClick={() => go("links")}><span>{t("links")}</span><strong>›</strong></button>
-        <button onClick={() => go("privacy")}><span>{t("privacy")}</span><strong>›</strong></button>
-        <button onClick={() => go("help")}><span>{t("help")}</span><strong>›</strong></button>
-        <button onClick={() => go("microphone")}><span>{t("microphone")}</span><strong>›</strong></button>
+        <button onClick={() => go("about")}>
+          <span>{t("about")}</span>
+          <strong>›</strong>
+        </button>
+        <button onClick={() => go("links")}>
+          <span>{t("links")}</span>
+          <strong>›</strong>
+        </button>
+        <button onClick={() => go("privacy")}>
+          <span>{t("privacy")}</span>
+          <strong>›</strong>
+        </button>
+        <button onClick={() => go("help")}>
+          <span>{t("help")}</span>
+          <strong>›</strong>
+        </button>
+        <button onClick={() => go("microphone")}>
+          <span>{t("microphone")}</span>
+          <strong>›</strong>
+        </button>
         {import.meta.env.DEV && (
           <button
             className="dev-action"
@@ -1950,13 +2785,59 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
     </Shell>
   );
 }
-function ArticleBody({ article, emailAfterLastSection = false, donate }: { article: SettingsArticle; emailAfterLastSection?: boolean; donate?: () => void }) {
-  const linkedParagraph = (text: string) => text.split(/(Tune Tots Lab|TuneTots Lab|Николой Ченом|Никола Чен|Nikola Chen|Նիկոլա Չեն|в виде донатов|Optional donations|Կամավոր աջակցությունը|自願贊助)/g).map((part, index) => {
-    const studio = part === 'Tune Tots Lab' || part === 'TuneTots Lab';
-    const author = ['Николой Ченом', 'Никола Чен', 'Nikola Chen', 'Նիկոլա Չեն'].includes(part);
-    if (donate && ['в виде донатов','Optional donations','Կամավոր աջակցությունը','自願贊助'].includes(part)) return <button key={index} className="inline-link" onClick={donate}>{part}</button>;
-    return studio || author ? <a key={index} href={studio ? EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM : EXTERNAL_LINKS.NIKOLA_INSTAGRAM} target="_blank" rel="noopener noreferrer">{part}</a> : part;
-  });
+function ArticleBody({
+  article,
+  emailAfterLastSection = false,
+  donate,
+}: {
+  article: SettingsArticle;
+  emailAfterLastSection?: boolean;
+  donate?: () => void;
+}) {
+  const linkedParagraph = (text: string) =>
+    text
+      .split(
+        /(Tune Tots Lab|TuneTots Lab|Николой Ченом|Никола Чен|Nikola Chen|Նիկոլա Չեն|в виде донатов|Optional donations|Կամավոր աջակցությունը|自願贊助)/g,
+      )
+      .map((part, index) => {
+        const studio = part === "Tune Tots Lab" || part === "TuneTots Lab";
+        const author = [
+          "Николой Ченом",
+          "Никола Чен",
+          "Nikola Chen",
+          "Նիկոլա Չեն",
+        ].includes(part);
+        if (
+          donate &&
+          [
+            "в виде донатов",
+            "Optional donations",
+            "Կամավոր աջակցությունը",
+            "自願贊助",
+          ].includes(part)
+        )
+          return (
+            <button key={index} className="inline-link" onClick={donate}>
+              {part}
+            </button>
+          );
+        return studio || author ? (
+          <a
+            key={index}
+            href={
+              studio
+                ? EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM
+                : EXTERNAL_LINKS.NIKOLA_INSTAGRAM
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {part}
+          </a>
+        ) : (
+          part
+        );
+      });
   return (
     <article className="information-article">
       {article.intro && <p className="article-intro">{article.intro}</p>}
@@ -1966,14 +2847,16 @@ function ArticleBody({ article, emailAfterLastSection = false, donate }: { artic
           {section.paragraphs.map((paragraph) => (
             <p key={paragraph}>{linkedParagraph(paragraph)}</p>
           ))}
-          {emailAfterLastSection && index === article.sections.length - 1 && <EmailContact />}
+          {emailAfterLastSection && index === article.sections.length - 1 && (
+            <EmailContact />
+          )}
         </section>
       ))}
     </article>
   );
 }
 
-function ContactLinks({includeEmail = true}: {includeEmail?: boolean}) {
+function ContactLinks({ includeEmail = true }: { includeEmail?: boolean }) {
   const { t } = useI18n();
   const links = [
     ["Tune Tots Lab · Instagram", EXTERNAL_LINKS.TUNE_TOTS_INSTAGRAM],
@@ -2008,8 +2891,14 @@ function InformationScreen({
   const article = settingsContent(locale)[kind];
   return (
     <Shell title={article.title} back={() => go("settings")}>
-      <ArticleBody article={article} emailAfterLastSection={kind === 'help'} donate={kind === 'about' ? () => go('donate') : undefined} />
-      {(kind === "about" || kind === "help") && <ContactLinks includeEmail={kind !== 'help'} />}
+      <ArticleBody
+        article={article}
+        emailAfterLastSection={kind === "help"}
+        donate={kind === "about" ? () => go("donate") : undefined}
+      />
+      {(kind === "about" || kind === "help") && (
+        <ContactLinks includeEmail={kind !== "help"} />
+      )}
     </Shell>
   );
 }
@@ -2103,7 +2992,11 @@ function Links({ go }: { go: (s: Screen) => void }) {
   return (
     <Shell title={t("links")} back={() => go("settings")}>
       <div className="links-list">
-        <TelegramLink href={EXTERNAL_LINKS.FIELD_TELEGRAM_APP} className=""><strong>FIELD · Telegram</strong><small>@field_sound_bot</small><b>›</b></TelegramLink>
+        <TelegramLink href={EXTERNAL_LINKS.FIELD_TELEGRAM_APP} className="">
+          <strong>FIELD · Telegram</strong>
+          <small>@field_sound_bot</small>
+          <b>›</b>
+        </TelegramLink>
         <a
           href={EXTERNAL_LINKS.TUNE_TOTS_WEBSITE}
           target="_blank"

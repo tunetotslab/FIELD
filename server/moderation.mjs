@@ -66,7 +66,7 @@ export async function notifyReport(env, telegram, id, reason) {
   const metadata = JSON.parse(row.metadata);
   await telegram("sendMessage", {
     chat_id: Number(env.ADMIN_TELEGRAM_ID),
-    text: `FIELD World · Жалоба: ${reason}\n${metadata.emojis.join(" ")} ${metadata.title}\n${metadata.location.city}, ${metadata.location.country}`,
+    text: `FIELD World · Жалоба: ${reason}\n${metadata.emojis.join(" ")} ${metadata.title}\n${metadata.location.city}`,
     reply_markup: {
       inline_keyboard: [
         [{ text: "▶ Послушать WAV", callback_data: `mod:listen:${id}` }],

@@ -1,14 +1,21 @@
-import {authenticationHeaders,authenticatedFetch} from './auth/session';
+import { authenticationHeaders, authenticatedFetch } from "./auth/session";
 import { API_URL } from "./config";
 import type { SoundRecord, SoundLocation } from "./types";
-import { preparePublicationAudio, PublicationAudioError } from "./audio/publication";
-import { NetworkRequestError } from './network';
-import { StorageError } from './storage/errors';
+import {
+  preparePublicationAudio,
+  PublicationAudioError,
+} from "./audio/publication";
+import { NetworkRequestError } from "./network";
+import { StorageError } from "./storage/errors";
+export type PublicLocation = Pick<
+  SoundLocation,
+  "placeId" | "city" | "lat" | "lng"
+>;
 export type WorldSound = Pick<
   SoundRecord,
   "id" | "title" | "emojis" | "duration" | "createdAt" | "styleId" | "waveform"
-> & { location: SoundLocation; likes?: number; liked?: boolean };
-export type WorldCity = SoundLocation & { id: string; count: number };
+> & { location: PublicLocation; likes?: number; liked?: boolean };
+export type WorldCity = PublicLocation & { id: string; count: number };
 export type WorldPage = { items: WorldSound[]; nextCursor: string | null };
 export const reportReasons = [
   "privacy",
@@ -17,28 +24,75 @@ export const reportReasons = [
   "other",
 ] as const;
 export class FieldRequestError extends Error {
-  constructor(public readonly status: number, public readonly reason = '') {
+  constructor(
+    public readonly status: number,
+    public readonly reason = "",
+  ) {
     super(`FIELD request failed (${status})`);
   }
 }
-export async function requestError(response: Response): Promise<FieldRequestError> {
-  let reason = '';
-  try { const body = await response.json(); if (typeof body.error === 'string') reason = body.error.slice(0, 150); } catch {}
+export async function requestError(
+  response: Response,
+): Promise<FieldRequestError> {
+  let reason = "";
+  try {
+    const body = await response.json();
+    if (typeof body.error === "string") reason = body.error.slice(0, 150);
+  } catch {}
   return new FieldRequestError(response.status, reason);
 }
-export function publicationErrorMessage(error: unknown, t: (key: 'sessionExpired' | 'publicationStorageFailed' | 'publicationAudioFailed' | 'publicationNetworkFailed' | 'publicationTooLarge' | 'publicationCityFailed' | 'publicationMetadataFailed' | 'publicationAccessFailed' | 'publicationLimitFailed' | 'publicationServiceFailed') => string): string {
-  if (error instanceof StorageError) return `${t('publicationStorageFailed')} [${error.step}:${error.reason}]`;
-  if (error instanceof PublicationAudioError) return `${t('publicationAudioFailed')} [${error.step}]`;
-  if (error instanceof NetworkRequestError) return `${t('publicationNetworkFailed')} [${error.step}:${error.kind}]`;
-  if (!(error instanceof FieldRequestError)) return `${t('publicationServiceFailed')} [LOCAL:${error instanceof Error && /^[a-zA-Z]{1,30}$/.test(error.name) ? error.name : 'Error'}]`;
-  const key = error.status === 401 ? 'sessionExpired' : error.status === 413 ? 'publicationTooLarge' : error.status === 429 ? 'publicationLimitFailed' : error.status === 403 ? 'publicationAccessFailed' : error.reason.toLowerCase().includes('city') ? 'publicationCityFailed' : error.status === 400 ? 'publicationMetadataFailed' : 'publicationServiceFailed';
+export function publicationErrorMessage(
+  error: unknown,
+  t: (
+    key:
+      | "sessionExpired"
+      | "publicationStorageFailed"
+      | "publicationAudioFailed"
+      | "publicationNetworkFailed"
+      | "publicationTooLarge"
+      | "publicationCityFailed"
+      | "publicationLocationRestricted"
+      | "publicationMetadataFailed"
+      | "publicationAccessFailed"
+      | "publicationLimitFailed"
+      | "publicationServiceFailed",
+  ) => string,
+): string {
+  if (error instanceof StorageError)
+    return `${t("publicationStorageFailed")} [${error.step}:${error.reason}]`;
+  if (error instanceof PublicationAudioError)
+    return `${t("publicationAudioFailed")} [${error.step}]`;
+  if (error instanceof NetworkRequestError)
+    return `${t("publicationNetworkFailed")} [${error.step}:${error.kind}]`;
+  if (!(error instanceof FieldRequestError))
+    return `${t("publicationServiceFailed")} [LOCAL:${error instanceof Error && /^[a-zA-Z]{1,30}$/.test(error.name) ? error.name : "Error"}]`;
+  const key =
+    error.status === 401
+      ? "sessionExpired"
+      : error.status === 413
+        ? "publicationTooLarge"
+        : error.status === 429
+          ? "publicationLimitFailed"
+          : error.status === 403 &&
+              error.reason.includes("World publishing unavailable")
+            ? "publicationLocationRestricted"
+            : error.status === 403
+              ? "publicationAccessFailed"
+              : error.reason.toLowerCase().includes("city")
+                ? "publicationCityFailed"
+                : error.status === 400
+                  ? "publicationMetadataFailed"
+                  : "publicationServiceFailed";
   return `${t(key)} (${error.status})`;
 }
 export const isAuthenticationError = (error: unknown) =>
   error instanceof FieldRequestError && error.status === 401;
 function interfaceLanguage() {
-  try { return localStorage.getItem("field-locale") || "en"; }
-  catch { return "en"; }
+  try {
+    return localStorage.getItem("field-locale") || "en";
+  } catch {
+    return "en";
+  }
 }
 export function publicMetadata(record: SoundRecord) {
   return {
@@ -58,19 +112,21 @@ export async function worldRequest<T>(
 ): Promise<T> {
   const response = await authenticatedFetch(`${API_URL}${path}`, {
     ...options,
-    cache: 'no-store',
+    cache: "no-store",
     headers: {
       ...authenticationHeaders(),
       ...options.headers,
     },
   });
-  if (!response.ok)
-    throw await requestError(response);
-  try {return await response.json();} catch {throw new FieldRequestError(response.status, 'Invalid service response');}
+  if (!response.ok) throw await requestError(response);
+  try {
+    return await response.json();
+  } catch {
+    throw new FieldRequestError(response.status, "Invalid service response");
+  }
 }
 export async function publishSound(record: SoundRecord) {
   const auth = authenticationHeaders();
-  const prepared = await preparePublicationAudio(record);
   if (!record.location) throw Error("City required");
   const location = await worldRequest<SoundLocation>("/cities/resolve", {
     method: "POST",
@@ -83,6 +139,7 @@ export async function publishSound(record: SoundRecord) {
       language: interfaceLanguage(),
     }),
   });
+  const prepared = await preparePublicationAudio(record);
   const form = new FormData();
   form.set(
     "metadata",
@@ -138,13 +195,17 @@ export function reportWorldSound(
   });
 }
 export async function worldAudio(id: string, signal?: AbortSignal) {
-  const response = await authenticatedFetch(`${API_URL}/audio/${encodeURIComponent(id)}`, {
-    cache: 'no-store',
-    headers: {
-      ...authenticationHeaders(),
+  const response = await authenticatedFetch(
+    `${API_URL}/audio/${encodeURIComponent(id)}`,
+    {
+      cache: "no-store",
+      headers: {
+        ...authenticationHeaders(),
+      },
+      signal,
     },
-    signal,
-  }, 30000);
+    30000,
+  );
   if (!response.ok) throw new FieldRequestError(response.status);
   return response.blob();
 }

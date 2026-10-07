@@ -47,7 +47,7 @@
   height: auto; min-height: calc(62px + var(--safe-bottom)); background: var(--surface);
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
-.bottom-nav button { min-width: 0; min-height: 44px; font-size: 9px; overflow-wrap: anywhere; }
+.bottom-nav button { min-width: 0; min-height: 44px; font-size: clamp(7px, 2.15vw, 9px); overflow-wrap: normal; }
 .shell-home, .shell-world, .shell-fx { height: var(--field-viewport-height, var(--tg-viewport-stable-height, 100dvh)); padding-bottom: 0; }
 .emoji-slots button { width: 72px; height: 76px; border: 0; border-radius: 0; background: none; gap: 4px; }
 .emoji-slots button.active { outline: none; }

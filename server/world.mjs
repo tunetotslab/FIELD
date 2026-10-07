@@ -1,5 +1,10 @@
-import { directorySearch, normalizeCitySearch } from "./city-directory.mjs";
-import { readUploadForm, UploadLimitError } from './upload.mjs';
+import {
+  directorySearch,
+  globalDirectorySearch,
+  normalizeCitySearch,
+  worldPublicationRestricted,
+} from "./city-directory.mjs";
+import { readUploadForm, UploadLimitError } from "./upload.mjs";
 import { downloadTicket } from "./downloads.mjs";
 import { removeWorldDelivery } from "./world-delivery.mjs";
 // City-level archive only. Never copy arbitrary client metadata into public rows.
@@ -66,16 +71,20 @@ export async function searchCity(env, query, country, language = "en") {
     typeof query !== "string" ||
     query.trim().length < 2 ||
     query.length > 100 ||
-    !/^[A-Z]{2}$/.test(country)
+    (country != null && !/^[A-Z]{2}$/.test(country))
   )
     throw Error("City required");
-  const cacheKey = `directory-v1:${country}:${language}:${normalizeCitySearch(query)}`;
+  const cacheKey = `directory-v2:${country || "world"}:${language}:${normalizeCitySearch(query)}`;
   const cached = await env.DB.prepare(
     "SELECT results FROM city_search_cache WHERE id=? AND expires_at>?",
-  ).bind(cacheKey, Date.now()).first();
+  )
+    .bind(cacheKey, Date.now())
+    .first();
   if (cached) return JSON.parse(cached.results);
   const now = Date.now();
-  const locations = await directorySearch(env, query, country, language);
+  const locations = country
+    ? await directorySearch(env, query, country, language)
+    : await globalDirectorySearch(env, query, language);
   if (locations.length)
     await env.DB.batch(
       locations.map((location) =>
@@ -91,12 +100,22 @@ export async function searchCity(env, query, country, language = "en") {
     .run();
   return locations;
 }
-const publicRow = (row) => ({
-  ...JSON.parse(row.metadata),
-  id: row.id,
-  likes: row.likes || 0,
-  liked: Boolean(row.liked),
+const publicLocation = ({ placeId, city, lat, lng }) => ({
+  placeId,
+  city,
+  lat,
+  lng,
 });
+const publicRow = (row) => {
+  const metadata = JSON.parse(row.metadata);
+  return {
+    ...metadata,
+    location: publicLocation(metadata.location),
+    id: row.id,
+    likes: row.likes || 0,
+    liked: Boolean(row.liked),
+  };
+};
 export async function resolveCity(env, data) {
   if (!data || typeof data.placeId !== "string" || data.placeId.length > 100)
     throw Error("City required");
@@ -119,10 +138,13 @@ export async function resolveCity(env, data) {
   );
   if (locations.length === 1) return locations[0];
   const normalized = normalizeCitySearch;
-  const matches = locations.filter(
-    (location) => [location.city, location.englishCity, location.nativeCity,
-      ...Object.values(location.localizedNames || {})].some(name =>
-        normalized(name) === normalized(data.city)),
+  const matches = locations.filter((location) =>
+    [
+      location.city,
+      location.englishCity,
+      location.nativeCity,
+      ...Object.values(location.localizedNames || {}),
+    ].some((name) => normalized(name) === normalized(data.city)),
   );
   if (matches.length === 1) return matches[0];
   const regionMatches = matches.filter(
@@ -162,7 +184,13 @@ export async function worldRoute(request, env, user, notify) {
       return json({ error: "Invalid city" }, 400);
     }
     try {
-      return json(await resolveCity(env, data));
+      const location = await resolveCity(env, data);
+      if (worldPublicationRestricted(location))
+        return json(
+          { error: "World publishing unavailable for this city" },
+          403,
+        );
+      return json(location);
     } catch {
       return json({ error: "Please choose the city again" }, 400);
     }
@@ -176,7 +204,8 @@ export async function worldRoute(request, env, user, notify) {
       form = await readUploadForm(request);
       data = JSON.parse(String(form.get("metadata")));
     } catch (error) {
-      if (error instanceof UploadLimitError) return json({error: 'Maximum upload 25 MB'}, 413);
+      if (error instanceof UploadLimitError)
+        return json({ error: "Maximum upload 25 MB" }, 413);
       return json({ error: "Invalid metadata" }, 400);
     }
     const audio = form.get("audio");
@@ -216,14 +245,14 @@ export async function worldRoute(request, env, user, notify) {
     if (existing) {
       if (!existing.published || existing.moderation_state !== "visible")
         return json(
-            { error: "This publication was removed; make a new local version" },
-            409,
-          );
+          { error: "This publication was removed; make a new local version" },
+          409,
+        );
       // A D1 row alone cannot confirm a playable publication. Do not overwrite
       // or delete uncertain user data when an R2 object is missing.
       if (!(await env.AUDIO.head(existing.id)))
-        return json({error:'Published audio unavailable'},503);
-      return json({id:existing.id});
+        return json({ error: "Published audio unavailable" }, 503);
+      return json({ id: existing.id });
     }
     const recent = await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM sounds WHERE user_id=? AND created_at>?",
@@ -238,6 +267,8 @@ export async function worldRoute(request, env, user, notify) {
       .first();
     if (!city) return json({ error: "Choose a city from search results" }, 400);
     const location = JSON.parse(city.location);
+    if (worldPublicationRestricted(location))
+      return json({ error: "World publishing unavailable for this city" }, 403);
     const metadata = {
       title: data.title.trim(),
       emojis: data.emojis,
@@ -290,7 +321,10 @@ export async function worldRoute(request, env, user, notify) {
       if (race) return json({ id: race.id });
       throw error;
     }
-    return json({ id, ...metadata }, 201);
+    return json(
+      { id, ...metadata, location: publicLocation(metadata.location) },
+      201,
+    );
   }
   if (path === "/world/cities" && method === "GET") {
     const { results } = await env.DB.prepare(
@@ -301,7 +335,7 @@ export async function worldRoute(request, env, user, notify) {
         .filter((r) => r.city_key)
         .map((r) => ({
           id: r.city_key,
-          ...JSON.parse(r.metadata).location,
+          ...publicLocation(JSON.parse(r.metadata).location),
           count: r.count,
         })),
     );
