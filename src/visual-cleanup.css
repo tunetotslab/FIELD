@@ -195,8 +195,19 @@
   margin: auto 0 0;
   padding-top: var(--space-4);
   text-align: center;
+  font-size: 17px;
+  line-height: 1.18;
+}
+.world-manifesto strong,
+.world-manifesto span {
+  display: block;
+}
+.world-manifesto strong {
   font-size: 29px;
   line-height: 1.02;
+}
+.world-manifesto span {
+  margin-top: 8px;
 }
 .world-empty {
   text-align: center;
@@ -370,8 +381,10 @@
     padding-bottom: var(--space-3);
   }
   .world-manifesto {
-    font-size: 25px;
     padding-top: 0;
+  }
+  .world-manifesto strong {
+    font-size: 25px;
   }
   .effect-art {
     width: 74px;

@@ -378,7 +378,10 @@ export function WorldMap({
           ))}
         </div>
       )}
-      <p className="hand world-manifesto">{t("manifesto")}</p>
+      <p className="hand world-manifesto">
+        <strong>{t("manifesto").split("\n")[0]}</strong>
+        <span>{t("manifesto").split("\n").slice(1).join(" ")}</span>
+      </p>
       {selected && (
         <Dialog
           sheet
