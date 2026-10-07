@@ -633,6 +633,9 @@ try {
   telegramPage.setDefaultTimeout(15000);
   telegramPage.on("pageerror", (error) => errors.push(error.message));
   await telegramPage.goto(base);
+  await telegramPage.waitForFunction(
+    () => document.documentElement.dataset.theme === "light",
+  );
   assert.equal(
     await telegramPage.evaluate(() => document.documentElement.dataset.theme),
     "light",
