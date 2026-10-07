@@ -65,11 +65,14 @@ count actual incoming bytes before parsing, cancel bodies above 25 MB, and rejec
 oversized files independently. Missing or understated size headers cannot bypass
 the cap. Regression tests include browser-style requests without the header.
 
-`/cities?q=...&country=AM&language=ru` now searches the versioned GeoNames
-country catalogue after two characters (450ms frontend debounce). Nominatim is
+`/cities?q=...&language=ru` searches all versioned GeoNames country catalogues
+after two characters (450ms frontend debounce). A checked-in prefix router under
+`public/geo/v1/search/` selects only relevant country shards; the public UI does
+not ask for or display a country. The legacy `country=AM` parameter remains
+accepted for saved-location repair. Nominatim is
 no longer used: its global lease blocked concurrent users and its policy does not
 permit autocomplete. D1 caches results for 30 days under a new namespace; the
-Worker caches at most three country files for 30 minutes. Typed queries and user
+Worker caches a bounded set of country files for 30 minutes. Typed queries and user
 coordinates never go to an external geocoder. `CITY_DIRECTORY_URL` can override
 the default `${APP_URL}geo/v1/`; publish the catalogue via the existing Pages
 workflow before deploying this Worker. Prefix aliases are normalized at build
@@ -84,8 +87,14 @@ Catalogue sources/licence: [GeoNames dumps](https://download.geonames.org/export
 CC BY 4.0. Download `cities500.zip`, `alternateNamesV2.zip`, `admin1CodesASCII.txt`
 and `countryInfo.txt` into ignored `work/geo/`, then run
 `python3 scripts/build-city-directory.py work/geo public/geo/v1` and commit the
-generated shards/manifest. Coverage excludes some small villages; aliases and
+generated shards/manifest. Then run `npm run build:city-search` and commit the
+generated routing shards. Coverage excludes some small villages; aliases and
 translations are only as complete as GeoNames. Do not invent translated names.
+
+Public World responses, Telegram captions and moderation notifications expose
+the city only. Country and region remain internal canonical lookup fields. World
+publication returns 403 for Crimea, Sevastopol and the Donetsk, Luhansk,
+Zaporizhzhia and Kherson regions; Private Library and Groups remain available.
 
 `GET /world/cities` returns complete visible city counts. `GET /world?city=ID`
 returns `{items,nextCursor}` (20 items). Cursor ordering uses `(created_at,id)`.

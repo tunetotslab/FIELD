@@ -165,9 +165,14 @@ const originalFetch = globalThis.fetch;
 const telegramMessages=[];
 let rejectTelegram=false,unknownTelegram=false;
 let geocoderCalls = 0,
+  routeCalls = 0,
   notifications = 0;
 globalThis.fetch = async (url, options) => {
   if (String(url).includes('catalogue.test')) {
+    if (String(url).includes('/search/')) {
+      routeCalls++;
+      return Response.json({ye:['AM']});
+    }
     geocoderCalls++;
     return Response.json([
       [1,'Yerevan','Yerevan',['yerevan','ереван','երևան'],40.177,44.503,1000000,'Yerevan',{en:'Yerevan',ru:'Ереван',hy:'Երևան'}],
@@ -196,6 +201,10 @@ try {
   assert.equal(canonical.placeId, "osm:relation:1");
   assert.equal((await request("/cities?q=Yerevan&country=AM")).status, 200);
   assert.equal(geocoderCalls, 1);
+  const globalCity = await request("/cities?q=Yerevan&language=en");
+  assert.equal(globalCity.status, 200);
+  assert.equal((await globalCity.json())[0].city, 'Yerevan');
+  assert.equal(routeCalls, 1);
   const resolved=await request('/cities/resolve',1,{method:'POST',body:JSON.stringify({...metadata.location,placeId:'osm:old',lat:0,lng:0})});
   assert.equal(resolved.status,200);
   assert.equal((await resolved.json()).placeId,canonical.placeId);
@@ -204,6 +213,13 @@ try {
   assert.equal((await translatedLegacy.json()).placeId,canonical.placeId,'English legacy name resolves while UI/results are Russian and multiple prefixes match');
   assert.equal((await request("/cities?q=Dilijan&country=AM",2)).status, 200);
   assert.equal(geocoderCalls, 1);
+  const restrictedLocation={placeId:'geonames:709717',city:'Donetsk',country:'Ukraine',countryCode:'UA',region:'Donetsk Oblast',lat:48.0,lng:37.8};
+  database.prepare('INSERT INTO world_cities(id,location) VALUES (?,?)').run(restrictedLocation.placeId,JSON.stringify(restrictedLocation));
+  const restrictedResolve=await request('/cities/resolve',1,{method:'POST',body:JSON.stringify(restrictedLocation)});
+  assert.equal(restrictedResolve.status,403);
+  assert.equal((await restrictedResolve.json()).error,'World publishing unavailable for this city');
+  const restrictedUpload=await request('/world',1,{method:'POST',body:form({...metadata,id:'restricted',location:restrictedLocation})});
+  assert.equal(restrictedUpload.status,403);
   const response = await request("/world", 1, { method: "POST", body: form(), omitLength: true });
   assert.equal(response.status, 201);
   const published = await response.json(),
@@ -232,10 +248,15 @@ try {
   const delivered=telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp');
   assert.equal(delivered.length,1);
   assert.ok(delivered[0].body.document instanceof File);
+  assert.ok(delivered.some(message=>['Yerevan','Ереван'].includes(message.body.caption.split('\n')[1])));
+  assert.ok(delivered.every(message=>!message.body.caption.includes('Armenia')));
   await deliverWorld({...env,WORLD_TELEGRAM_CHAT:'@Fieldapp'});
   assert.equal(telegramMessages.filter(m=>m.body.chat_id==='@Fieldapp').length,1);
   assert.equal(published.location.lat, 40.177);
   assert.equal(published.location.lng, 44.503);
+  assert.equal('country' in published.location,false);
+  assert.equal('countryCode' in published.location,false);
+  assert.equal('region' in published.location,false);
   assert.equal(published.effect, "echo");
   assert.equal(published.styleId, "bubble");
   assert.deepEqual(published.waveform, [0.2, 0.5]);
@@ -308,6 +329,9 @@ try {
       );
   const cities = await (await request("/world/cities", 2)).json();
   assert.equal(cities[0].count, 46);
+  assert.equal('country' in cities[0],false);
+  assert.equal('countryCode' in cities[0],false);
+  assert.equal('region' in cities[0],false);
   assert.deepEqual(await (await request('/world/cities',1)).json(),cities,'All users get the same cities and complete counts');
   assert.deepEqual(await (await request('/world/cities',3)).json(),cities,'Repeated loads do not lose older cities');
   let cursor = null;
@@ -320,6 +344,7 @@ try {
       )
     ).json();
     assert.ok(page.items.length <= 20);
+    assert.ok(page.items.every(item => !('country' in item.location) && !('countryCode' in item.location) && !('region' in item.location)));
     ids.push(...page.items.map((s) => s.id));
     cursor = page.nextCursor;
   } while (cursor);

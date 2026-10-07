@@ -30,6 +30,7 @@ function telegramFixture(platform) {
     initData: "user=%7B%22id%22%3A41%7D",
     initDataUnsafe: { user: { id: 41, username: "test_owner" } },
     platform,
+    colorScheme: "dark",
     viewportHeight: innerHeight,
     viewportStableHeight: innerHeight,
     onEvent: (name, fn) => {
@@ -351,7 +352,7 @@ try {
           );
           if (path === "/world/cities") {
             worldRequests++;
-            body = [{ ...location, id: location.placeId, count: 1 }];
+            body = [{ id: location.placeId, placeId: location.placeId, city: location.city, lat: location.lat, lng: location.lng, count: 1 }];
           } else if (path === "/groups") {
             groupRequests++;
             body = [
@@ -365,7 +366,7 @@ try {
           } else if (path === "/cities/resolve") body = location;
           else if (path === "/world") {
             uploads++;
-            body = { id: "public-sound", location };
+            body = { id: "public-sound", location: { placeId: location.placeId, city: location.city, lat: location.lat, lng: location.lng } };
           } else if (path === "/groups/course/sounds") {
             uploads++;
             body = { id: "group-sound", telegramDeliveryState: "delivered" };
@@ -632,6 +633,19 @@ try {
   telegramPage.setDefaultTimeout(15000);
   telegramPage.on("pageerror", (error) => errors.push(error.message));
   await telegramPage.goto(base);
+  assert.equal(
+    await telegramPage.evaluate(() => document.documentElement.dataset.theme),
+    "light",
+    "Telegram dark mode must not override FIELD's default Light theme",
+  );
+  await telegramPage
+    .locator(".bottom-nav")
+    .getByRole("button", { name: "SETTINGS", exact: true })
+    .click();
+  await telegramPage.getByRole("button", { name: "Dark", exact: true }).click();
+  assert.equal(await telegramPage.evaluate(() => document.documentElement.dataset.theme), "dark");
+  await telegramPage.getByRole("button", { name: "Light", exact: true }).click();
+  assert.equal(await telegramPage.evaluate(() => document.documentElement.dataset.theme), "light");
   await telegramPage
     .locator(".bottom-nav")
     .getByRole("button", { name: "LIBRARY", exact: true })
@@ -921,6 +935,20 @@ try {
     .locator(".bottom-nav")
     .getByRole("button", { name: "SETTINGS", exact: true })
     .click();
+  await reopened.getByRole("button", { name: "Русский", exact: true }).click();
+  const russianNavGeometry = await reopened.locator(".bottom-nav").evaluate((nav) => {
+    const labels = [...nav.querySelectorAll(".nav-label")];
+    const icons = [...nav.querySelectorAll("button svg")];
+    return {
+      labels: labels.map((label) => ({height: label.clientHeight, scrollHeight: label.scrollHeight, text: label.textContent})),
+      iconTops: icons.map((icon) => Math.round(icon.getBoundingClientRect().top)),
+    };
+  });
+  assert.ok(russianNavGeometry.labels.every(label => label.scrollHeight <= label.height));
+  assert.equal(new Set(russianNavGeometry.iconTops).size, 1, "Russian navigation icons share one horizontal baseline");
+  assert.ok(russianNavGeometry.labels.some(label => label.text === "БИБЛИОТЕКА"));
+  assert.ok(russianNavGeometry.labels.some(label => label.text === "НАСТРОЙКИ"));
+  await reopened.getByRole("button", { name: "English", exact: true }).click();
   await reopened.getByRole("button", { name: "Sign out", exact: true }).click();
   await reopened
     .getByRole("button", { name: "Continue with Telegram", exact: true })

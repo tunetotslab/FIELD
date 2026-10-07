@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {directoryMatches,normalizeCitySearch} from '../server/city-directory.mjs';
+import {directoryMatches,normalizeCitySearch,worldPublicationRestricted} from '../server/city-directory.mjs';
 const catalogue=country=>JSON.parse(readFileSync(new URL(`../public/geo/v1/${country}.json`,import.meta.url)));
 const thai=catalogue('TH');
 for(const query of ['Пх','Пху','PHU','ภู']) {
@@ -22,4 +22,8 @@ assert.equal(normalizeCitySearch(' São '),'sao');
 assert.equal(normalizeCitySearch('ภูเก็ต'),'ภูเก็ต','Thai vowels and tone marks must survive normalization');
 assert.ok(directoryMatches(catalogue('JP'),'東京','JP','en').length);
 assert.ok(!directoryMatches(catalogue('AM'),'Phu','AM','ru').some(city=>city.placeId==='geonames:1151254'));
+assert.equal(worldPublicationRestricted({countryCode:'UA',region:'Donetsk Oblast'}),true);
+assert.equal(worldPublicationRestricted({countryCode:'UA',region:'Crimea'}),true);
+assert.equal(worldPublicationRestricted({countryCode:'UA',region:'Kyiv'}),false);
+assert.equal(worldPublicationRestricted({countryCode:'RU',region:'Kherson Oblast'}),false);
 console.log('PASS real GeoNames 2/3-letter Latin/Cyrillic/Thai/Armenian/Japanese prefixes, country isolation, stable IDs, RU/EN/native labels and English fallback');

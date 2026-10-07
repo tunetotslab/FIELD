@@ -38,7 +38,7 @@ export async function deliverWorld(env) {
       );
       form.set(
         "caption",
-        `${data.emojis.join(" ")} ${data.title}\n${data.location.city}, ${data.location.country}\nFIELD World · ${env.APP_URL}`.slice(
+        `${data.emojis.join(" ")} ${data.title}\n${data.location.city}\nFIELD World · ${env.APP_URL}`.slice(
           0,
           1024,
         ),

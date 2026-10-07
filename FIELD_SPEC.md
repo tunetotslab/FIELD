@@ -1807,6 +1807,33 @@ Daily retains a stable local-day task and artwork, but rechecks on foreground,
 screen entry and a visible-screen timer across midnight. No storage wipe, native
 application work, donation/bot rewrite or new social feature is included.
 
+## Geographically neutral World release — October 8, 2026
+
+World remains a core feature, but its public geography is city-only. The globe is
+pink and renders one merged land mass outline with coastlines, subtle relief and
+no national or disputed political borders. Markers, city sheets, sound cards,
+public API responses, Telegram World captions and moderation notifications show
+the city name only. Country, country code and region may remain in canonical
+server records solely for search, disambiguation, safety rules and legacy repair;
+they are not public World fields.
+
+Location selection is one global city search with no country selector. A
+GitHub-versioned prefix router narrows the checked-in GeoNames country shards.
+Same-name suggestions may use region text and a neutral mini-map point for
+disambiguation, but never display a country. No typed query or coordinate is sent
+to a third-party geocoder.
+
+For the first release, World publication is unavailable for Crimea, Sevastopol
+and the whole Donetsk, Luhansk, Zaporizhzhia and Kherson regions. This is a fixed
+release-safety list, not a claim about borders or political status and not a live
+front-line model. The server is authoritative and the client explains that the
+sound can still be kept in Private Library or sent to a Group.
+
+Appearance is an explicit Light/Dark choice. Light is the default for new users
+and does not follow the device or Telegram theme. The previous stored
+Device/Telegram option migrates to explicit Dark so an existing dark preference
+is preserved.
+
 ## iPhone feedback follow-up — October 2, 2026
 
 World and Group deadlines/cancellation must work in Safari without the static

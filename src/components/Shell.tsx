@@ -113,35 +113,35 @@ export function BottomNav({
         onClick={() => go("home")}
       >
         <NavIcon type="record" />
-        {t("navRecord")}
+        <span className="nav-label">{t("navRecord")}</span>
       </button>
       <button
         className={active === "library" ? "active" : ""}
         onClick={() => go("library")}
       >
         <NavIcon type="library" />
-        {t("library")}
+        <span className="nav-label">{t("library")}</span>
       </button>
       <button
         className={active === "daily" ? "active" : ""}
         onClick={() => go("daily")}
       >
         <NavIcon type="daily" />
-        {t("daily")}
+        <span className="nav-label">{t("daily")}</span>
       </button>
       <button
         className={active === "map" ? "active" : ""}
         onClick={() => go("map")}
       >
         <NavIcon type="globe" />
-        {t("map")}
+        <span className="nav-label">{t("map")}</span>
       </button>
       <button
         className={settingsActive ? "active" : ""}
         onClick={() => go("settings")}
       >
         <NavIcon type="settings" />
-        {t("settings")}
+        <span className="nav-label">{t("settings")}</span>
       </button>
     </nav>
   );

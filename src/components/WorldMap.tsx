@@ -1,5 +1,5 @@
-import { isAuthenticated } from '../auth/session';
-import { FieldAccount } from './FieldAccount';
+import { isAuthenticated } from "../auth/session";
+import { FieldAccount } from "./FieldAccount";
 import { useEffect, useRef, useState } from "react";
 import {
   worldAudio,
@@ -21,8 +21,8 @@ import { Waveform } from "./Waveform";
 import { FieldGlobe } from "./FieldArtwork";
 import { formatTime } from "../audio/utils";
 import type { PlaybackManager } from "../audio/player";
-import { subscribeForeground } from '../lifecycle';
-import { telegram } from '../telegram';
+import { subscribeForeground } from "../lifecycle";
+import { telegram } from "../telegram";
 
 const productionApi = {
   worldAudio,
@@ -58,14 +58,27 @@ export function WorldMap({
   useEffect(() => {
     let last = 0;
     const revalidate = () => {
-      if (document.visibilityState !== 'visible' || Date.now() - last < 1000) return;
+      if (document.visibilityState !== "visible" || Date.now() - last < 1000)
+        return;
       last = Date.now();
-      setRefresh(value => value + 1);
+      setRefresh((value) => value + 1);
     };
-    const changed = () => {setRefresh(value => value + 1);setCities([]);setSelected(undefined);setSounds([]);blobs.current.clear();audioController.current?.abort();listController.current?.abort();player.stop();};
-    const cleanup=subscribeForeground(revalidate);
-    window.addEventListener('field-auth-changed', changed);
-    return () => {cleanup();window.removeEventListener('field-auth-changed', changed);};
+    const changed = () => {
+      setRefresh((value) => value + 1);
+      setCities([]);
+      setSelected(undefined);
+      setSounds([]);
+      blobs.current.clear();
+      audioController.current?.abort();
+      listController.current?.abort();
+      player.stop();
+    };
+    const cleanup = subscribeForeground(revalidate);
+    window.addEventListener("field-auth-changed", changed);
+    return () => {
+      cleanup();
+      window.removeEventListener("field-auth-changed", changed);
+    };
   }, []);
   const [report, setReport] = useState<WorldSound>(),
     [reportBusy, setReportBusy] = useState(false),
@@ -108,7 +121,11 @@ export function WorldMap({
       setDownloadLinks((old) => ({ ...old, [sound.id]: { url, name } }));
       const app = window.Telegram?.WebApp;
       let native = false;
-      if (telegram.isTelegram && app?.downloadFile && app.isVersionAtLeast?.("8.0"))
+      if (
+        telegram.isTelegram &&
+        app?.downloadFile &&
+        app.isVersionAtLeast?.("8.0")
+      )
         try {
           app.downloadFile({ url, file_name: name });
           native = true;
@@ -152,8 +169,11 @@ export function WorldMap({
       return;
     }
     if (api === productionApi && !isAuthenticated()) {
-      setCities([]); setSelected(undefined);
-      setSounds([]); setError(''); setLoading(false);
+      setCities([]);
+      setSelected(undefined);
+      setSounds([]);
+      setError("");
+      setLoading(false);
       return;
     }
     void api
@@ -161,10 +181,19 @@ export function WorldMap({
       .then((items) => {
         if (controller.signal.aborted) return;
         setCities(items);
-        setSelected(current => current ? items.find(city => city.id === current.id) : undefined);
+        setSelected((current) =>
+          current ? items.find((city) => city.id === current.id) : undefined,
+        );
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
+        if (!controller.signal.aborted)
+          setError(
+            t(
+              isAuthenticationError(error)
+                ? "sessionExpired"
+                : "worldLoadFailed",
+            ),
+          );
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -190,7 +219,14 @@ export function WorldMap({
         }
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
+        if (!controller.signal.aborted)
+          setError(
+            t(
+              isAuthenticationError(error)
+                ? "sessionExpired"
+                : "worldLoadFailed",
+            ),
+          );
       })
       .finally(() => {
         if (!controller.signal.aborted) setListLoading(false);
@@ -228,7 +264,12 @@ export function WorldMap({
         setCursor(page.nextCursor);
       }
     } catch (error) {
-      if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "worldLoadFailed"));
+      if (!controller.signal.aborted)
+        setError(
+          t(
+            isAuthenticationError(error) ? "sessionExpired" : "worldLoadFailed",
+          ),
+        );
     } finally {
       if (!controller.signal.aborted) setListLoading(false);
     }
@@ -269,7 +310,10 @@ export function WorldMap({
         () => setError(t("audioFailed")),
       );
     } catch (error) {
-      if (!controller.signal.aborted) setError(t(isAuthenticationError(error) ? 'sessionExpired' : "audioFailed"));
+      if (!controller.signal.aborted)
+        setError(
+          t(isAuthenticationError(error) ? "sessionExpired" : "audioFailed"),
+        );
     } finally {
       if (sequence === playSequence.current) setFetching(undefined);
     }
@@ -338,7 +382,7 @@ export function WorldMap({
       {selected && (
         <Dialog
           sheet
-          title={`${selected.city}, ${selected.country}`}
+          title={selected.city}
           close={() => {
             stop();
             setSelected(undefined);

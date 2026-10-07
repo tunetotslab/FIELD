@@ -1,20 +1,45 @@
 export const worldEn = {
-  telegramFileNotice: 'In Telegram, Export/Share sends the WAV to your private FIELD bot chat. It is not published to World.',
-  fileDelivered: 'The WAV is in your private FIELD bot chat. Save or forward the file there.', fileBotChat: 'Open FIELD bot chat',
-  fileTransferUnknown: 'Delivery is uncertain. Check the private FIELD bot chat before retrying.', fileTransferDenied: 'Allow messages from FIELD: open the bot chat and press Start, then retry.', fileTransferFailed: 'Could not transfer the WAV. Keep this screen open and retry.', transferringFile: 'Transferring WAV…',
-  publicationStorageFailed: 'Could not update the local Library. Keep this screen open and export the sound before closing it.',
-  shareWav: 'SHARE WAV', shareFailed: 'Could not open file sharing. Your audio stays on this device.',
-  worldTelegramOnly: 'Open FIELD from its Telegram bot to view World. This browser has no Telegram session.',
-  emailComposeChoice: 'Choose Gmail in the browser or your default mail app. If no mail app is configured, copy the address above.', defaultMail: 'Default mail app',
-  publicationAudioFailed: 'Cannot process this saved audio. Keep it; try downloading it from Library.',
-  publicationNetworkFailed: 'Could not reach FIELD. Check your connection and retry. Your recording remains local.',
-  publicationTooLarge: 'The upload exceeds the size limit. Your recording remains local.',
-  publicationCityFailed: 'Choose the city again from suggestions and retry.',
-  publicationMetadataFailed: 'Check the title, three emoji and audio format.',
-  publicationAccessFailed: 'This account does not have access to the destination.',
-  publicationLimitFailed: 'Daily upload limit reached. Try tomorrow.',
-  publicationServiceFailed: 'FIELD could not accept the publication. Your recording remains local; retry later.',
-  copyEmail: 'Copy email', emailCopied: 'Email copied', emailCopyFailed: 'Select the email address and copy it.',
+  telegramFileNotice:
+    "In Telegram, Export/Share sends the WAV to your private FIELD bot chat. It is not published to World.",
+  fileDelivered:
+    "The WAV is in your private FIELD bot chat. Save or forward the file there.",
+  fileBotChat: "Open FIELD bot chat",
+  fileTransferUnknown:
+    "Delivery is uncertain. Check the private FIELD bot chat before retrying.",
+  fileTransferDenied:
+    "Allow messages from FIELD: open the bot chat and press Start, then retry.",
+  fileTransferFailed:
+    "Could not transfer the WAV. Keep this screen open and retry.",
+  transferringFile: "Transferring WAV…",
+  publicationStorageFailed:
+    "Could not update the local Library. Keep this screen open and export the sound before closing it.",
+  shareWav: "SHARE WAV",
+  shareFailed: "Could not open file sharing. Your audio stays on this device.",
+  worldTelegramOnly:
+    "Open FIELD from its Telegram bot to view World. This browser has no Telegram session.",
+  emailComposeChoice:
+    "Choose Gmail in the browser or your default mail app. If no mail app is configured, copy the address above.",
+  defaultMail: "Default mail app",
+  publicationAudioFailed:
+    "Cannot process this saved audio. Keep it; try downloading it from Library.",
+  publicationNetworkFailed:
+    "Could not reach FIELD. Check your connection and retry. Your recording remains local.",
+  publicationTooLarge:
+    "The upload exceeds the size limit. Your recording remains local.",
+  publicationCityFailed: "Choose the city again from suggestions and retry.",
+  publicationLocationRestricted:
+    "World publishing is currently unavailable for this city. You can keep the sound in Library or send it to your Group.",
+  worldRestricted:
+    "World publishing is currently unavailable for this city. You can keep the sound in Library or send it to your Group.",
+  publicationMetadataFailed: "Check the title, three emoji and audio format.",
+  publicationAccessFailed:
+    "This account does not have access to the destination.",
+  publicationLimitFailed: "Daily upload limit reached. Try tomorrow.",
+  publicationServiceFailed:
+    "FIELD could not accept the publication. Your recording remains local; retry later.",
+  copyEmail: "Copy email",
+  emailCopied: "Email copied",
+  emailCopyFailed: "Select the email address and copy it.",
   worldSaveFile: "Save file · if downloading did not start",
   worldDownload: "Download WAV",
   worldLike: "Like",
@@ -59,7 +84,8 @@ export const worldEn = {
   reportSent: "Report sent. The FIELD owner will review it.",
   reportFailed: "Could not send the report. Try again.",
   searchCityButton: "Find city",
-  sessionExpired: "Close FIELD and reopen it from the Telegram bot to refresh your session.",
+  sessionExpired:
+    "Close FIELD and reopen it from the Telegram bot to refresh your session.",
   worldLoading: "Listening for cities…",
   worldRefresh: "Refresh World",
   noCitySounds: "No public sounds here yet.",
@@ -76,22 +102,49 @@ export const worldEn = {
 };
 type Copy = Record<keyof typeof worldEn, string>;
 export const worldRu: Copy = {
-  telegramFileNotice: 'В Telegram Export/Share передаёт WAV в твой личный чат с FIELD-ботом. Это не публикация в World.',
-  fileDelivered: 'WAV уже в твоём личном чате с FIELD-ботом. Там его можно сохранить или переслать.', fileBotChat: 'Открыть чат с FIELD-ботом',
-  fileTransferUnknown: 'Статус доставки неизвестен. Проверь личный чат с FIELD-ботом перед повтором.', fileTransferDenied: 'Разреши сообщения FIELD: открой чат с ботом, нажми Start и повтори.', fileTransferFailed: 'Не удалось передать WAV. Оставь экран открытым и повтори.', transferringFile: 'Передаём WAV…',
-  publicationStorageFailed: 'Не удалось обновить локальную Library. Оставь этот экран открытым и экспортируй звук перед закрытием.',
-  shareWav: 'ПОДЕЛИТЬСЯ WAV', shareFailed: 'Не удалось открыть отправку файла. Аудио остаётся на устройстве.',
-  worldTelegramOnly: 'Открой FIELD из его Telegram-бота, чтобы увидеть World. В этом браузере нет сессии Telegram.',
-  emailComposeChoice: 'Выбери Gmail в браузере или свою почтовую программу. Если она не настроена, скопируй адрес выше.', defaultMail: 'Почтовая программа',
-  publicationAudioFailed: 'Не удалось обработать этот звук. Сохрани его; попробуй скачать из Library.',
-  publicationNetworkFailed: 'Не удалось связаться с FIELD. Проверь подключение и повтори. Запись остаётся на устройстве.',
-  publicationTooLarge: 'Размер загрузки превышает лимит. Запись остаётся на устройстве.',
-  publicationCityFailed: 'Выбери город заново из подсказок и повтори.',
-  publicationMetadataFailed: 'Проверь название, три emoji и формат аудио.',
-  publicationAccessFailed: 'У этого аккаунта нет доступа к выбранному месту публикации.',
-  publicationLimitFailed: 'Дневной лимит публикаций достигнут. Попробуй завтра.',
-  publicationServiceFailed: 'FIELD не смог принять публикацию. Запись остаётся на устройстве; повтори позже.',
-  copyEmail: 'Скопировать почту', emailCopied: 'Адрес скопирован', emailCopyFailed: 'Выдели адрес почты и скопируй его.',
+  telegramFileNotice:
+    "В Telegram Export/Share передаёт WAV в твой личный чат с FIELD-ботом. Это не публикация в World.",
+  fileDelivered:
+    "WAV уже в твоём личном чате с FIELD-ботом. Там его можно сохранить или переслать.",
+  fileBotChat: "Открыть чат с FIELD-ботом",
+  fileTransferUnknown:
+    "Статус доставки неизвестен. Проверь личный чат с FIELD-ботом перед повтором.",
+  fileTransferDenied:
+    "Разреши сообщения FIELD: открой чат с ботом, нажми Start и повтори.",
+  fileTransferFailed:
+    "Не удалось передать WAV. Оставь экран открытым и повтори.",
+  transferringFile: "Передаём WAV…",
+  publicationStorageFailed:
+    "Не удалось обновить локальную Library. Оставь этот экран открытым и экспортируй звук перед закрытием.",
+  shareWav: "ПОДЕЛИТЬСЯ WAV",
+  shareFailed:
+    "Не удалось открыть отправку файла. Аудио остаётся на устройстве.",
+  worldTelegramOnly:
+    "Открой FIELD из его Telegram-бота, чтобы увидеть World. В этом браузере нет сессии Telegram.",
+  emailComposeChoice:
+    "Выбери Gmail в браузере или свою почтовую программу. Если она не настроена, скопируй адрес выше.",
+  defaultMail: "Почтовая программа",
+  publicationAudioFailed:
+    "Не удалось обработать этот звук. Сохрани его; попробуй скачать из Library.",
+  publicationNetworkFailed:
+    "Не удалось связаться с FIELD. Проверь подключение и повтори. Запись остаётся на устройстве.",
+  publicationTooLarge:
+    "Размер загрузки превышает лимит. Запись остаётся на устройстве.",
+  publicationCityFailed: "Выбери город заново из подсказок и повтори.",
+  publicationLocationRestricted:
+    "Публикация в World для этого города пока недоступна. Можно сохранить звук в Library или отправить в свою Group.",
+  worldRestricted:
+    "Публикация в World для этого города пока недоступна. Можно сохранить звук в Library или отправить в свою Group.",
+  publicationMetadataFailed: "Проверь название, три emoji и формат аудио.",
+  publicationAccessFailed:
+    "У этого аккаунта нет доступа к выбранному месту публикации.",
+  publicationLimitFailed:
+    "Дневной лимит публикаций достигнут. Попробуй завтра.",
+  publicationServiceFailed:
+    "FIELD не смог принять публикацию. Запись остаётся на устройстве; повтори позже.",
+  copyEmail: "Скопировать почту",
+  emailCopied: "Адрес скопирован",
+  emailCopyFailed: "Выдели адрес почты и скопируй его.",
   worldSaveFile: "Сохранить файл · если загрузка не началась",
   worldDownload: "Скачать WAV",
   worldLike: "Нравится",
@@ -136,7 +189,8 @@ export const worldRu: Copy = {
   reportSent: "Жалоба отправлена. Владелец FIELD прослушает запись и решит.",
   reportFailed: "Не удалось отправить жалобу. Попробуйте снова.",
   searchCityButton: "Найти город",
-  sessionExpired: "Закрой FIELD и открой заново из Telegram-бота, чтобы обновить сессию.",
+  sessionExpired:
+    "Закрой FIELD и открой заново из Telegram-бота, чтобы обновить сессию.",
   worldLoading: "Ищем города со звуками…",
   worldRefresh: "Обновить World",
   noCitySounds: "Здесь пока нет публичных звуков.",
@@ -153,22 +207,45 @@ export const worldRu: Copy = {
     "Повторить загрузку в группу? Если предыдущий запрос успел завершиться до обрыва связи, может отправиться вторая копия.",
 };
 export const worldHy: Copy = {
-  telegramFileNotice: 'Telegram-ում Export/Share-ը WAV-ը փոխանցում է FIELD բոտի հետ քո անձնական չատին։ Սա World-ի հրապարակում չէ։',
-  fileDelivered: 'WAV-ը քո անձնական FIELD բոտի չատում է։ Այնտեղ կարող ես պահել կամ փոխանցել ֆայլը։', fileBotChat: 'Բացել FIELD բոտի չատը',
-  fileTransferUnknown: 'Առաքման կարգավիճակն անհայտ է։ Կրկնելուց առաջ ստուգիր FIELD բոտի անձնական չատը։', fileTransferDenied: 'Թույլատրի՛ր FIELD-ի հաղորդագրությունները․ բացիր բոտի չատը, սեղմիր Start և կրկնիր։', fileTransferFailed: 'WAV-ը չհաջողվեց փոխանցել։ Էջը բաց պահիր և կրկնիր։', transferringFile: 'Փոխանցում ենք WAV-ը…',
-  publicationStorageFailed: 'Տեղական Ձայնադարանը չհաջողվեց թարմացնել։ Պահիր այս էջը բաց և արտահանիր ձայնը մինչև փակելը։',
-  shareWav: 'ԿԻՍՎԵԼ WAV-ՈՎ', shareFailed: 'Ֆայլով կիսվելը չհաջողվեց։ Ձայնը մնում է սարքում։',
-  worldTelegramOnly: 'World-ը տեսնելու համար բացիր FIELD-ը իր Telegram բոտից։ Այս դիտարկիչում Telegram սեսիա չկա։',
-  emailComposeChoice: 'Ընտրիր Gmail-ը դիտարկիչում կամ քո փոստային ծրագիրը։ Եթե ծրագիրը կարգավորված չէ, պատճենիր վերևի հասցեն։', defaultMail: 'Փոստային ծրագիր',
-  publicationAudioFailed: 'Այս ձայնը չհաջողվեց մշակել։ Պահպանիր այն, փորձիր ներբեռնել Ձայնադարանից։',
-  publicationNetworkFailed: 'FIELD-ի հետ կապ չհաստատվեց։ Ստուգիր կապը և կրկնիր․ ձայնը սարքում է։',
-  publicationTooLarge: 'Վերբեռնումը գերազանցում է չափի սահմանը։ Ձայնը սարքում է։',
-  publicationCityFailed: 'Կրկին ընտրիր քաղաքը հուշումներից։',
-  publicationMetadataFailed: 'Ստուգիր անունը, երեք էմոջին և ձայնի ձևաչափը։',
-  publicationAccessFailed: 'Այս հաշիվը չունի ընտրված վայրի հասանելիությունը։',
-  publicationLimitFailed: 'Օրվա սահմանը լրացել է։ Փորձիր վաղը։',
-  publicationServiceFailed: 'FIELD-ը չընդունեց հրապարակումը։ Ձայնը սարքում է․ կրկնիր ավելի ուշ։',
-  copyEmail: 'Պատճենել էլ․ փոստը', emailCopied: 'Հասցեն պատճենված է', emailCopyFailed: 'Ընտրիր հասցեն և պատճենիր այն։',
+  telegramFileNotice:
+    "Telegram-ում Export/Share-ը WAV-ը փոխանցում է FIELD բոտի հետ քո անձնական չատին։ Սա World-ի հրապարակում չէ։",
+  fileDelivered:
+    "WAV-ը քո անձնական FIELD բոտի չատում է։ Այնտեղ կարող ես պահել կամ փոխանցել ֆայլը։",
+  fileBotChat: "Բացել FIELD բոտի չատը",
+  fileTransferUnknown:
+    "Առաքման կարգավիճակն անհայտ է։ Կրկնելուց առաջ ստուգիր FIELD բոտի անձնական չատը։",
+  fileTransferDenied:
+    "Թույլատրի՛ր FIELD-ի հաղորդագրությունները․ բացիր բոտի չատը, սեղմիր Start և կրկնիր։",
+  fileTransferFailed: "WAV-ը չհաջողվեց փոխանցել։ Էջը բաց պահիր և կրկնիր։",
+  transferringFile: "Փոխանցում ենք WAV-ը…",
+  publicationStorageFailed:
+    "Տեղական Ձայնադարանը չհաջողվեց թարմացնել։ Պահիր այս էջը բաց և արտահանիր ձայնը մինչև փակելը։",
+  shareWav: "ԿԻՍՎԵԼ WAV-ՈՎ",
+  shareFailed: "Ֆայլով կիսվելը չհաջողվեց։ Ձայնը մնում է սարքում։",
+  worldTelegramOnly:
+    "World-ը տեսնելու համար բացիր FIELD-ը իր Telegram բոտից։ Այս դիտարկիչում Telegram սեսիա չկա։",
+  emailComposeChoice:
+    "Ընտրիր Gmail-ը դիտարկիչում կամ քո փոստային ծրագիրը։ Եթե ծրագիրը կարգավորված չէ, պատճենիր վերևի հասցեն։",
+  defaultMail: "Փոստային ծրագիր",
+  publicationAudioFailed:
+    "Այս ձայնը չհաջողվեց մշակել։ Պահպանիր այն, փորձիր ներբեռնել Ձայնադարանից։",
+  publicationNetworkFailed:
+    "FIELD-ի հետ կապ չհաստատվեց։ Ստուգիր կապը և կրկնիր․ ձայնը սարքում է։",
+  publicationTooLarge:
+    "Վերբեռնումը գերազանցում է չափի սահմանը։ Ձայնը սարքում է։",
+  publicationCityFailed: "Կրկին ընտրիր քաղաքը հուշումներից։",
+  publicationLocationRestricted:
+    "Այս քաղաքի համար World հրապարակումը դեռ հասանելի չէ։ Ձայնը կարող ես պահել Library-ում կամ ուղարկել քո Group-ին։",
+  worldRestricted:
+    "Այս քաղաքի համար World հրապարակումը դեռ հասանելի չէ։ Ձայնը կարող ես պահել Library-ում կամ ուղարկել քո Group-ին։",
+  publicationMetadataFailed: "Ստուգիր անունը, երեք էմոջին և ձայնի ձևաչափը։",
+  publicationAccessFailed: "Այս հաշիվը չունի ընտրված վայրի հասանելիությունը։",
+  publicationLimitFailed: "Օրվա սահմանը լրացել է։ Փորձիր վաղը։",
+  publicationServiceFailed:
+    "FIELD-ը չընդունեց հրապարակումը։ Ձայնը սարքում է․ կրկնիր ավելի ուշ։",
+  copyEmail: "Պատճենել էլ․ փոստը",
+  emailCopied: "Հասցեն պատճենված է",
+  emailCopyFailed: "Ընտրիր հասցեն և պատճենիր այն։",
   worldSaveFile: "Պահպանել ֆայլը · եթե ներբեռնումը չի սկսվել",
   worldDownload: "Ներբեռնել WAV",
   worldLike: "Հավանել",
@@ -213,7 +290,8 @@ export const worldHy: Copy = {
   reportSent: "Բողոքն ուղարկվեց։ FIELD-ի սեփականատերը կդիտարկի այն։",
   reportFailed: "Չհաջողվեց ուղարկել։ Կրկին փորձեք։",
   searchCityButton: "Գտնել քաղաքը",
-  sessionExpired: "Փակիր FIELD-ը և կրկին բացիր Telegram բոտից՝ սեսիան թարմացնելու համար։",
+  sessionExpired:
+    "Փակիր FIELD-ը և կրկին բացիր Telegram բոտից՝ սեսիան թարմացնելու համար։",
   worldLoading: "Փնտրում ենք ձայն ունեցող քաղաքներ…",
   worldRefresh: "Թարմացնել World-ը",
   noCitySounds: "Այստեղ դեռ հրապարակված ձայներ չկան։",
@@ -229,22 +307,40 @@ export const worldHy: Copy = {
     "Կրկի՞ն ուղարկել խումբ։ Եթե նախորդ հարցումն ավարտվել է, կարող է երկրորդ պատճեն ուղարկվել։",
 };
 export const worldZh: Copy = {
-  telegramFileNotice: '在 Telegram 中，Export/Share 會把 WAV 傳送到你與 FIELD 機器人的私人聊天，不會發佈到 World。',
-  fileDelivered: 'WAV 已在你與 FIELD 機器人的私人聊天中。請在那裡儲存或轉傳檔案。', fileBotChat: '開啟 FIELD 機器人聊天',
-  fileTransferUnknown: '傳送狀態不明。重試前請先查看 FIELD 機器人的私人聊天。', fileTransferDenied: '請允許 FIELD 訊息：開啟機器人聊天、按 Start，然後重試。', fileTransferFailed: '無法傳送 WAV。請保持此畫面開啟並重試。', transferringFile: '正在傳送 WAV…',
-  publicationStorageFailed: '無法更新裝置上的聲音庫。請保持此畫面開啟，並在關閉前匯出聲音。',
-  shareWav: '分享 WAV', shareFailed: '無法開啟檔案分享。音訊仍保留在裝置上。',
-  worldTelegramOnly: '請從 FIELD 的 Telegram 機器人開啟應用程式以查看 World。此瀏覽器沒有 Telegram 工作階段。',
-  emailComposeChoice: '選擇在瀏覽器使用 Gmail 或預設郵件程式。若未設定郵件程式，請複製上方地址。', defaultMail: '預設郵件程式',
-  publicationAudioFailed: '無法處理此音訊。請保留錄音，並嘗試從聲音庫下載。',
-  publicationNetworkFailed: '無法連接 FIELD。請檢查網路並重試，錄音仍留在裝置。',
-  publicationTooLarge: '上傳超過大小限制。錄音仍留在裝置。',
-  publicationCityFailed: '請重新從建議中選擇城市。',
-  publicationMetadataFailed: '請檢查標題、三個 emoji 與音訊格式。',
-  publicationAccessFailed: '此帳號無權存取所選目的地。',
-  publicationLimitFailed: '已達每日上傳上限，請明天再試。',
-  publicationServiceFailed: 'FIELD 無法接受發佈。錄音仍留在裝置，請稍後重試。',
-  copyEmail: '複製電子郵件', emailCopied: '已複製地址', emailCopyFailed: '請選取地址並複製。',
+  telegramFileNotice:
+    "在 Telegram 中，Export/Share 會把 WAV 傳送到你與 FIELD 機器人的私人聊天，不會發佈到 World。",
+  fileDelivered:
+    "WAV 已在你與 FIELD 機器人的私人聊天中。請在那裡儲存或轉傳檔案。",
+  fileBotChat: "開啟 FIELD 機器人聊天",
+  fileTransferUnknown: "傳送狀態不明。重試前請先查看 FIELD 機器人的私人聊天。",
+  fileTransferDenied: "請允許 FIELD 訊息：開啟機器人聊天、按 Start，然後重試。",
+  fileTransferFailed: "無法傳送 WAV。請保持此畫面開啟並重試。",
+  transferringFile: "正在傳送 WAV…",
+  publicationStorageFailed:
+    "無法更新裝置上的聲音庫。請保持此畫面開啟，並在關閉前匯出聲音。",
+  shareWav: "分享 WAV",
+  shareFailed: "無法開啟檔案分享。音訊仍保留在裝置上。",
+  worldTelegramOnly:
+    "請從 FIELD 的 Telegram 機器人開啟應用程式以查看 World。此瀏覽器沒有 Telegram 工作階段。",
+  emailComposeChoice:
+    "選擇在瀏覽器使用 Gmail 或預設郵件程式。若未設定郵件程式，請複製上方地址。",
+  defaultMail: "預設郵件程式",
+  publicationAudioFailed: "無法處理此音訊。請保留錄音，並嘗試從聲音庫下載。",
+  publicationNetworkFailed:
+    "無法連接 FIELD。請檢查網路並重試，錄音仍留在裝置。",
+  publicationTooLarge: "上傳超過大小限制。錄音仍留在裝置。",
+  publicationCityFailed: "請重新從建議中選擇城市。",
+  publicationLocationRestricted:
+    "此城市目前無法發佈到 World。你仍可將聲音保存在 Library，或傳送到自己的 Group。",
+  worldRestricted:
+    "此城市目前無法發佈到 World。你仍可將聲音保存在 Library，或傳送到自己的 Group。",
+  publicationMetadataFailed: "請檢查標題、三個 emoji 與音訊格式。",
+  publicationAccessFailed: "此帳號無權存取所選目的地。",
+  publicationLimitFailed: "已達每日上傳上限，請明天再試。",
+  publicationServiceFailed: "FIELD 無法接受發佈。錄音仍留在裝置，請稍後重試。",
+  copyEmail: "複製電子郵件",
+  emailCopied: "已複製地址",
+  emailCopyFailed: "請選取地址並複製。",
   worldSaveFile: "儲存檔案 · 若下載未開始",
   worldDownload: "下載 WAV",
   worldLike: "喜歡",
@@ -286,7 +382,8 @@ export const worldZh: Copy = {
   reportSent: "已送出檢舉。FIELD 擁有者會進行審查。",
   reportFailed: "無法送出檢舉。請重試。",
   searchCityButton: "尋找城市",
-  sessionExpired: "請關閉 FIELD，並從 Telegram 機器人重新開啟，以更新工作階段。",
+  sessionExpired:
+    "請關閉 FIELD，並從 Telegram 機器人重新開啟，以更新工作階段。",
   worldLoading: "正在尋找有聲音的城市…",
   worldRefresh: "重新整理 World",
   noCitySounds: "這裡尚無公開聲音。",

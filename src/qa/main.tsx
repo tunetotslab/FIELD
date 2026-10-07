@@ -14,18 +14,22 @@ import { makeFixture } from "./fixture";
 import { runAudioChecks } from "./diagnostics";
 import { WorldMap } from "../components/WorldMap";
 import { PlaybackManager } from "../audio/player";
-import { downloadWav, wavFile } from '../audio/export';
+import { downloadWav, wavFile } from "../audio/export";
 import type { WorldCity, WorldSound } from "../world";
 const qaPlayer = new PlaybackManager();
 const qaCity: WorldCity = {
   id: "qa-city",
   placeId: "qa-city",
   city: "Yerevan · QA fixture",
-  country: "Armenia",
-  countryCode: "AM",
   lat: 40.177,
   lng: 44.503,
   count: 21,
+};
+const qaLocation = {
+  ...qaCity,
+  country: "Armenia",
+  countryCode: "AM",
+  region: "Yerevan",
 };
 const qaLikes = new Map<string, boolean>();
 const qaApi = {
@@ -105,7 +109,7 @@ function QA() {
         />
       </div>
     );
-  if (mode === "ready" || mode === 'readyFailed')
+  if (mode === "ready" || mode === "readyFailed")
     return (
       <div className="viewport">
         <ReadyScreen
@@ -113,14 +117,23 @@ function QA() {
             ...draft,
             title: "QA — длинное название записи",
             visibility: "world",
-            location: qaCity,
-            ...(mode === 'readyFailed' ? {originalBlob:new Blob(),processedBlob:draft.originalBlob,processedDuration:2} : {}),
+            location: qaLocation,
+            ...(mode === "readyFailed"
+              ? {
+                  originalBlob: new Blob(),
+                  processedBlob: draft.originalBlob,
+                  processedDuration: 2,
+                }
+              : {}),
           }}
           phase="preparing"
-          busy={mode === 'readyFailed'}
+          busy={mode === "readyFailed"}
           notice="QA ONLY · simulated destination failure"
           save={() => setLines(["QA confirmation accepted"])}
-          exportSound={blob => {setLines([`QA WAV exported: ${blob.size} bytes`]);downloadWav(wavFile(blob,'QA fixture'));}}
+          exportSound={(blob) => {
+            setLines([`QA WAV exported: ${blob.size} bytes`]);
+            downloadWav(wavFile(blob, "QA fixture"));
+          }}
           fresh={() => setMode("menu")}
           back={() => setMode("menu")}
           playing={false}
@@ -128,7 +141,11 @@ function QA() {
           seeMap={() => setMode("world")}
           done={() => setMode("menu")}
         />
-        {lines.map(line => <p key={line} role="status">{line}</p>)}
+        {lines.map((line) => (
+          <p key={line} role="status">
+            {line}
+          </p>
+        ))}
       </div>
     );
   if (mode === "library")
