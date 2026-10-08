@@ -14,13 +14,13 @@ import {isNativeApp} from './native/runtime';
 
 import { restoreNativeSession } from './auth/session';
 async function boot() {
-  await restoreNativeSession().catch(() => {
-    // Private recording stays available when account storage cannot open.
-  });
   applyTheme();
   createRoot(document.getElementById('root')!).render(
     <StrictMode><I18nProvider><App /></I18nProvider></StrictMode>,
   );
+  await restoreNativeSession().catch(() => {
+    // Private recording stays available when account storage cannot open.
+  });
 }
 void boot();
 
