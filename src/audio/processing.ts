@@ -1,4 +1,4 @@
-import type { EffectId, SoundDraft } from "../types";
+import type { EffectId, SoundDraft, SoundRecord } from "../types";
 import { audioBufferToWav, decodeBlob, peaksFromBuffer } from "./utils";
 import { degrade, finishSamples, loFi, stutter, tapeStop } from "./dsp";
 import { renderPitch } from "./pitch";
@@ -76,6 +76,24 @@ function resonatorImpulse(context: BaseAudioContext) {
 export async function analyze(blob: Blob) {
   const buffer = await decodeBlob(blob);
   return { duration: buffer.duration, waveform: peaksFromBuffer(buffer) };
+}
+
+export async function editableSource(
+  record: Pick<SoundRecord, "audioBlob" | "originalBlob">,
+) {
+  const preferred = record.originalBlob || record.audioBlob;
+  try {
+    return { blob: preferred, ...(await analyze(preferred)), fallback: false };
+  } catch (originalError) {
+    if (preferred === record.audioBlob) throw originalError;
+    // A historical file-backed WebKit Blob can remain playable but fail
+    // decodeAudioData in the editor. Copy the known-good saved render into a
+    // fresh Blob and edit that version without touching the stored original.
+    const render = new Blob([await record.audioBlob.arrayBuffer()], {
+      type: record.audioBlob.type || "audio/wav",
+    });
+    return { blob: render, ...(await analyze(render)), fallback: true };
+  }
 }
 
 export async function renderDraft(

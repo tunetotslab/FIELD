@@ -2089,4 +2089,20 @@ to open the bot. Decorative emoji remain only on `Tune Tots Lab · Website` and
 `Nikola Chen · Portfolio`; social buttons use plain text so Telegram renders their
 labels reliably.
 
+## Telegram iOS Library recovery — October 8, 2026
+
+The web repository keeps one IndexedDB connection per database and serializes its
+transactions. A WebKit `UnknownError`, `InvalidStateError` or `AbortError` invalidates
+the lost connection and retries the idempotent local operation once without clearing,
+deleting or replacing Library data. Library refresh, sync and editor saves must not
+race separate database opens.
+
+Editing an older recording first uses its saved original. If WebKit cannot decode
+that historical Blob, FIELD creates a new private version from a fresh copy of the
+saved WAV render and leaves the original record untouched. If both local audio parts
+fail and the record is fully synced, FIELD may explicitly refresh the exact render
+and original bytes from that owner's private cloud Library before retrying. Never
+overwrite an unsynced local mutation during recovery. The UI explains when editing
+starts from the safe WAV fallback.
+
 **END OF FIELD_SPEC.md**

@@ -204,6 +204,22 @@ assert.deepEqual(restored.effectChain, sound("").effectChain);
 assert.deepEqual(restored.editState, sound("").editState);
 assert.deepEqual(restored.unknownMetadata, { keep: "legacy" });
 assert.equal(restored.dailyChallenge, "daily-one");
+await rawB.save({
+  ...restored,
+  audioBlob: new Blob([new Uint8Array([0])], { type: "audio/wav" }),
+  originalBlob: new Blob([new Uint8Array([0])], { type: "audio/mp4" }),
+});
+restored = await b.recover(restored.id);
+assert.deepEqual(
+  new Uint8Array(await restored.audioBlob.arrayBuffer()),
+  new Uint8Array([1, 2, 3, 4]),
+  "explicit recovery refreshes damaged local render bytes from the private cloud copy",
+);
+assert.deepEqual(
+  new Uint8Array(await restored.originalBlob.arrayBuffer()),
+  new Uint8Array([9, 8, 7]),
+  "explicit recovery refreshes damaged local original bytes from the private cloud copy",
+);
 assert.equal(
   db.prepare("SELECT COUNT(*) n FROM sounds").get().n,
   1,

@@ -252,6 +252,15 @@ console.log('PASS recording/publication UUIDs when Safari randomUUID is absent; 
 globalThis.indexedDB=indexedDB;
 const {createSoundRepository}=await load('../src/storage/db.ts');
 const {StorageError}=await load('../src/storage/errors.ts');
+const nativeOpen=indexedDB.open.bind(indexedDB);
+let failFirstOpen=true;
+indexedDB.open=function(name,...args){
+ if(name==='field-storage-open-retry'&&failFirstOpen){failFirstOpen=false;throw new DOMException('Connection to Indexed Database server lost','UnknownError');}
+ return nativeOpen(name,...args);
+};
+assert.deepEqual(await createSoundRepository('field-storage-open-retry').getAll(),[],'UnknownError open reconnects once without clearing data');
+let repositoryOpens=0;
+indexedDB.open=function(...args){repositoryOpens++;return nativeOpen(...args);};
 const storageName='field-storage-regression';
 const testDb=await new Promise((resolve,reject)=>{
  const open=indexedDB.open(storageName,1);open.onupgradeneeded=()=>open.result.createObjectStore('sounds',{keyPath:'id'});open.onsuccess=()=>resolve(open.result);open.onerror=()=>reject(open.error);
@@ -289,8 +298,20 @@ await assert.rejects(byteRepository.save({...bytePublished,title:'Must not overw
 IDBObjectStore.prototype.put=nativePut;
 assert.equal((await byteRepository.getAll())[0].title,'Preserved rename');
 assert.deepEqual(await (await byteRepository.getAll())[0].audioBlob.arrayBuffer(),pcmBytes);
+assert.equal(repositoryOpens,2,'one external setup connection and one stable repository connection are reused');
+indexedDB.open=nativeOpen;
 testDb.close();
 console.log('PASS reproduced WebKit UnknownError on Blob put; byte storage repairs legacy save/World/Group state, preserves render/original/FX/unknown metadata and keeps row after quota failure');
+
+const {editableSource}=await load('../src/audio/processing.ts');
+const fallback=await editableSource({
+ audioBlob:new Blob([new Uint8Array([1,2,3])],{type:'audio/wav'}),
+ originalBlob:new Blob([new Uint8Array([9])],{type:'audio/mp4'}),
+});
+assert.equal(fallback.fallback,true);
+assert.equal(fallback.duration,1);
+assert.deepEqual(new Uint8Array(await fallback.blob.arrayBuffer()),new Uint8Array([1,2,3]));
+console.log('PASS legacy editor falls back from an undecodable original to a fresh saved render');
 
 // Exercise the actual private-file client with signed Telegram and native SDK.
 const {prepareWavFile,runFileAction,FileTransferError,fileActionErrorMessage}=await load('../src/audio/fileActions.ts');

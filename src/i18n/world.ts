@@ -91,6 +91,8 @@ export const worldEn = {
   noCitySounds: "No public sounds here yet.",
   legacyEdit:
     "This older recording has no saved original. Editing starts from its saved audio.",
+  editFallback:
+    "The older original could not be opened, so editing starts from the safe saved WAV. The original remains unchanged.",
   storageFailed: "Could not save or process audio. Your original remains here.",
   groupUpload: "Uploading to group…",
   editVersion:
@@ -196,6 +198,8 @@ export const worldRu: Copy = {
   noCitySounds: "Здесь пока нет публичных звуков.",
   legacyEdit:
     "У этой старой записи не сохранён оригинал. Редактирование начнётся с сохранённого аудио.",
+  editFallback:
+    "Старый оригинал не открылся, поэтому редактирование начнётся с сохранённого WAV. Оригинал останется без изменений.",
   storageFailed:
     "Не удалось сохранить или обработать аудио. Оригинал остаётся здесь.",
   groupUpload: "Загружаем в группу…",
@@ -297,6 +301,8 @@ export const worldHy: Copy = {
   noCitySounds: "Այստեղ դեռ հրապարակված ձայներ չկան։",
   legacyEdit:
     "Հին ձայնագրության բնօրինակը պահպանված չէ։ Խմբագրումը սկսվում է պահպանված ձայնից։",
+  editFallback:
+    "Հին բնօրինակը չբացվեց, ուստի խմբագրումը կսկսվի անվտանգ պահպանված WAV-ից։ Բնօրինակը կմնա անփոփոխ։",
   storageFailed: "Չհաջողվեց պահել կամ մշակել ձայնը։ Բնօրինակը մնում է այստեղ։",
   groupUpload: "Վերբեռնում ենք խումբ…",
   editVersion:
@@ -388,6 +394,7 @@ export const worldZh: Copy = {
   worldRefresh: "重新整理 World",
   noCitySounds: "這裡尚無公開聲音。",
   legacyEdit: "這段舊錄音沒有保留原始檔，將從已儲存的音訊開始編輯。",
+  editFallback: "舊原始檔無法開啟，因此將從安全儲存的 WAV 開始編輯。原始檔不會被更改。",
   storageFailed: "無法儲存或處理音訊。原始錄音仍保留在這裡。",
   groupUpload: "正在上傳到群組…",
   editVersion: "編輯將儲存為新版本，原有發佈內容不變。",

@@ -15,7 +15,12 @@ import type {
   Visibility,
 } from "./types";
 import { FieldRecorder } from "./audio/recorder";
-import { analyze, effectLabel, renderDraft } from "./audio/processing";
+import {
+  analyze,
+  editableSource,
+  effectLabel,
+  renderDraft,
+} from "./audio/processing";
 import { changesAudio, patchDraft } from "./audio/draft";
 import {
   prepareWavFile,
@@ -672,23 +677,36 @@ export default function App() {
                 go(publicationStart(record, destination));
               } else {
                 reusedRecord.current = undefined;
-                const base = record.originalBlob || record.audioBlob;
-                const analyzed = await analyze(base);
+                let editable = record;
+                let source;
+                try {
+                  source = await editableSource(editable);
+                } catch (localError) {
+                  if (!record.librarySync) throw localError;
+                  editable = await soundsDb.recover(record.id);
+                  source = await editableSource(editable);
+                }
                 setDraft({
-                  ...newDraft(base, analyzed.duration, analyzed.waveform),
-                  ...record.editState,
-                  title: record.title,
-                  emojis: record.emojis,
-                  location: record.location,
-                  styleId: record.styleId,
+                  ...newDraft(source.blob, source.duration, source.waveform),
+                  ...(!source.fallback ? editable.editState : {}),
+                  title: editable.title,
+                  emojis: editable.emojis,
+                  location: editable.location,
+                  styleId: editable.styleId,
                   id: newId(),
-                  originalBlob: base,
+                  originalBlob: source.blob,
                   visibility: "private",
                   createdAt: Date.now(),
                 });
                 go("edit");
                 setNotice(
-                  t(record.originalBlob ? "editVersion" : "legacyEdit"),
+                  t(
+                    source.fallback
+                      ? "editFallback"
+                      : editable.originalBlob
+                        ? "editVersion"
+                        : "legacyEdit",
+                  ),
                 );
               }
             }}

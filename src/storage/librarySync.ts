@@ -242,6 +242,58 @@ export function createLibrarySync(
       notify("field-library-pending");
       if (failed) throw failed;
     });
+  const recover = (id: string) =>
+    queued(async () => {
+      const userId = owner();
+      if (!userId) throw new LibrarySyncError(401);
+      const local = (await all()).find((row) => row.id === id);
+      const sync = local?.librarySync;
+      if (!local || !sync || sync.ownerUserId !== userId)
+        throw new LibrarySyncError(404);
+      // Never overwrite an unsynced local edit. Recovery only refreshes bytes
+      // whose exact mutation has already been acknowledged by the account.
+      if (dirty(local)) throw new LibrarySyncError(409);
+      const ctx: Context = {
+        userId,
+        headers: authenticationHeaders(),
+        signal: new AbortController().signal,
+      };
+      let item: LibraryItem | undefined;
+      let cursor: string | undefined;
+      do {
+        const page = await remote.list(ctx, cursor);
+        if (page.userId !== userId) throw new LibrarySyncError(403);
+        item = page.items.find((candidate) => candidate.id === sync.recordId);
+        cursor = page.cursor || undefined;
+      } while (!item && cursor && alive(ctx));
+      if (!item || item.deleted || !alive(ctx)) throw new LibrarySyncError(404);
+      const render = await remote.audio(ctx, item, "render");
+      const original = item.originalHash
+        ? item.originalHash === item.renderHash &&
+          item.originalType === item.renderType
+          ? render
+          : await remote.audio(ctx, item, "original")
+        : undefined;
+      if (!alive(ctx)) throw new LibrarySyncError(401);
+      const repaired: SoundRecord = {
+        ...item.metadata,
+        id: local.id,
+        audioBlob: render,
+        originalBlob: original,
+        librarySync: {
+          ownerUserId: userId,
+          recordId: item.id,
+          revision: item.revision,
+          mutationId: item.mutationId,
+          syncedMutationId: item.mutationId,
+          renderHash: item.renderHash,
+          originalHash: item.originalHash,
+        },
+      };
+      await repository.save(repaired);
+      emit();
+      return repaired;
+    });
   async function acknowledge(
     ctx: Context,
     source: SoundRecord,
@@ -531,6 +583,7 @@ export function createLibrarySync(
     clear: repository.clear,
     sync,
     adoptExisting,
+    recover,
     accountChanged,
     status: () => state,
     raw: all,
