@@ -6,6 +6,7 @@
   "NIKOLA_TELEGRAM": "https://t.me/nikolachenmusic",
   "NIKOLA_PORTFOLIO": "http://nikolachen.tilda.ws",
   "SUPPORT_EMAIL": "mailto:tunetotslab@gmail.com",
+  "FIELD_TELEGRAM_CHANNEL": "https://t.me/Fieldapp",
   "FIELD_TELEGRAM_APP": "https://t.me/field_sound_bot?startapp",
   "FIELD_TELEGRAM_BOT": "https://t.me/field_sound_bot"
 }

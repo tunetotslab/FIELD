@@ -59,11 +59,23 @@ try {
         if (page === 'help') assert.equal(result.text, helpText[language_code]);
         if (page === 'links') {
           assert.ok(result.text.startsWith(linksText[language_code]));
-          const urls = result.reply_markup.inline_keyboard.flat().map(button => button.url);
-          for (const url of Object.values(links)) {
-            if (url.startsWith('mailto:')) assert.ok(result.text.includes(url.slice(7)));
-            else assert.ok(urls.includes(url), `Missing link: ${url}`);
-          }
+          const buttons = result.reply_markup.inline_keyboard.flat();
+          const urls = buttons.map(button => button.url);
+          const expectedLinks = [
+            links.FIELD_TELEGRAM_CHANNEL, links.FIELD_TELEGRAM_BOT,
+            links.TUNE_TOTS_WEBSITE, links.TUNE_TOTS_INSTAGRAM, links.TUNE_TOTS_TELEGRAM,
+            links.NIKOLA_PORTFOLIO, links.NIKOLA_INSTAGRAM, links.NIKOLA_TELEGRAM,
+          ];
+          for (const url of expectedLinks) assert.ok(urls.includes(url), `Missing link: ${url}`);
+          assert.ok(result.text.includes(links.SUPPORT_EMAIL.slice(7)));
+          const labels = buttons.map(button => button.text);
+          assert.ok(labels.includes('FIELD · Telegram'));
+          assert.ok(labels.includes('🌱 Tune Tots Lab · Website'));
+          assert.ok(labels.includes('Tune Tots · Instagram'));
+          assert.ok(labels.includes('Tune Tots · Telegram'));
+          assert.ok(labels.includes('🎵 Nikola Chen · Portfolio'));
+          assert.ok(labels.includes('Nikola · Instagram'));
+          assert.ok(labels.includes('Nikola · Telegram'));
         }
         if (page === 'about') assert.equal(result.text, aboutText[language_code]);
       }

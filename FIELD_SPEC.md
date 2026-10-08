@@ -2083,4 +2083,10 @@ trim in the editor, chain and mix up to three effects, choose three emoji, save 
 the private Library, Group or city-only World. About includes the one-world message,
 the same current capabilities, light humour and the authorized Nikola Chen credit.
 
+The Links page keeps its current row layout. `FIELD · Telegram` opens the public
+FIELD channel at `https://t.me/Fieldapp`; the separate `FIELD bot` button continues
+to open the bot. Decorative emoji remain only on `Tune Tots Lab · Website` and
+`Nikola Chen · Portfolio`; social buttons use plain text so Telegram renders their
+labels reliably.
+
 **END OF FIELD_SPEC.md**

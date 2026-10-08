@@ -104,11 +104,11 @@ function dailyReply(locale, index, env) {
 function linksKeyboard(locale, env) {
   return { inline_keyboard: [
     [{ text: copy(locale).open, web_app: { url: appUrl(env) } }],
-    [{ text: 'FIELD · Telegram', url: links.FIELD_TELEGRAM_APP }, { text: 'FIELD bot', url: links.FIELD_TELEGRAM_BOT }],
+    [{ text: 'FIELD · Telegram', url: links.FIELD_TELEGRAM_CHANNEL }, { text: 'FIELD bot', url: links.FIELD_TELEGRAM_BOT }],
     [{ text: '🌱 Tune Tots Lab · Website', url: links.TUNE_TOTS_WEBSITE }],
-    [{ text: '📷 Tune Tots · Instagram', url: links.TUNE_TOTS_INSTAGRAM }, { text: '💬 Tune Tots · Telegram', url: links.TUNE_TOTS_TELEGRAM }],
+    [{ text: 'Tune Tots · Instagram', url: links.TUNE_TOTS_INSTAGRAM }, { text: 'Tune Tots · Telegram', url: links.TUNE_TOTS_TELEGRAM }],
     [{ text: '🎵 Nikola Chen · Portfolio', url: links.NIKOLA_PORTFOLIO }],
-    [{ text: '📷 Nikola · Instagram', url: links.NIKOLA_INSTAGRAM }, { text: '💬 Nikola · Telegram', url: links.NIKOLA_TELEGRAM }],
+    [{ text: 'Nikola · Instagram', url: links.NIKOLA_INSTAGRAM }, { text: 'Nikola · Telegram', url: links.NIKOLA_TELEGRAM }],
     [{ text: '↩️', callback_data: 'bot:home' }],
   ] };
 }
