@@ -685,7 +685,7 @@ try {
     group: "published",
   });
   await telegramPage
-    .getByRole("button", { name: "Favorite", exact: true })
+    .getByRole("button", { name: /favorite/i })
     .click();
   await telegramPage.locator(".favorite.active").waitFor();
   await telegramPage
