@@ -1,0 +1,58 @@
+name: FIELD iOS verification
+on:
+  push:
+    branches: [main, feat/ios-app]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test && npm run typecheck && npm run lint
+      - name: Test real SQLite/audio library
+        run: |
+          swiftc -module-cache-path "$RUNNER_TEMP/field-swift-cache" ios/App/App/FieldLibrary.swift scripts/native-library-test.swift -lsqlite3 -o "$RUNNER_TEMP/field-library-test"
+          "$RUNNER_TEMP/field-library-test"
+      - name: Bundle FIELD locally
+        env:
+          VITE_FIELD_API_URL: ${{ vars.FIELD_API_URL }}
+        run: npm run sync:ios
+      - name: Build simulator application (ad-hoc signing)
+        id: simulator_build
+        run: |
+          set -o pipefail
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/FieldBuild" CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build | tee "$RUNNER_TEMP/field-ios-build.log"
+      - name: Launch real Simulator and verify UI, file bridge and Keychain
+        run: bash scripts/ios-simulator-smoke.sh
+      - name: Build unsigned iPhone application
+        if: ${{ !cancelled() && steps.simulator_build.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/FieldDeviceBuild" CODE_SIGNING_ALLOWED=NO build | tee "$RUNNER_TEMP/field-device-build.log"
+      - name: Package simulator application
+        if: ${{ !cancelled() && steps.simulator_build.outcome == 'success' }}
+        run: ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/FieldBuild/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/FIELD-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FIELD-iOS-verification
+          path: |
+            ${{ runner.temp }}/FIELD-simulator.zip
+            ${{ runner.temp }}/field-ios-build.log
+            ${{ runner.temp }}/field-device-build.log
+            ${{ runner.temp }}/FIELD-ci-smoke.json
+            ${{ runner.temp }}/FIELD-simulator.png
+          if-no-files-found: warn

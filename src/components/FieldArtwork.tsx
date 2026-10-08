@@ -49,10 +49,14 @@ export interface GlobeMarker {
 export function FieldGlobe({
   markers = [],
   onMarker,
+  onMarkerHover,
+  highlightedId,
   focus,
 }: {
   markers?: GlobeMarker[];
   onMarker?: (marker: GlobeMarker) => void;
+  onMarkerHover?: (marker?: GlobeMarker) => void;
+  highlightedId?: string;
   focus?: GlobeMarker;
 }) {
   const { t } = useI18n();
@@ -220,11 +224,15 @@ export function FieldGlobe({
           if (!visible || !point) return null;
           return (
             <g
-              className="globe-marker"
+              className={`globe-marker${highlightedId === marker.id ? " highlighted" : ""}`}
               key={marker.id}
               transform={`translate(${point[0]} ${point[1]})`}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={() => onMarker?.(marker)}
+              onMouseEnter={() => onMarkerHover?.(marker)}
+              onMouseLeave={() => onMarkerHover?.()}
+              onFocus={() => onMarkerHover?.(marker)}
+              onBlur={() => onMarkerHover?.()}
               role="button"
               tabIndex={0}
               onKeyDown={(event) => {

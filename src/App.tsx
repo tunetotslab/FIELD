@@ -2,6 +2,7 @@ import { FieldAccount } from "./components/FieldAccount";
 import { LibrarySyncControl, libraryCopy } from "./components/LibrarySync";
 import { TelegramLink } from "./components/TelegramLink";
 import { isAuthenticated, currentUserId } from "./auth/session";
+import { NativeAccount } from "./components/NativeAccount";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -48,6 +49,8 @@ import {
   setThemePreference,
   type ThemePreference,
 } from "./theme";
+import { isNativeApp } from "./native/runtime";
+import { subscribeNativeLifecycle } from "./native/lifecycle";
 import { AppNavigationProvider, Shell } from "./components/Shell";
 import { FieldWordmark, Miley } from "./components/Brand";
 import { Waveform } from "./components/Waveform";
@@ -193,7 +196,23 @@ export default function App() {
   useEffect(() => {
     const cleanup = telegram.init();
     void loadLibrary();
+    let active = true;
+    let nativeCleanup: (() => void) | undefined;
+    const background = () => {
+      player.stop();
+      setPlayingId(undefined);
+    };
+    window.addEventListener("field-app-background", background);
+    void subscribeNativeLifecycle()
+      .then((dispose) => {
+        if (active) nativeCleanup = dispose;
+        else dispose();
+      })
+      .catch(() => {});
     return () => {
+      active = false;
+      nativeCleanup?.();
+      window.removeEventListener("field-app-background", background);
       cleanup?.();
       player.stop();
     };
@@ -1874,9 +1893,14 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   const authenticated = isAuthenticated();
   const groupEnabled =
     authenticated && GROUP_PUBLISHING_AVAILABLE && groups.length > 0;
-  const worldRestricted = isWorldRestrictedLocation(draft.location);
+  const restrictedLocation = isWorldRestrictedLocation(draft.location);
   const opts: [Visibility, string, string, boolean][] = [
-    ["private", t("private"), t("privateCopy"), true],
+    [
+      "private",
+      t("private"),
+      restrictedLocation ? t("worldRestricted") : t("privateCopy"),
+      !restrictedLocation,
+    ],
     [
       "world",
       t("world"),
@@ -1886,7 +1910,7 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
       authenticated &&
         COMMUNITY_PUBLISHING_AVAILABLE &&
         hasResolvableCity(draft) &&
-        !worldRestricted,
+        !restrictedLocation,
     ],
     [
       "group",
@@ -1897,8 +1921,9 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
   ];
   return (
     <Shell title={t("shareTo")} back={back}>
+      {isNativeApp() && !authenticated && <NativeAccount />}
       <p className="eyebrow">{t("shareWhere")}</p>
-      {!authenticated && <FieldAccount />}
+      {!isNativeApp() && !authenticated && <FieldAccount />}
       <DraftTitlePreview draft={draft} />
       <div className="option-list visibility-list">
         {opts.map(([id, label, copy, enabled]) => (
@@ -1920,30 +1945,22 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
                 {id === "private" ? "🔒" : id === "group" ? "♧" : "🌍"} {label}
               </strong>
               <small>
-                {id === "world" && !enabled && COMMUNITY_PUBLISHING_AVAILABLE
-                  ? t(
-                      authenticated
-                        ? worldRestricted
-                          ? "worldRestricted"
-                          : "cityRequired"
-                        : "sessionExpired",
-                    )
-                  : copy}
+                {(id === "world" || id === "private") && restrictedLocation
+                  ? t("worldRestricted")
+                  : id === "world" && !enabled && COMMUNITY_PUBLISHING_AVAILABLE
+                    ? t(authenticated ? "cityRequired" : "sessionExpired")
+                    : copy}
               </small>
             </span>
             {enabled ? (
               <i />
             ) : (
               <em>
-                {id === "world" && COMMUNITY_PUBLISHING_AVAILABLE
-                  ? t(
-                      authenticated
-                        ? worldRestricted
-                          ? "worldRestricted"
-                          : "cityRequired"
-                        : "sessionExpired",
-                    )
-                  : t("soon")}
+                {(id === "world" || id === "private") && restrictedLocation
+                  ? t("worldRestricted")
+                  : id === "world" && COMMUNITY_PUBLISHING_AVAILABLE
+                    ? t(authenticated ? "cityRequired" : "sessionExpired")
+                    : t("soon")}
               </em>
             )}
           </button>
@@ -2000,8 +2017,8 @@ export function VisibilityScreen({ draft, update, next, back }: StepProps) {
         disabled={
           (draft.visibility !== "private" && !authenticated) ||
           (draft.visibility === "group" && !draft.groupId) ||
-          (draft.visibility === "world" &&
-            (!hasResolvableCity(draft) || worldRestricted))
+          (restrictedLocation && draft.visibility !== "group") ||
+          (draft.visibility === "world" && !hasResolvableCity(draft))
         }
         onClick={next}
       >
@@ -2050,6 +2067,8 @@ export function ReadyScreen({
   const [fileBusy, setFileBusy] = useState(false);
   const [fileStatus, setFileStatus] = useState("");
   const [botUrl, setBotUrl] = useState<string>();
+  const restrictedDestination =
+    isWorldRestrictedLocation(draft.location) && draft.visibility !== "group";
   useEffect(() => {
     let active = true;
     setFile(undefined);
@@ -2164,7 +2183,7 @@ export function ReadyScreen({
       )}
       <div className="ready-actions">
         <button
-          disabled={busy || !file}
+          disabled={busy || !file || restrictedDestination}
           onClick={() =>
             draft.visibility === "world" ? setConfirmWorld(true) : void save()
           }
@@ -2191,6 +2210,11 @@ export function ReadyScreen({
           ＋<span>NEW</span>
         </button>
       </div>
+      {restrictedDestination && (
+        <p className="notice" role="alert">
+          {t("worldRestricted")}
+        </p>
+      )}
       {telegram.isTelegram && (
         <p className="notice">{t("telegramFileNotice")}</p>
       )}
@@ -2427,7 +2451,9 @@ export function Library({
   };
   return (
     <Shell title="LIBRARY" back={back}>
-      <LibrarySyncControl records={records} login={() => go("settings")} />
+      {!isNativeApp() && (
+        <LibrarySyncControl records={records} login={() => go("settings")} />
+      )}
       <div className="tabs">
         {(["all", "favorites", "recents"] as const).map((v) => (
           <button
@@ -2711,12 +2737,14 @@ function Settings({ go, back }: { go: (s: Screen) => void; back: () => void }) {
   ];
   return (
     <Shell title={t("settings")} back={back}>
-      <FieldAccount />
+      {isNativeApp() ? <NativeAccount /> : <FieldAccount />}
       <div className="settings-list">
-        <button onClick={() => go("donate")}>
-          <span>⭐ {t("donate")}</span>
-          <strong>›</strong>
-        </button>
+        {!isNativeApp() && (
+          <button onClick={() => go("donate")}>
+            <span>⭐ {t("donate")}</span>
+            <strong>›</strong>
+          </button>
+        )}
         <fieldset className="language-picker">
           <legend>{t("appearance")}</legend>
           {(["light", "dark"] as const).map((value) => (
@@ -2894,7 +2922,9 @@ function InformationScreen({
       <ArticleBody
         article={article}
         emailAfterLastSection={kind === "help"}
-        donate={kind === "about" ? () => go("donate") : undefined}
+        donate={
+          !isNativeApp() && kind === "about" ? () => go("donate") : undefined
+        }
       />
       {(kind === "about" || kind === "help") && (
         <ContactLinks includeEmail={kind !== "help"} />

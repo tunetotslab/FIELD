@@ -11,9 +11,16 @@
     "build": "tsc -b && vite build --config vite.config.ts",
     "build:city-search": "node scripts/build-city-search-index.mjs public/geo/v1",
     "preview": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "test:web": "node scripts/web-browser.test.mjs"
+    "test:web": "node scripts/web-browser.test.mjs",
+    "build:ios": "VITE_FIELD_PLATFORM=ios VITE_FIELD_WORLD_ENABLED=true VITE_FIELD_GROUPS_ENABLED=true npm run build -- --base=/",
+    "sync:ios": "npm run build:ios && cap sync ios",
+    "open:ios": "cap open ios",
+    "test:ios-storage": "swiftc -module-cache-path /private/tmp/field-swift-cache ios/App/App/FieldLibrary.swift scripts/native-library-test.swift -lsqlite3 -o /private/tmp/field-library-test && /private/tmp/field-library-test"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@fontsource-variable/caveat": "^5.3.0",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource/unifrakturcook": "^5.3.0",
@@ -32,8 +39,14 @@
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "fake-indexeddb": "^6.2.5",
     "playwright": "^1.62.1",
     "prettier": "^3.9.9"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "^11.1.1"
+    }
   }
 }

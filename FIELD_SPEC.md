@@ -1750,7 +1750,7 @@ exactly-once Telegram messages.
 
 Stage 5 is not declared complete until the real two-account Telegram/mobile
 publish → globe → playback → report → owner removal acceptance is recorded.
-Native applications (Stage 6) remain out of scope.
+Native applications were out of scope during Stage 5. The owner authorized iOS Stage 6 on 2026-10-03; see the current contract below.
 
 ## October 2026 World feedback extension
 
@@ -1823,11 +1823,12 @@ Same-name suggestions may use region text and a neutral mini-map point for
 disambiguation, but never display a country. No typed query or coordinate is sent
 to a third-party geocoder.
 
-For the first release, World publication is unavailable for Crimea, Sevastopol
-and the whole Donetsk, Luhansk, Zaporizhzhia and Kherson regions. This is a fixed
-release-safety list, not a claim about borders or political status and not a live
-front-line model. The server is authoritative and the client explains that the
-sound can still be kept in Private Library or sent to a Group.
+For the first release, Private saving and World publication are unavailable for
+Crimea, Sevastopol and the whole Donetsk, Luhansk, Zaporizhzhia and Kherson
+regions. This is a fixed release-safety list, not a claim about borders or
+political status and not a live front-line model. The server remains authoritative
+for World publication; the client blocks Private and World destinations before
+saving. Group remains available.
 
 Appearance is an explicit Light/Dark choice. Light is the default for new users
 and does not follow the device or Telegram theme. The previous stored
@@ -1915,7 +1916,43 @@ personal test recordings which still fail publication. Preserve those rows and
 all audio; no deletion, storage reset or automatic filtering is authorized. Do
 not generalize this exception to other users or all legacy recordings. Keep the
 centralized compatibility and byte-storage readers. No native app work or new
-feature development is authorized by this acceptance update.
+feature development was authorized by that acceptance update. The subsequent
+Stage 6 authorization below supersedes the earlier native exclusion.
+
+
+
+## Stage 6 — iOS authorized by owner (2026-10-03)
+
+The owner explicitly authorized starting iOS now, then TestFlight/App Store;
+Android/Google Play follows later. This supersedes the earlier Stage 5 native
+exclusion. GitHub `tunetotslab/FIELD` remains the source of truth. Do not rebuild
+the product or replace the existing Cloudflare Worker/D1/R2, Telegram bot,
+World or private-group ACLs. See `FIELD_IOS_PLAN_RU.md` for actual progress.
+
+- One React/Vite audio/editor/FX/Daily/localization implementation, bundled locally
+  by Capacitor 8 in a real iOS Xcode project. No remotely loaded application shell.
+- iOS private audio: protected Application Support files; metadata: SQLite.
+  Commit metadata only after original/render bytes are written. Keychain stores
+  standalone auth sessions. Never erase Telegram/PWA IndexedDB or localStorage.
+- Telegram/PWA and native app have separate local sandboxes. Do not promise
+  automatic transfer of the private Library between them. World and joined
+  Groups are shared backend data after trusted account authentication.
+- Standalone Telegram pairing requires an explicit matching-code approval in
+  the private bot chat and confirmation of the identity in the iOS app. The
+  proof never enters the Telegram link; sessions are hashed in D1, revocable,
+  expire, and stay in device Keychain. Never trust a client-supplied user ID.
+- Export WAV uses the iOS document picker; sharing uses the system share sheet.
+  Cancelling either keeps the private original and render intact.
+- App background ends recording with the captured audio and stops playback.
+  No background recording capability is requested in this stage.
+- Existing Stars/donation bot and web flows stay intact. The native app does not
+  expose the existing Telegram donation route pending App Store payment review.
+- Signed device acceptance, App Store login equivalence, account deletion,
+  user blocking/filtering and privacy declarations are release gates. A green
+  unsigned Xcode build is not proof of real-iPhone recording or Store approval.
+- Apple Developer membership is not enrolled yet (owner confirmed). Signing,
+  App Store agreements, tax/payment details and Store submission require the
+  owner's account; never invent credentials or accept agreements for the owner.
 
 ## Standalone browser parity — October 3, 2026
 

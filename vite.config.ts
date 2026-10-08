@@ -27,6 +27,17 @@ export default defineConfig(({ mode }) => {
           ];
         },
       },
+      {
+        name: "field-native-local-shell",
+        transformIndexHtml(html) {
+          return env.VITE_FIELD_PLATFORM === "ios"
+            ? html.replace(
+                /<script[^>]+src="https:\/\/telegram.org\/js\/telegram-web-app.js[^>]*><\/script>/,
+                "",
+              )
+            : html;
+        },
+      },
     ],
   };
 });

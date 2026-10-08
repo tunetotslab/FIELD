@@ -19,7 +19,7 @@ class Recorder{
   stop(){this.state='inactive';this.ondataavailable?.({data:new Blob([new Uint8Array(256)])});this.onstop?.();}
 }
 globalThis.MediaRecorder=Recorder;
-globalThis.window={MediaRecorder:Recorder,setTimeout:()=>1,clearTimeout(){}};
+globalThis.window=Object.assign(new EventTarget(),{MediaRecorder:Recorder,setTimeout:()=>1,clearTimeout(){}});
 globalThis.AudioContext=class {createAnalyser(){return {frequencyBinCount:128,getByteTimeDomainData(a){a.fill(128);}};}createMediaStreamSource(){return {connect(){}};}close(){return Promise.resolve();}};
 let states=[],completed;
 const events={onState:s=>states.push(s),onLevel(){},onTime(){},onComplete:(blob,duration)=>{completed={blob,duration};}};
@@ -64,3 +64,10 @@ assert.equal(completed.duration,60);
 assert.equal(times.at(-1),60);
 assert.ok(states.includes('processing'));
 console.log('PASS recording stops automatically at the exact 60-second limit');
+
+permission=()=>Promise.resolve(stream);states=[];completed=undefined;
+const backgrounded=new FieldRecorder(events);await backgrounded.start();now+=1000;
+window.dispatchEvent(new Event('field-app-background'));
+assert.ok(completed.blob.size>0);assert.equal(completed.duration,1);assert.ok(!states.includes('error'));
+const finalResult=completed;window.dispatchEvent(new Event('field-app-background'));assert.equal(completed,finalResult);
+console.log('PASS native background event stops once, preserves captured bytes and removes listener');

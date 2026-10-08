@@ -28,9 +28,9 @@ export const worldEn = {
     "The upload exceeds the size limit. Your recording remains local.",
   publicationCityFailed: "Choose the city again from suggestions and retry.",
   publicationLocationRestricted:
-    "World publishing is currently unavailable for this city. You can keep the sound in Library or send it to your Group.",
+    "Private and World are currently unavailable for this city. You can send the sound only to your Group.",
   worldRestricted:
-    "World publishing is currently unavailable for this city. You can keep the sound in Library or send it to your Group.",
+    "Private and World are currently unavailable for this city. You can send the sound only to your Group.",
   publicationMetadataFailed: "Check the title, three emoji and audio format.",
   publicationAccessFailed:
     "This account does not have access to the destination.",
@@ -85,7 +85,7 @@ export const worldEn = {
   reportFailed: "Could not send the report. Try again.",
   searchCityButton: "Find city",
   sessionExpired:
-    "Close FIELD and reopen it from the Telegram bot to refresh your session.",
+    "Your FIELD session expired. In the iPhone app, sign in again in Settings. In Telegram, close FIELD and reopen it from the bot.",
   worldLoading: "Listening for cities…",
   worldRefresh: "Refresh World",
   noCitySounds: "No public sounds here yet.",
@@ -132,9 +132,9 @@ export const worldRu: Copy = {
     "Размер загрузки превышает лимит. Запись остаётся на устройстве.",
   publicationCityFailed: "Выбери город заново из подсказок и повтори.",
   publicationLocationRestricted:
-    "Публикация в World для этого города пока недоступна. Можно сохранить звук в Library или отправить в свою Group.",
+    "Для этого города Private и World пока недоступны. Звук можно отправить только в свою Group.",
   worldRestricted:
-    "Публикация в World для этого города пока недоступна. Можно сохранить звук в Library или отправить в свою Group.",
+    "Для этого города Private и World пока недоступны. Звук можно отправить только в свою Group.",
   publicationMetadataFailed: "Проверь название, три emoji и формат аудио.",
   publicationAccessFailed:
     "У этого аккаунта нет доступа к выбранному месту публикации.",
@@ -190,7 +190,7 @@ export const worldRu: Copy = {
   reportFailed: "Не удалось отправить жалобу. Попробуйте снова.",
   searchCityButton: "Найти город",
   sessionExpired:
-    "Закрой FIELD и открой заново из Telegram-бота, чтобы обновить сессию.",
+    "Сессия FIELD истекла. В приложении iPhone войдите снова в настройках. В Telegram закройте FIELD и откройте заново из бота.",
   worldLoading: "Ищем города со звуками…",
   worldRefresh: "Обновить World",
   noCitySounds: "Здесь пока нет публичных звуков.",
@@ -235,9 +235,9 @@ export const worldHy: Copy = {
     "Վերբեռնումը գերազանցում է չափի սահմանը։ Ձայնը սարքում է։",
   publicationCityFailed: "Կրկին ընտրիր քաղաքը հուշումներից։",
   publicationLocationRestricted:
-    "Այս քաղաքի համար World հրապարակումը դեռ հասանելի չէ։ Ձայնը կարող ես պահել Library-ում կամ ուղարկել քո Group-ին։",
+    "Այս քաղաքի համար Private-ը և World-ը դեռ հասանելի չեն։ Ձայնը կարող ես ուղարկել միայն քո Group-ին։",
   worldRestricted:
-    "Այս քաղաքի համար World հրապարակումը դեռ հասանելի չէ։ Ձայնը կարող ես պահել Library-ում կամ ուղարկել քո Group-ին։",
+    "Այս քաղաքի համար Private-ը և World-ը դեռ հասանելի չեն։ Ձայնը կարող ես ուղարկել միայն քո Group-ին։",
   publicationMetadataFailed: "Ստուգիր անունը, երեք էմոջին և ձայնի ձևաչափը։",
   publicationAccessFailed: "Այս հաշիվը չունի ընտրված վայրի հասանելիությունը։",
   publicationLimitFailed: "Օրվա սահմանը լրացել է։ Փորձիր վաղը։",
@@ -291,7 +291,7 @@ export const worldHy: Copy = {
   reportFailed: "Չհաջողվեց ուղարկել։ Կրկին փորձեք։",
   searchCityButton: "Գտնել քաղաքը",
   sessionExpired:
-    "Փակիր FIELD-ը և կրկին բացիր Telegram բոտից՝ սեսիան թարմացնելու համար։",
+    "FIELD սեսիան սպառվել է։ iPhone հավելվածում կրկին մուտք գործեք Կարգավորումներում։ Telegram-ում փակեք FIELD-ը և կրկին բացեք բոտից։",
   worldLoading: "Փնտրում ենք ձայն ունեցող քաղաքներ…",
   worldRefresh: "Թարմացնել World-ը",
   noCitySounds: "Այստեղ դեռ հրապարակված ձայներ չկան։",
@@ -331,9 +331,9 @@ export const worldZh: Copy = {
   publicationTooLarge: "上傳超過大小限制。錄音仍留在裝置。",
   publicationCityFailed: "請重新從建議中選擇城市。",
   publicationLocationRestricted:
-    "此城市目前無法發佈到 World。你仍可將聲音保存在 Library，或傳送到自己的 Group。",
+    "此城市目前無法使用 Private 和 World，只能將聲音傳送到自己的 Group。",
   worldRestricted:
-    "此城市目前無法發佈到 World。你仍可將聲音保存在 Library，或傳送到自己的 Group。",
+    "此城市目前無法使用 Private 和 World，只能將聲音傳送到自己的 Group。",
   publicationMetadataFailed: "請檢查標題、三個 emoji 與音訊格式。",
   publicationAccessFailed: "此帳號無權存取所選目的地。",
   publicationLimitFailed: "已達每日上傳上限，請明天再試。",
@@ -383,7 +383,7 @@ export const worldZh: Copy = {
   reportFailed: "無法送出檢舉。請重試。",
   searchCityButton: "尋找城市",
   sessionExpired:
-    "請關閉 FIELD，並從 Telegram 機器人重新開啟，以更新工作階段。",
+    "FIELD 工作階段已到期。在 iPhone App 中，請在設定重新登入。在 Telegram 中，請關閉 FIELD 並從機器人重新開啟。",
   worldLoading: "正在尋找有聲音的城市…",
   worldRefresh: "重新整理 World",
   noCitySounds: "這裡尚無公開聲音。",

@@ -2,6 +2,8 @@ import type { SoundRecord } from "../types";
 import { encodeSound, decodeSound } from "./codec";
 import { StorageError } from "./errors";
 import {createLibrarySync} from './librarySync';
+import {isNativeApp} from '../native/runtime';
+import {createNativeSoundRepository} from './native';
 
 const DB_NAME = "field-audio";
 const STORE = "sounds";
@@ -86,4 +88,4 @@ export function createSoundRepository(name = DB_NAME) {
     clear: () => tx(name, "readwrite", (store) => store.clear()),
   };
 }
-export const soundsDb = createLibrarySync(createSoundRepository());
+export const soundsDb = isNativeApp() ? createNativeSoundRepository() : createLibrarySync(createSoundRepository());

@@ -1,4 +1,42 @@
 import { fetchWithDeadline } from "../network";
+
+type SessionBridge = {
+  sessionRead(): Promise<{ value?: string }>;
+  sessionWrite(options: { value: string }): Promise<void>;
+  sessionRemove(): Promise<void>;
+};
+const isNativeRuntime = () =>
+  Boolean(
+    (
+      window as typeof window & {
+        Capacitor?: { isNativePlatform?: () => boolean };
+      }
+    ).Capacitor?.isNativePlatform?.(),
+  );
+const deviceSessionBridge: SessionBridge = {
+  sessionRead: async () => {
+    const bridge = (
+      window as typeof window & { __fieldDeviceBridge?: SessionBridge }
+    ).__fieldDeviceBridge;
+    if (!bridge) throw Error("Native bridge unavailable");
+    return bridge.sessionRead();
+  },
+  sessionWrite: async (options) => {
+    const bridge = (
+      window as typeof window & { __fieldDeviceBridge?: SessionBridge }
+    ).__fieldDeviceBridge;
+    if (!bridge) throw Error("Native bridge unavailable");
+    return bridge.sessionWrite(options);
+  },
+  sessionRemove: async () => {
+    const bridge = (
+      window as typeof window & { __fieldDeviceBridge?: SessionBridge }
+    ).__fieldDeviceBridge;
+    if (!bridge) throw Error("Native bridge unavailable");
+    return bridge.sessionRemove();
+  },
+};
+
 export type FieldSession = {
   token: string;
   expiresAt: number;
@@ -6,12 +44,13 @@ export type FieldSession = {
   displayName: string;
   provider: "telegram";
 };
+export type NativeSession = FieldSession;
 export interface SessionStorage {
   read(): Promise<unknown>;
   write(value: FieldSession): Promise<void>;
   remove(): Promise<void>;
 }
-// A separate database: account logout/expiry never touches private recordings.
+
 async function accountStore(
   mode: IDBTransactionMode,
   action: (store: IDBObjectStore) => IDBRequest,
@@ -35,6 +74,7 @@ async function accountStore(
     db.close();
   }
 }
+
 export const browserSessionStorage: SessionStorage = {
   read: () => accountStore("readonly", (store) => store.get("telegram")),
   write: async (value) => {
@@ -44,6 +84,25 @@ export const browserSessionStorage: SessionStorage = {
     await accountStore("readwrite", (store) => store.delete("telegram"));
   },
 };
+
+export function nativeSessionStorage(
+  bridge: SessionBridge = deviceSessionBridge,
+): SessionStorage {
+  return {
+    read: async () => {
+      const { value } = await bridge.sessionRead();
+      if (!value) return undefined;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return undefined;
+      }
+    },
+    write: (value) => bridge.sessionWrite({ value: JSON.stringify(value) }),
+    remove: () => bridge.sessionRemove(),
+  };
+}
+
 export function createSessionStore(
   storage: SessionStorage = browserSessionStorage,
 ) {
@@ -73,8 +132,6 @@ export function createSessionStore(
   const isAuthenticated = () =>
     !!window.Telegram?.WebApp?.initData || !!currentSession();
   function currentUserId() {
-    // Identity here only binds local retries. The Worker always verifies the
-    // signed Telegram data/bearer and never trusts this client-side value.
     if (window.Telegram?.WebApp?.initData) {
       try {
         const id = JSON.parse(
@@ -139,7 +196,7 @@ export function createSessionStore(
       session &&
       used === `Bearer ${session.token}`
     ) {
-      session = undefined; // Also expire in memory if persistence is unavailable.
+      session = undefined;
       await persist(() => storage.remove()).catch(() => {});
       window.dispatchEvent(new Event("field-auth-changed"));
     }
@@ -155,6 +212,24 @@ export function createSessionStore(
     authenticatedFetch,
   };
 }
+
+export function createNativeSessionStore(
+  bridge: SessionBridge = deviceSessionBridge,
+  native: () => boolean = isNativeRuntime,
+) {
+  const store = createSessionStore(
+    native() ? nativeSessionStorage(bridge) : browserSessionStorage,
+  );
+  return {
+    ...store,
+    setNativeSession: store.setSession,
+    restoreNativeSession: store.restoreSession,
+  };
+}
+
+const sessionStore = createSessionStore(
+  isNativeRuntime() ? nativeSessionStorage() : browserSessionStorage,
+);
 export const {
   currentSession,
   currentUserId,
@@ -163,4 +238,6 @@ export const {
   setSession,
   restoreSession,
   authenticatedFetch,
-} = createSessionStore();
+} = sessionStore;
+export const setNativeSession = setSession;
+export const restoreNativeSession = restoreSession;

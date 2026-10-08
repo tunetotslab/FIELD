@@ -94,7 +94,8 @@ translations are only as complete as GeoNames. Do not invent translated names.
 Public World responses, Telegram captions and moderation notifications expose
 the city only. Country and region remain internal canonical lookup fields. World
 publication returns 403 for Crimea, Sevastopol and the Donetsk, Luhansk,
-Zaporizhzhia and Kherson regions; Private Library and Groups remain available.
+Zaporizhzhia and Kherson regions. The client also blocks Private saving for the
+same fixed list; Group remains available.
 
 `GET /world/cities` returns complete visible city counts. `GET /world?city=ID`
 returns `{items,nextCursor}` (20 items). Cursor ordering uses `(created_at,id)`.
@@ -257,7 +258,6 @@ and unsigned access restrictions passed live smoke checks. Native auth remains
 disabled. See `FIELD_WORLD_GROUPS_PLAN_RU.md` for paired Pages release and rollback
 versions. This resolves the prior approval gate for this release only.
 
-
 ## Private account Library (October 4, 2026)
 
 `LIBRARY_SYNC_ENABLED=true` enables authenticated `/library` routes for the same
@@ -308,10 +308,39 @@ source device. New signed-in rows auto-bind to that account. Guest rows stay loc
 Tests use isolated SQLite, fake IndexedDB and synthetic R2; no production Telegram
 messages, user recordings or publication requests are generated.
 
-
 Released from GitHub `da6da4b` (PR #5) as Worker
 `07924a24-14f0-4ba3-a598-d8af88c4cbb2`. Additive 0008 was applied to the existing
 D1 before deploy. Paired main `e0bf8ab` passed WebKit and Pages; the live web uses
 shell v9. Guest-only live checks confirmed health, allowed-origin CORS and unsigned
 private-route restrictions. No real private audio was read/written by release checks.
 Full two-phone private Library acceptance requires the owner's source-device consent.
+
+## Standalone iOS authentication (Stage 6)
+
+Apply `migrations/0007_native_auth.sql` from this committed/pushed repository
+before setting `NATIVE_AUTH_ENABLED=true`. It adds only challenge/session tables
+and indexes; existing recordings, R2, groups, Telegram identities and donations
+are untouched. The flag defaults off when absent; the iOS development branch
+now configures it on for the verified rollout. Allowed native Origin is exactly `capacitor://localhost`;
+web Origin remains `APP_ORIGIN`. Native session authentication is enabled only
+behind the same flag. Revoking the flag disables native tokens without rewriting
+Telegram sessions or group ACLs.
+
+POST `/auth/native/challenge` creates a ten-minute device-flow challenge. Public
+ID goes to the bot link; secret proof stays in the app. Bot approval works solely
+through a verified webhook in the user's own private chat, with a matching six-digit
+code and explicit action. First approval locks the Telegram identity. POST
+`/auth/native/status` never returns a token. After confirmation of the account
+in the app, POST `/auth/native/exchange` atomically consumes the proof once and
+issues a 30-day token; only its SHA-256 hash is stored in D1. POST
+`/auth/native/logout` revokes it. Expired/revoked auth receipts are purged by the
+existing scheduled Worker after a one-day grace period; no audio is purged.
+
+Native requests to World and Groups use `Authorization: Bearer field_…` and retain
+all existing owner/membership restrictions. Native donation requests are denied;
+web/bot Stars stay on the existing Telegram path. No tokens/proofs in URLs or logs.
+Regression `scripts/native-auth.test.mjs` uses real SQLite and mocked bot delivery.
+No production user or group messages are sent by the test.
+
+Apple login/deletion/blocking gates remain documented in `FIELD_IOS_PLAN_RU.md`;
+this device flow is not an assertion of App Store approval.

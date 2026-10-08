@@ -10,10 +10,11 @@ import './visual-cleanup.css';
 import './responsive.css';
 import { applyTheme } from './theme';
 import { I18nProvider } from './i18n';
+import {isNativeApp} from './native/runtime';
 
-import { restoreSession } from './auth/session';
+import { restoreNativeSession } from './auth/session';
 async function boot() {
-  await restoreSession().catch(() => {
+  await restoreNativeSession().catch(() => {
     // Private recording stays available when account storage cannot open.
   });
   applyTheme();
@@ -23,6 +24,6 @@ async function boot() {
 }
 void boot();
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if (!isNativeApp() && 'serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}));
 }

@@ -1,5 +1,7 @@
 import { isAuthenticated } from "../auth/session";
 import { FieldAccount } from "./FieldAccount";
+import { isNativeApp } from "../native/runtime";
+import { NativeAccount } from "./NativeAccount";
 import { useEffect, useRef, useState } from "react";
 import {
   worldAudio,
@@ -46,6 +48,7 @@ export function WorldMap({
   const { t } = useI18n();
   const [cities, setCities] = useState<WorldCity[]>([]),
     [selected, setSelected] = useState<WorldCity>(),
+    [highlightedCity, setHighlightedCity] = useState<string>(),
     [sounds, setSounds] = useState<WorldSound[]>([]);
   const [cursor, setCursor] = useState<string | null>(null),
     [loading, setLoading] = useState(true),
@@ -333,16 +336,19 @@ export function WorldMap({
   };
   return (
     <Shell variant="world" title={t("fieldWorld")} back={back}>
+      {!isAuthenticated() &&
+        (isNativeApp() ? <NativeAccount /> : <FieldAccount />)}
       <div className="world-composition">
         <FieldGlobe
           markers={cities}
+          highlightedId={highlightedCity}
+          onMarkerHover={(marker) => setHighlightedCity(marker?.id)}
           focus={selected || cities.find((city) => city.id === focusCity)}
           onMarker={(marker) =>
             setSelected(cities.find((c) => c.id === marker.id))
           }
         />
       </div>
-      {api === productionApi && !isAuthenticated() && <FieldAccount />}
       <p className="world-privacy">{t("worldPrivacy")}</p>
       {loading ? (
         <p role="status">{t("worldLoading")}</p>
@@ -372,7 +378,15 @@ export function WorldMap({
       {cities.length > 0 && (
         <div className="city-picker">
           {cities.map((city) => (
-            <button key={city.id} onClick={() => setSelected(city)}>
+            <button
+              key={city.id}
+              className={highlightedCity === city.id ? "highlighted" : ""}
+              onMouseEnter={() => setHighlightedCity(city.id)}
+              onMouseLeave={() => setHighlightedCity(undefined)}
+              onFocus={() => setHighlightedCity(city.id)}
+              onBlur={() => setHighlightedCity(undefined)}
+              onClick={() => setSelected(city)}
+            >
               {city.city} · {city.count}
             </button>
           ))}

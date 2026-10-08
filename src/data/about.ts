@@ -16,6 +16,7 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
       'FIELD создан Николой Ченом, основателем и преподавателем Tune Tots Lab. Никола Чен — музыкант, композитор и автор этого приложения. Вместе с учениками мы превращаем любопытство к звукам в собственную музыку.',
     ]},
     {heading: 'FIELD World — звуки путешествуют', paragraphs: [
+      'Один мир, много звуков. FIELD собирает звуки, записанные в разных городах нашей прекрасной планеты. Мы живём на одной Земле и слушаем её вместе ♡',
       'FIELD — открытое сообщество людей, которые делятся музыкальными зарисовками по всему миру. World собирает их на карте по городам: можно услышать чужую находку, скачать её и дать звуку новую жизнь в своей работе.',
       'В этом и прелесть: дождь из одного города может познакомиться с ритмом из другого. Публикация добровольна; на карте показывается выбранный город, а не твоя точная геопозиция.',
     ]},
@@ -42,6 +43,7 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
       'FIELD was created by Nikola Chen, the founder and teacher of Tune Tots Lab. Nikola Chen is a musician, composer and the app’s author. Together with the students, we turn curiosity about sound into our own music.',
     ]},
     {heading: 'FIELD World — sounds travel', paragraphs: [
+      'One world, many sounds. FIELD collects sounds recorded in cities across our beautiful planet. We live on one Earth and listen to it together ♡',
       'FIELD is an open community sharing musical sketches around the world. World places them on a city map: listen to a discovery, download it and give it another life in your work.',
       'Rain from one city can meet a rhythm from another. Sharing is your choice; the map shows a selected city, never your precise device location.',
     ]},
@@ -68,6 +70,7 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
       'FIELD-ը ստեղծել է Նիկոլա Չենը՝ Tune Tots Lab-ի հիմնադիրն ու ուսուցիչը։ Նիկոլա Չենը երաժիշտ, կոմպոզիտոր և հավելվածի հեղինակն է։ Աշակերտների հետ ձայնի հանդեպ հետաքրքրությունը դարձնում ենք սեփական երաժշտություն։',
     ]},
     {heading: 'FIELD World՝ ձայները ճամփորդում են', paragraphs: [
+      'Մեկ աշխարհ, շատ ձայներ։ FIELD-ը հավաքում է մեր գեղեցիկ մոլորակի տարբեր քաղաքներում ձայնագրված հնչյունները։ Մենք ապրում ենք մեկ Երկրի վրա և միասին լսում այն ♡',
       'FIELD-ը բաց համայնք է՝ ամբողջ աշխարհից երաժշտական էսքիզներ կիսելու համար։ World-ը դրանք տեղադրում է քաղաքների քարտեզի վրա․ լսիր, ներբեռնիր և նոր կյանք տուր քո աշխատանքում։',
       'Մի քաղաքի անձրևը կարող է հանդիպել մյուսի ռիթմին։ Հրապարակումը կամավոր է․ քարտեզը ցույց է տալիս քաղաքը, ոչ թե սարքի ճշգրիտ տեղը։',
     ]},
@@ -94,6 +97,7 @@ export const aboutContent: Record<Locale, SettingsArticle> = {
       'FIELD 由 Tune Tots Lab 的創辦人與教師 Nikola Chen 創作。Nikola Chen 是音樂家、作曲家與本應用程式作者。我們與學生一起把對聲音的好奇轉化為自己的音樂。',
     ]},
     {heading: 'FIELD World：聲音去旅行', paragraphs: [
+      '一個世界，許多聲音。FIELD 收集在我們美麗星球不同城市錄製的聲音。我們生活在同一個地球，一起聆聽它 ♡',
       'FIELD 是分享世界各地音樂草稿的開放社群。World 將它們放上城市地圖：聆聽發現、下載，並在自己的作品中給聲音新的生命。',
       '一座城市的雨能遇見另一座城市的節奏。分享由你決定，地圖只顯示所選城市，不顯示裝置的精確位置。',
     ]},

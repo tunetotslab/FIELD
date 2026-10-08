@@ -124,12 +124,24 @@
   fill: #151114;
   stroke: white;
   stroke-width: 2;
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease,
+    filter 160ms ease;
 }
 .globe-marker text {
   fill: white;
   font-size: 9px;
   font-weight: 850;
   pointer-events: none;
+}
+.globe-marker.highlighted circle {
+  fill: #ffd84d;
+  stroke: #fff7b0;
+  filter: drop-shadow(0 0 5px #ffe66d) drop-shadow(0 0 12px #ffd84dcc);
+}
+.globe-marker.highlighted text {
+  fill: #2b2110;
 }
 .world-pin {
   position: relative;
