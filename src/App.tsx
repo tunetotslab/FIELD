@@ -961,7 +961,9 @@ function RecordScreen({
                     ? recorder.current?.resume()
                     : recorder.current?.pause()
                 }
-                  aria-label={t("recording")}
+                  aria-label={t(
+                    state === "paused" ? "resumeRecording" : "pauseRecording",
+                  )}
               >
                 {state === "paused" ? (
                   <span className="record-resume-label">
@@ -981,7 +983,7 @@ function RecordScreen({
                   telegram.impact("medium");
                   recorder.current?.stop();
                 }}
-                aria-label={t("continue")}
+                aria-label={t("finishRecording")}
               >
                 <UiIcon name="confirm" />
               </button>
