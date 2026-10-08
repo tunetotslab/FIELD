@@ -119,6 +119,8 @@
 }
 .globe-marker {
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .globe-marker circle {
   fill: #151114;

@@ -253,12 +253,12 @@ globalThis.indexedDB=indexedDB;
 const {createSoundRepository}=await load('../src/storage/db.ts');
 const {StorageError}=await load('../src/storage/errors.ts');
 const nativeOpen=indexedDB.open.bind(indexedDB);
-let failFirstOpen=true;
+let failedOpens=0;
 indexedDB.open=function(name,...args){
- if(name==='field-storage-open-retry'&&failFirstOpen){failFirstOpen=false;throw new DOMException('Connection to Indexed Database server lost','UnknownError');}
+ if(name==='field-storage-open-retry'&&failedOpens++<3)throw new DOMException('Connection to Indexed Database server lost','UnknownError');
  return nativeOpen(name,...args);
 };
-assert.deepEqual(await createSoundRepository('field-storage-open-retry').getAll(),[],'UnknownError open reconnects once without clearing data');
+assert.deepEqual(await createSoundRepository('field-storage-open-retry').getAll(),[],'UnknownError uses bounded delayed reconnects without clearing data');
 let repositoryOpens=0;
 indexedDB.open=function(...args){repositoryOpens++;return nativeOpen(...args);};
 const storageName='field-storage-regression';

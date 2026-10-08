@@ -14,7 +14,6 @@ import { makeFixture } from "./fixture";
 import { runAudioChecks } from "./diagnostics";
 import { WorldMap } from "../components/WorldMap";
 import { PlaybackManager } from "../audio/player";
-import { downloadWav, wavFile } from "../audio/export";
 import type { WorldCity, WorldSound } from "../world";
 const qaPlayer = new PlaybackManager();
 const qaCity: WorldCity = {
@@ -130,11 +129,6 @@ function QA() {
           busy={mode === "readyFailed"}
           notice="QA ONLY · simulated destination failure"
           save={() => setLines(["QA confirmation accepted"])}
-          exportSound={(blob) => {
-            setLines([`QA WAV exported: ${blob.size} bytes`]);
-            downloadWav(wavFile(blob, "QA fixture"));
-          }}
-          fresh={() => setMode("menu")}
           back={() => setMode("menu")}
           playing={false}
           setPlaying={() => {}}

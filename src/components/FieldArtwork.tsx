@@ -96,7 +96,7 @@ export function FieldGlobe({
         .translate([180, 180])
         .scale(164 * zoom)
         .clipAngle(90)
-        .precision(0.3)
+        .precision(0.8)
         .rotate([rotation[0], rotation[1], 0]),
     [rotation, zoom],
   );
@@ -125,8 +125,8 @@ export function FieldGlobe({
     const dx = event.clientX - drag.current.x,
       dy = event.clientY - drag.current.y;
     pendingRotation.current = [
-      drag.current.rotation[0] + dx * 0.32,
-      Math.max(-80, Math.min(80, drag.current.rotation[1] - dy * 0.32)),
+      drag.current.rotation[0] + dx * 0.55,
+      Math.max(-80, Math.min(80, drag.current.rotation[1] - dy * 0.55)),
     ];
     if (!rotationFrame.current)
       rotationFrame.current = requestAnimationFrame(() => {

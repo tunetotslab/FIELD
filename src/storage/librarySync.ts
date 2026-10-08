@@ -242,11 +242,20 @@ export function createLibrarySync(
       notify("field-library-pending");
       if (failed) throw failed;
     });
-  const recover = (id: string) =>
+  const recover = (target: string | SoundRecord) =>
     queued(async () => {
       const userId = owner();
       if (!userId) throw new LibrarySyncError(401);
-      const local = (await all()).find((row) => row.id === id);
+      const supplied = typeof target === "string" ? undefined : target;
+      const id = typeof target === "string" ? target : target.id;
+      let local = supplied;
+      try {
+        local = (await all()).find((row) => row.id === id) || supplied;
+      } catch (error) {
+        // The visible React copy is enough to identify a fully synced private
+        // cloud item while Telegram's iOS WebView reconnects IndexedDB.
+        if (!supplied) throw error;
+      }
       const sync = local?.librarySync;
       if (!local || !sync || sync.ownerUserId !== userId)
         throw new LibrarySyncError(404);
@@ -290,8 +299,14 @@ export function createLibrarySync(
           originalHash: item.originalHash,
         },
       };
-      await repository.save(repaired);
-      emit();
+      try {
+        await repository.save(repaired);
+        emit();
+      } catch (error) {
+        // Let the editor use the authenticated cloud bytes immediately. The
+        // next foreground sync will cache them once IndexedDB is available.
+        if (!supplied) throw error;
+      }
       return repaired;
     });
   async function acknowledge(

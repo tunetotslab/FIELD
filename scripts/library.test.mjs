@@ -220,6 +220,22 @@ assert.deepEqual(
   new Uint8Array([9, 8, 7]),
   "explicit recovery refreshes damaged local original bytes from the private cloud copy",
 );
+const unavailableLocal = createLibrarySync({
+  getAll: async () => {
+    throw new DOMException("IndexedDB process unavailable", "UnknownError");
+  },
+  save: async () => {
+    throw new DOMException("IndexedDB process unavailable", "UnknownError");
+  },
+  remove: async () => {},
+  clear: async () => {},
+});
+const cloudEditable = await unavailableLocal.recover(restored);
+assert.deepEqual(
+  new Uint8Array(await cloudEditable.originalBlob.arrayBuffer()),
+  new Uint8Array([9, 8, 7]),
+  "a fully synced visible row remains editable from its private cloud copy while IndexedDB reconnects",
+);
 assert.equal(
   db.prepare("SELECT COUNT(*) n FROM sounds").get().n,
   1,

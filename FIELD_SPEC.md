@@ -2092,10 +2092,11 @@ labels reliably.
 ## Telegram iOS Library recovery — October 8, 2026
 
 The web repository keeps one IndexedDB connection per database and serializes its
-transactions. A WebKit `UnknownError`, `InvalidStateError` or `AbortError` invalidates
-the lost connection and retries the idempotent local operation once without clearing,
-deleting or replacing Library data. Library refresh, sync and editor saves must not
-race separate database opens.
+transactions. It closes cached connections when the Telegram WebView is hidden or
+discarded. A WebKit `UnknownError`, `InvalidStateError` or `AbortError` invalidates
+the lost connection and retries the idempotent local operation with short bounded
+backoff without clearing, deleting or replacing Library data. Library refresh, sync
+and editor saves must not race separate database opens.
 
 Editing an older recording first uses its saved original. If WebKit cannot decode
 that historical Blob, FIELD creates a new private version from a fresh copy of the
@@ -2103,6 +2104,14 @@ saved WAV render and leaves the original record untouched. If both local audio p
 fail and the record is fully synced, FIELD may explicitly refresh the exact render
 and original bytes from that owner's private cloud Library before retrying. Never
 overwrite an unsynced local mutation during recovery. The UI explains when editing
-starts from the safe WAV fallback.
+starts from the safe WAV fallback. When IndexedDB is temporarily unavailable but the
+visible recording is fully synced, authenticated cloud recovery may supply its exact
+bytes directly to the editor; caching is retried later rather than blocking editing.
+
+The final Your Sound screen has one large primary Save action. WAV export and sharing
+remain Library actions, and a new recording starts from the persistent Record tab.
+World drag uses a responsive low-cost projection in Telegram, marker selection glows
+yellow without a rectangular tap flash, and header navigation uses a plain back arrow
+without a circular pressed background.
 
 **END OF FIELD_SPEC.md**

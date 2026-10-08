@@ -345,12 +345,13 @@ export function WorldMap({
       <div className="world-composition">
         <FieldGlobe
           markers={cities}
-          highlightedId={highlightedCity}
+          highlightedId={highlightedCity || selected?.id}
           onMarkerHover={(marker) => setHighlightedCity(marker?.id)}
           focus={selected || cities.find((city) => city.id === focusCity)}
-          onMarker={(marker) =>
-            setSelected(cities.find((c) => c.id === marker.id))
-          }
+          onMarker={(marker) => {
+            setHighlightedCity(marker.id);
+            setSelected(cities.find((c) => c.id === marker.id));
+          }}
         />
       </div>
       <p className="world-privacy">{t("worldPrivacy")}</p>

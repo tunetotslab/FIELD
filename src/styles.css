@@ -20,6 +20,7 @@ button {
   background: none;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 button:disabled {
   cursor: not-allowed;
@@ -73,12 +74,13 @@ button:disabled {
   width: 44px;
   height: 44px;
   font-size: 24px;
-  border-radius: 50%;
+  border-radius: 0;
   display: inline-grid;
   place-items: center;
 }
 .icon-button:active {
-  background: var(--color-pink-wash);
+  background: transparent;
+  color: var(--color-pink-dark);
 }
 .brand-placeholder {
   justify-self: center;
@@ -325,7 +327,10 @@ button:disabled {
   line-height: 1;
   box-shadow: 0 5px 18px rgba(0, 0, 0, 0.05);
 }
-.round-control svg { width: 25px; height: 25px; }
+.round-control svg {
+  width: 25px;
+  height: 25px;
+}
 .round-control.danger {
   font-size: 22px;
 }
@@ -467,7 +472,10 @@ button:disabled {
   align-content: center;
   font-size: 28px;
 }
-.edit-tools button > svg { width: 28px; height: 28px; }
+.edit-tools button > svg {
+  width: 28px;
+  height: 28px;
+}
 .edit-tools span {
   display: block;
   font-size: 10px;
@@ -850,22 +858,12 @@ button:disabled {
   font-size: 12px;
   text-align: center;
 }
-.ready-actions {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-top: auto;
+.ready-save-action {
+  margin: 22px 0;
 }
-.ready-actions button {
-  min-height: 72px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  font-size: 23px;
-}
-.ready-actions span {
-  font-size: 9px;
-  font-weight: 850;
-  margin-top: 7px;
+.ready-save-action .primary-button {
+  min-height: 58px;
+  margin: 0;
 }
 .tabs {
   display: grid;
@@ -1160,15 +1158,6 @@ button:disabled {
 }
 .trim-playback .play-main {
   margin: 0;
-}
-.ready-actions svg {
-  width: 27px;
-  height: 27px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 .daily-card .primary-button {
   background: var(--color-pink);
@@ -1967,13 +1956,18 @@ button:disabled {
   padding: 8px 12px;
   border: 1px solid #f531a4;
   border-radius: 24px;
-  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 .city-picker button.highlighted {
   color: #2b2110;
   background: #fff4a8;
   border-color: #f2ca38;
-  box-shadow: 0 0 8px #ffe56b99, 0 0 18px #ffd84d66;
+  box-shadow:
+    0 0 8px #ffe56b99,
+    0 0 18px #ffd84d66;
 }
 .fx-chain {
   display: grid;
@@ -2057,7 +2051,23 @@ button:disabled {
   }
 }
 
-.native-account { margin: 16px 0; padding: 20px; border: 1px solid var(--pink, #ff2fb3); border-radius: 24px; }
-.native-account p { line-height: 1.5; margin: 12px 0; }
-.native-login-code { display: block; font-size: 32px; letter-spacing: .15em; margin: 16px 0; text-align: center; }
-.native-account button { margin-top: 8px; }
+.native-account {
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid var(--pink, #ff2fb3);
+  border-radius: 24px;
+}
+.native-account p {
+  line-height: 1.5;
+  margin: 12px 0;
+}
+.native-login-code {
+  display: block;
+  font-size: 32px;
+  letter-spacing: 0.15em;
+  margin: 16px 0;
+  text-align: center;
+}
+.native-account button {
+  margin-top: 8px;
+}

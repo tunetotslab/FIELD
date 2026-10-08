@@ -637,11 +637,6 @@ export default function App() {
               notice={notice}
               save={save}
               prepared={cacheReady}
-              fresh={() => {
-                reusedRecord.current = undefined;
-                setDraft(undefined);
-                go("home");
-              }}
               back={() => go("visibility")}
               playing={playingId === "draft"}
               setPlaying={(value) => setPlayingId(value ? "draft" : undefined)}
@@ -683,7 +678,7 @@ export default function App() {
                   source = await editableSource(editable);
                 } catch (localError) {
                   if (!record.librarySync) throw localError;
-                  editable = await soundsDb.recover(record.id);
+                  editable = await soundsDb.recover(record);
                   source = await editableSource(editable);
                 }
                 setDraft({
@@ -979,9 +974,9 @@ function RecordScreen({
                     ? recorder.current?.resume()
                     : recorder.current?.pause()
                 }
-                  aria-label={t(
-                    state === "paused" ? "resumeRecording" : "pauseRecording",
-                  )}
+                aria-label={t(
+                  state === "paused" ? "resumeRecording" : "pauseRecording",
+                )}
               >
                 {state === "paused" ? (
                   <span className="record-resume-label">
@@ -1125,7 +1120,8 @@ function EditScreen({
       </div>
       <div className="edit-tools">
         <button className="selected">
-          <UiIcon name="trim" /><span>{t("trim")}</span>
+          <UiIcon name="trim" />
+          <span>{t("trim")}</span>
         </button>
         <button
           disabled
@@ -1142,7 +1138,8 @@ function EditScreen({
           className={draft.loop ? "selected" : ""}
           onClick={() => update({ loop: !draft.loop })}
         >
-          <UiIcon name="loop" /><span>{t("loop")}</span>
+          <UiIcon name="loop" />
+          <span>{t("loop")}</span>
         </button>
         <button
           className={draft.fadeIn || draft.fadeOut ? "selected" : ""}
@@ -1153,7 +1150,8 @@ function EditScreen({
             })
           }
         >
-          <UiIcon name="fade" /><span>{t("fade")}</span>
+          <UiIcon name="fade" />
+          <span>{t("fade")}</span>
         </button>
       </div>
       <button className="primary-button" onClick={next}>
@@ -2055,9 +2053,7 @@ export function ReadyScreen({
   busy,
   notice,
   save,
-  exportSound,
   prepared,
-  fresh,
   back,
   playing,
   setPlaying,
@@ -2069,12 +2065,10 @@ export function ReadyScreen({
   busy: boolean;
   notice: string;
   save: () => void;
-  exportSound?: (blob: Blob) => void;
   prepared?: (
     source: SoundDraft,
     result: { blob: Blob; duration: number; waveform: number[] },
   ) => void;
-  fresh: () => void;
   back: () => void;
   playing: boolean;
   setPlaying: (v: boolean) => void;
@@ -2083,9 +2077,6 @@ export function ReadyScreen({
   const [error, setError] = useState("");
   const [confirmWorld, setConfirmWorld] = useState(false);
   const [file, setFile] = useState<File>();
-  const [fileBusy, setFileBusy] = useState(false);
-  const [fileStatus, setFileStatus] = useState("");
-  const [botUrl, setBotUrl] = useState<string>();
   const restrictedDestination =
     isWorldRestrictedLocation(draft.location) && draft.visibility !== "group";
   useEffect(() => {
@@ -2118,28 +2109,6 @@ export function ReadyScreen({
       active = false;
     };
   }, [draft, t, prepared]);
-  const fileAction = async (action: "share" | "export") => {
-    if (!file || fileBusy) return;
-    if (action === "export" && exportSound) {
-      exportSound(file);
-      return;
-    }
-    setFileBusy(true);
-    setFileStatus("");
-    setError("");
-    try {
-      const result = await runFileAction(file, action);
-      if (result.destination === "telegram") {
-        setFileStatus(t("fileDelivered"));
-        setBotUrl(result.botUrl);
-      }
-    } catch (error) {
-      if (!(error instanceof Error && error.name === "AbortError"))
-        setError(fileActionErrorMessage(error, t));
-    } finally {
-      setFileBusy(false);
-    }
-  };
   const play = async () => {
     if (playing) {
       player.stop();
@@ -2200,57 +2169,21 @@ export function ReadyScreen({
           {error || notice}
         </p>
       )}
-      <div className="ready-actions">
+      <div className="ready-save-action">
         <button
+          className="primary-button"
           disabled={busy || !file || restrictedDestination}
           onClick={() =>
             draft.visibility === "world" ? setConfirmWorld(true) : void save()
           }
-          aria-label={t("save")}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m5 12 4.2 4.2L19 6.8" />
-          </svg>
-          <span>{busy ? t(phase) : !file ? t("preparing") : t("save")}</span>
-        </button>
-        <button
-          disabled={!file || fileBusy}
-          onClick={() => void fileAction("export")}
-        >
-          ⇧<span>{t("exportWav")}</span>
-        </button>
-        <button
-          disabled={!file || fileBusy}
-          onClick={() => void fileAction("share")}
-        >
-          ↗<span>{t("shareWav")}</span>
-        </button>
-        <button onClick={fresh}>
-          ＋<span>{t("newSound")}</span>
+          {busy ? t(phase) : !file ? t("preparing") : t("save")}
         </button>
       </div>
       {restrictedDestination && (
         <p className="notice" role="alert">
           {t("worldRestricted")}
         </p>
-      )}
-      {telegram.isTelegram && (
-        <p className="notice">{t("telegramFileNotice")}</p>
-      )}
-      {fileBusy && (
-        <p className="notice" role="status">
-          {t("transferringFile")}
-        </p>
-      )}
-      {fileStatus && (
-        <p className="notice" role="status">
-          {fileStatus}
-        </p>
-      )}
-      {botUrl && (
-        <TelegramLink className="secondary-button" href={botUrl}>
-          {t("fileBotChat")}
-        </TelegramLink>
       )}
       {!file && !error && (
         <p className="notice" role="status">
@@ -2736,7 +2669,9 @@ export function Library({
               onChange={(e) => setRenameValue(e.target.value)}
             />
             <div>
-              <button onClick={() => setRenaming(undefined)}>{t("cancel")}</button>
+              <button onClick={() => setRenaming(undefined)}>
+                {t("cancel")}
+              </button>
               <button onClick={() => void saveRename()}>{t("save")}</button>
             </div>
           </div>

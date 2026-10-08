@@ -1108,9 +1108,7 @@ try {
       .click();
     try {
       await recording.waitForFunction(() => {
-        const button = document.querySelector(
-          ".ready-actions button:nth-child(2)",
-        );
+        const button = document.querySelector(".ready-save-action button");
         return button && !button.disabled;
       });
     } catch (error) {
@@ -1121,25 +1119,15 @@ try {
       await recording.screenshot({ path: "work/pwa-capture-failure.png" });
       throw error;
     }
-    const rendered = recording
-      .waitForEvent("download")
-      .catch((error) => ({ error }));
+    assert.equal(
+      await recording.locator(".ready-save-action button").count(),
+      1,
+      "The final screen has one unambiguous Save action",
+    );
     await recording
-      .locator(".ready-actions")
-      .getByRole("button", { name: /EXPORT WAV/ })
-      .click();
-    const exportDownload = await rendered;
-    if ("error" in exportDownload) {
-      console.error(
-        "Capture export UI:",
-        await recording.locator("body").innerText(),
-      );
-      throw exportDownload.error;
-    }
-    assert.equal(await exportDownload.failure(), null);
-    const capturedWav = await readFile(await exportDownload.path());
-    assert.equal(capturedWav.toString("ascii", 0, 4), "RIFF");
-    assert(capturedWav.length > 1000);
+      .getByRole("button", { name: /EXPORT WAV|SHARE WAV|NEW/, exact: true })
+      .count()
+      .then((count) => assert.equal(count, 0));
     await recording.getByRole("button", { name: "SAVE", exact: true }).click();
     await recording
       .locator(".bottom-nav")
@@ -1172,11 +1160,12 @@ try {
       "Actual Chromium MediaRecorder uses Opus/WebM",
     );
     assert.equal(captured.render, "audio/wav");
+    assert(captured.bytes > 1000);
     assert.equal(captured.private, "private");
     assert.equal(captured.synced, false, "Guest recording stays local");
     await capture.close();
     console.log(
-      "Real Chromium synthetic microphone → Opus chunks → decode/pause/resume → editor/FX → PCM export → committed guest Library reopen passed",
+      "Real Chromium synthetic microphone → Opus chunks → decode/pause/resume → editor/FX → one-button save → committed PCM Library reopen passed",
     );
   }
   const blockedStoragePage = await context.newPage();

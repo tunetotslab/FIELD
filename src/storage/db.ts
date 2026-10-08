@@ -1,14 +1,15 @@
 import type { SoundRecord } from "../types";
 import { encodeSound, decodeSound } from "./codec";
 import { StorageError } from "./errors";
-import {createLibrarySync} from './librarySync';
-import {isNativeApp} from '../native/runtime';
-import {createNativeSoundRepository} from './native';
+import { createLibrarySync } from "./librarySync";
+import { isNativeApp } from "../native/runtime";
+import { createNativeSoundRepository } from "./native";
 
 const DB_NAME = "field-audio";
 const STORE = "sounds";
 const connections = new Map<string, Promise<IDBDatabase>>();
 const transactionTails = new Map<string, Promise<void>>();
+const RETRY_DELAYS = [60, 180, 500];
 
 function forgetConnection(name: string, db?: IDBDatabase) {
   const opening = connections.get(name);
@@ -19,6 +20,30 @@ function forgetConnection(name: string, db?: IDBDatabase) {
       db.close();
     } catch {}
   }
+}
+
+function closeConnections() {
+  for (const [name, opening] of connections) {
+    connections.delete(name);
+    void opening
+      .then((db) => {
+        try {
+          db.close();
+        } catch {}
+      })
+      .catch(() => {});
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", closeConnections);
+  window.addEventListener("field-app-background", closeConnections);
+  if (typeof document !== "undefined")
+    document.addEventListener("visibilitychange", () => {
+      // Reopen on both sides of an iOS WebView suspension. Some Telegram
+      // versions report only the foreground transition before the next read.
+      closeConnections();
+    });
 }
 
 function openDb(name = DB_NAME): Promise<IDBDatabase> {
@@ -74,7 +99,7 @@ async function runTx<T>(
   name: string,
   mode: IDBTransactionMode,
   action: (store: IDBObjectStore) => IDBRequest<T>,
-  retry = true,
+  attempt = 0,
 ): Promise<T> {
   let db: IDBDatabase | undefined;
   try {
@@ -114,9 +139,17 @@ async function runTx<T>(
       if (db) forgetConnection(name, db);
       else connections.delete(name);
     }
-    if (retry && reconnect) return runTx(name, mode, action, false);
+    if (reconnect && attempt < RETRY_DELAYS.length) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, RETRY_DELAYS[attempt]),
+      );
+      return runTx(name, mode, action, attempt + 1);
+    }
     if (error instanceof StorageError) throw error;
-    throw new StorageError(mode === "readwrite" ? "DB_WRITE" : "DB_READ", error);
+    throw new StorageError(
+      mode === "readwrite" ? "DB_WRITE" : "DB_READ",
+      error,
+    );
   }
 }
 
@@ -151,7 +184,7 @@ export function createSoundRepository(name = DB_NAME) {
       const result = await tx(name, "readwrite", (store) => store.put(row));
       // Ask for eviction protection when supported. Saving succeeds only after
       // commit, independently of whether the browser grants this request.
-      if (typeof navigator !== 'undefined')
+      if (typeof navigator !== "undefined")
         void navigator.storage?.persist?.().catch(() => {});
       return result;
     },
@@ -164,4 +197,6 @@ export function createSoundRepository(name = DB_NAME) {
     clear: () => tx(name, "readwrite", (store) => store.clear()),
   };
 }
-export const soundsDb = isNativeApp() ? createNativeSoundRepository() : createLibrarySync(createSoundRepository());
+export const soundsDb = isNativeApp()
+  ? createNativeSoundRepository()
+  : createLibrarySync(createSoundRepository());

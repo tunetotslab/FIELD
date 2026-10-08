@@ -84,10 +84,15 @@ export function createNativeSoundRepository(bridge: DeviceBridge = device) {
     ...repository,
     sync: async () => {},
     adoptExisting: async () => {},
-    recover: async (id: string) => {
+    recover: async (target: string | SoundRecord) => {
+      const id = typeof target === "string" ? target : target.id;
       const record = (await repository.getAll()).find((row) => row.id === id);
+      if (!record && typeof target !== "string") return target;
       if (!record)
-        throw new StorageError("NATIVE_READ", new Error("Recording unavailable"));
+        throw new StorageError(
+          "NATIVE_READ",
+          new Error("Recording unavailable"),
+        );
       return record;
     },
     accountChanged: () => {},
