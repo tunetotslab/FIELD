@@ -2069,4 +2069,18 @@ Home Screen setup. Never promise a WebAPK on every Android browser/device. Use
 GitHub CI/deployment for any repair; preserve the current Worker and data unless
 backend changes are actually needed.
 
+## Telegram bot copy and daily missions — October 8, 2026
+
+The bot's Daily mission, Help and About pages must follow the language explicitly
+selected in the bot (`en`, `ru`, `hy`, `zh-TW`); the mission body must never fall
+back to English when another supported language is active. Daily uses a curated
+100-mission combinatorial cycle per language, so consecutive days do not repeat.
+The visible three-digit mission number is playful archive presentation and does
+not claim the literal corpus size. “Another mission” must select a different item.
+
+Help describes the current localized flow without stray English UI terms: record,
+trim in the editor, chain and mix up to three effects, choose three emoji, save to
+the private Library, Group or city-only World. About includes the one-world message,
+the same current capabilities, light humour and the authorized Nikola Chen credit.
+
 **END OF FIELD_SPEC.md**

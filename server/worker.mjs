@@ -2,7 +2,8 @@ import {allowedOrigin, nativeUser, nativeRoute, nativeBotUpdate, purgeExpiredNat
 import {libraryRoute} from './library.mjs';
 // Deploy only from this GitHub repository. Secrets are Cloudflare Worker secrets.
 import links from '../shared/links.json' with { type: 'json' };
-import { helpText, linksText } from './bot-help.mjs';
+import { aboutText, helpText, linksText } from './bot-help.mjs';
+import { DAILY_MISSION_COUNT, dailyMission, dailyMissionNumber } from './daily-missions.mjs';
 import { isAdmin, sendAdminPaymentNotification, sendAdminStats, sendAdminTransactions } from './admin.mjs';
 import { worldRoute, wavDuration } from './world.mjs';
 import { readUploadForm, UploadLimitError } from './upload.mjs';
@@ -33,7 +34,6 @@ const BOT_COPY = {
   hy: { greeting: 'Բարև, դաշտային արարած։ Սա FIELD-ն է՝ փոքրիկ ձայնագրիչ՝ աշխարհը հավաքելու համար, քանի դեռ այն չի անհետացել։\n\nՁայնագրիր տրամվայի ճռռոցը, կասկածելի սառնարանը, խողովակի անձրևը կամ ընկերոջդ տարօրինակ ծիծաղը։ Պահիր կամ թող ձայնը ճանապարհորդի։\n\nԿատարյալ բովանդակություն պետք չէ։ Տարօրինակ ձայները ողջունելի են։', open: '🎙 ԲԱՑԵԼ FIELD', daily: '🎲 ՕՐՎԱ ՁԱՅՆԸ', donate: '⭐ ՆՎԻՐԱՏՎՈՒԹՅՈՒՆ', about: '🌱 FIELD-Ի ՄԱՍԻՆ', help: '❓ ԻՆՉՊԵՍ ՕԳՏԱԳՈՐԾԵԼ', links: '🔗 ՀՂՈՒՄՆԵՐ', language: '🌐 ԼԵԶՈՒ', today: 'ՕՐՎԱ ՁԱՅՆԱՅԻՆ ԱՌԱՔԵԼՈՒԹՅՈՒՆԸ', record: '🎙 ՁԱՅՆԱԳՐԵԼ FIELD-ՈՒՄ', another: '🎲 ՄՅՈՒՍ ԱՌԱՋԱԴՐԱՆՔԸ', languageTitle: 'Ընտրեք FIELD-ի լեզուն՝', paid: '⭐ FIELD-ի հաշիվը պատրաստ է․ ընտրեք գումարը', aboutText: 'FIELD-ը գրպանի մեքենա է աշխարհը նկատելու համար։ Ձայնագրիր մինչև 60 վայրկյան, փոխիր FX-ը, ավելացրու երեք էմոջի և պահիր Library-ում կամ թողարկիր World Map-ում։ Երաժիշտ լինել պետք չէ։', helpText: 'Լսիր → ձայնագրիր → փոխիր → ավելացրու երեք էմոջի → պահիր կամ կիսվիր։ Սեղմիր ԲԱՑԵԼ FIELD՝ Mini App մտնելու համար։', linksText: 'Tune Tots Lab և FIELD՝', support: 'FIELD վճարումների աջակցություն' },
   'zh-TW': { greeting: '嗨，田野生物。這是 FIELD——一台在世界消失以前，收集世界聲音的小錄音機。\n\n錄下電車的吱呀聲、可疑的冰箱、管子裡的雨聲，或朋友奇怪的笑聲。留給自己，或讓聲音開始旅行。\n\n不需要完美內容。奇怪的聲音受到歡迎。', open: '🎙 開啟 FIELD', daily: '🎲 每日聲音', donate: '⭐ 贊助', about: '🌱 關於 FIELD', help: '❓ FIELD 使用方式', links: '🔗 連結', language: '🌐 語言', today: '今日聲音任務', record: '🎙 在 FIELD 錄下它', another: '🎲 換一個任務', languageTitle: '選擇 FIELD 語言：', paid: '⭐ FIELD 發票準備好了，選擇金額：', aboutText: 'FIELD 是一台用來注意世界的口袋機器。錄下最多 60 秒，轉動 FX，加上三個 emoji，把發現留在 Library 或送到 World Map。不需要成為音樂家。奇怪的聲音就夠了。', helpText: '聽見 → 錄下 → 變形 → 加上三個 emoji → 留下或分享。點擊開啟 FIELD 進入 Mini App。', linksText: 'Tune Tots Lab 與 FIELD：', support: 'FIELD 付款支援' },
 };
-const dailyMissions = ['Find a sound that looks completely silent.', 'Record the farthest sound you can hear.', 'Find a rhythm nobody is intentionally playing.', 'Record water, but not from a tap.', 'Find a machine older than you.', 'Record the least beautiful sound of today.'];
 const encoder = new TextEncoder();
 async function hmac(key, value) {
   const imported = await crypto.subtle.importKey('raw', typeof key === 'string' ? encoder.encode(key) : key, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
@@ -87,7 +87,20 @@ function localeFromCode(code) {
   return 'en';
 }
 function appUrl(env) { return env.APP_URL || `${env.APP_ORIGIN}/FIELD/`; }
-function copy(locale) { const lang = locales.includes(locale) ? locale : 'en'; return { ...BOT_COPY[lang], helpText: helpText[lang], linksText: linksText[lang] }; }
+function copy(locale) { const lang = locales.includes(locale) ? locale : 'en'; return { ...BOT_COPY[lang], aboutText: aboutText[lang], helpText: helpText[lang], linksText: linksText[lang] }; }
+function dailyIndex(value) {
+  const requested = Number(value);
+  if (Number.isInteger(requested)) return ((requested % DAILY_MISSION_COUNT) + DAILY_MISSION_COUNT) % DAILY_MISSION_COUNT;
+  return Math.floor(Date.now() / 86400000) % DAILY_MISSION_COUNT;
+}
+function dailyReply(locale, index, env) {
+  const c = copy(locale);
+  const next = (index + 37) % DAILY_MISSION_COUNT;
+  return {
+    text: `${c.today} #${dailyMissionNumber(index)}\n\n${dailyMission(locale, index)}`,
+    keyboard: { inline_keyboard: [[{ text: c.record, web_app: { url: appUrl(env) } }], [{ text: c.another, callback_data: `bot:daily:${next}` }, { text: '↩️', callback_data: 'bot:home' }]] },
+  };
+}
 function linksKeyboard(locale, env) {
   return { inline_keyboard: [
     [{ text: copy(locale).open, web_app: { url: appUrl(env) } }],
@@ -196,9 +209,9 @@ async function handleBotUpdate(update, env) {
   if (data === 'bot:language') return sendBot(env, chatId, copy(locale).languageTitle, { inline_keyboard: [[{text:'English',callback_data:'lang:en'},{text:'Русский',callback_data:'lang:ru'}],[{text:'Հայերեն',callback_data:'lang:hy'},{text:'繁體中文',callback_data:'lang:zh-TW'}],[{text:'↩️',callback_data:'bot:home'}]] });
   if (data === 'bot:donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
   if (data.startsWith('bot:amount:')) { const amount = Number(data.slice(11)); return botInvoice(env, chatId, user.id, amount, locale); }
-  if (data === 'bot:daily') { const mission = dailyMissions[Math.floor(Date.now() / 86400000) % dailyMissions.length]; return sendBot(env, chatId, `${copy(locale).today} #${String(Math.floor(Date.now() / 86400000) % 1000).padStart(3, '0')}\n\n${mission}`, { inline_keyboard: [[{text:copy(locale).record,web_app:{url:appUrl(env)}}],[{text:copy(locale).another,callback_data:'bot:daily'},{text:'↩️',callback_data:'bot:home'}]] }); }
+  if (data === 'bot:daily' || data.startsWith('bot:daily:')) { const index = dailyIndex(data.startsWith('bot:daily:') ? data.slice(10) : undefined); const reply = dailyReply(locale, index, env); return sendBot(env, chatId, reply.text, reply.keyboard); }
   if (command === 'donate') return sendBot(env, chatId, copy(locale).paid, donationKeyboard(locale));
-  if (command === 'daily') { const mission = dailyMissions[Math.floor(Date.now() / 86400000) % dailyMissions.length]; return sendBot(env, chatId, `${copy(locale).today} #${String(Math.floor(Date.now() / 86400000) % 1000).padStart(3, '0')}\n\n${mission}`, { inline_keyboard: [[{text:copy(locale).record,web_app:{url:appUrl(env)}}],[{text:copy(locale).another,callback_data:'bot:daily'},{text:'↩️',callback_data:'bot:home'}]] }); }
+  if (command === 'daily') { const reply = dailyReply(locale, dailyIndex(), env); return sendBot(env, chatId, reply.text, reply.keyboard); }
   if (command === 'about') return sendBot(env, chatId, copy(locale).aboutText, backKeyboard(locale, env));
   if (command === 'help') return sendBot(env, chatId, copy(locale).helpText, backKeyboard(locale, env));
   if (command === 'links') return sendBot(env, chatId, `${copy(locale).linksText}\n${links.SUPPORT_EMAIL.replace('mailto:', '')}`, linksKeyboard(locale, env));

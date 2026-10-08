@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import worker, { authenticate, validAmount } from '../server/worker.mjs';
 import links from '../shared/links.json' with { type: 'json' };
-import { helpText, linksText } from '../server/bot-help.mjs';
+import { aboutText, helpText, linksText } from '../server/bot-help.mjs';
+import { DAILY_MISSION_COUNT, dailyMission, dailyMissionNumber } from '../server/daily-missions.mjs';
 import { normalizeGroupCode, validGroupName } from '../server/groups.mjs';
 const token = 'test-token-not-a-real-secret';
 const now = Date.now();
@@ -20,6 +21,13 @@ assert.equal(normalizeGroupCode(' tt-ab2 3_cd '), 'TTAB23CD');
 assert.ok(validGroupName('Tune Tots 2026'));
 assert.ok(!validGroupName('x'));
 assert.ok(!validGroupName('x'.repeat(61)));
+assert.equal(DAILY_MISSION_COUNT, 100);
+for (const locale of ['en', 'ru', 'hy', 'zh-TW']) {
+  const localized = Array.from({ length: DAILY_MISSION_COUNT }, (_, index) => dailyMission(locale, index));
+  assert.equal(new Set(localized).size, DAILY_MISSION_COUNT, `${locale} daily missions must not repeat within one cycle`);
+  assert.ok(localized.every(text => text.length > 20), `${locale} daily missions must contain a real prompt`);
+}
+assert.match(dailyMissionNumber(42), /^\d{3}$/);
 const env = {APP_ORIGIN:'https://tunetotslab.github.io',BOT_TOKEN:token,WEBHOOK_SECRET:'test-only'};
 assert.equal((await worker.fetch(new Request('https://example.com/donations',{method:'POST',headers:{Origin:env.APP_ORIGIN},body:'{}'}),env)).status,401);
 assert.equal((await worker.fetch(new Request('https://example.com/telegram/webhook',{method:'POST',body:'{}'}),env)).status,403);
@@ -57,12 +65,31 @@ try {
             else assert.ok(urls.includes(url), `Missing link: ${url}`);
           }
         }
-        if (page === 'about') assert.ok(result.text.includes('60'));
+        if (page === 'about') assert.equal(result.text, aboutText[language_code]);
       }
     }
+    sent.length = 0;
+    const update = { callback_query: { id: 'daily-test', from: { id: 12345, language_code }, data: 'bot:daily:42', message: { chat: { id: 12345 } } } };
+    const response = await worker.fetch(new Request('https://example.com/telegram/webhook', {
+      method: 'POST', headers: { 'X-Telegram-Bot-Api-Secret-Token': env.WEBHOOK_SECRET }, body: JSON.stringify(update),
+    }), env);
+    assert.equal(response.status, 200);
+    const daily = sent.find(item => item.method === 'sendMessage');
+    assert.ok(daily.text.includes(dailyMission(language_code, 42)), `${language_code} daily mission must use the selected language`);
+    assert.ok(daily.text.includes(`#${dailyMissionNumber(42)}`));
+    assert.equal(daily.reply_markup.inline_keyboard[1][0].callback_data, 'bot:daily:79');
   }
+  sent.length = 0;
+  const selectedLanguageEnv = { ...env, DB: { prepare: () => ({ bind() { return this; }, async first() { return { language: 'ru' }; } }) } };
+  const selectedResponse = await worker.fetch(new Request('https://example.com/telegram/webhook', {
+    method: 'POST', headers: { 'X-Telegram-Bot-Api-Secret-Token': env.WEBHOOK_SECRET }, body: JSON.stringify({
+      callback_query: { id: 'selected-language', from: { id: 12345, language_code: 'en' }, data: 'bot:daily:7', message: { chat: { id: 12345 } } },
+    }),
+  }), selectedLanguageEnv);
+  assert.equal(selectedResponse.status, 200);
+  assert.ok(sent.find(item => item.method === 'sendMessage').text.includes(dailyMission('ru', 7)), 'explicitly selected bot language must override Telegram profile language');
 } finally { globalThis.fetch = originalFetch; }
-console.log('PASS localized help, links and about via commands and inline buttons; all app links included');
+console.log('PASS localized daily missions, help, links and about via commands and inline buttons; all app links included');
 
 class AdminTestDB {
   constructor() { this.rows = [{ id:'invoice-1', user_id:77, amount:25, created_at:now, charge_id:null, paid_at:null, username:null, display_name:null, admin_notified_at:null }]; }
