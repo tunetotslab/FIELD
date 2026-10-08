@@ -27,6 +27,8 @@ type TelegramWebApp = {
   shareMessage?: (id: string, callback?: (sent: boolean) => void) => void;
   ready?: () => void;
   expand?: () => void;
+  disableVerticalSwipes?: () => void;
+  enableVerticalSwipes?: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   themeParams?: ThemeParams;
@@ -114,6 +116,12 @@ export const telegram = {
     } else {
       backButton.hide?.();
     }
+  },
+  setVerticalSwipes(enabled: boolean) {
+    const app = window.Telegram?.WebApp;
+    if (!telegram.isTelegram || !app?.isVersionAtLeast?.("7.7")) return;
+    if (enabled) app.enableVerticalSwipes?.();
+    else app.disableVerticalSwipes?.();
   },
   openBrowser(url: string) {
     if (telegram.isTelegram && window.Telegram?.WebApp?.openLink)

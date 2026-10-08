@@ -47,7 +47,6 @@ export function Shell({
     telegram.setBackButton(Boolean(back), back || (() => {}));
     return () => telegram.setBackButton(false, () => {});
   }, [back]);
-  const showBottomNavigation = navigation && navigation.screen !== "record";
   return (
     <main className={`app-shell${variant ? ` shell-${variant}` : ""}`}>
       <header className="app-header">
@@ -68,7 +67,7 @@ export function Shell({
       {title && <h1 className="screen-title">{title}</h1>}
       <section className="screen-content">{children}<BrandFooter /></section>
       {nav ??
-        (showBottomNavigation ? (
+        (navigation ? (
           <BottomNav go={navigation.go} active={navigation.screen} />
         ) : null)}
     </main>

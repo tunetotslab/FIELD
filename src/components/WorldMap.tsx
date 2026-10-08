@@ -59,6 +59,10 @@ export function WorldMap({
     [fetching, setFetching] = useState<string>(),
     [progress, setProgress] = useState(0);
   useEffect(() => {
+    telegram.setVerticalSwipes(false);
+    return () => telegram.setVerticalSwipes(true);
+  }, []);
+  useEffect(() => {
     let last = 0;
     const revalidate = () => {
       if (document.visibilityState !== "visible" || Date.now() - last < 1000)

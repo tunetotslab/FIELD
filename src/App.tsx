@@ -3,6 +3,7 @@ import { LibrarySyncControl, libraryCopy } from "./components/LibrarySync";
 import { TelegramLink } from "./components/TelegramLink";
 import { isAuthenticated, currentUserId } from "./auth/session";
 import { NativeAccount } from "./components/NativeAccount";
+import { UiIcon } from "./components/UiIcon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -912,7 +913,7 @@ function RecordScreen({
               <canvas
                 ref={liveCanvas}
                 className="live-waveform"
-                aria-label="Live microphone waveform"
+                aria-label={t("recording")}
               />
             )}
           </div>
@@ -950,7 +951,7 @@ function RecordScreen({
                 }}
                 aria-label={t("delete")}
               >
-                ⌫
+                <UiIcon name="discard" />
               </button>
               <button
                 disabled={state !== "recording" && state !== "paused"}
@@ -960,9 +961,7 @@ function RecordScreen({
                     ? recorder.current?.resume()
                     : recorder.current?.pause()
                 }
-                aria-label={
-                  state === "paused" ? "Resume recording" : "Pause recording"
-                }
+                  aria-label={t("recording")}
               >
                 {state === "paused" ? (
                   <span className="record-resume-label">
@@ -982,9 +981,9 @@ function RecordScreen({
                   telegram.impact("medium");
                   recorder.current?.stop();
                 }}
-                aria-label="Finish recording"
+                aria-label={t("continue")}
               >
-                ✓
+                <UiIcon name="confirm" />
               </button>
             </div>
           )}
@@ -1050,7 +1049,7 @@ function EditScreen({
           end={endPct / 100}
         />
         <input
-          aria-label="Trim start"
+          aria-label={`${t("trim")} start`}
           className="range start-range"
           type="range"
           min="0"
@@ -1066,7 +1065,7 @@ function EditScreen({
           }
         />
         <input
-          aria-label="Trim end"
+          aria-label={`${t("trim")} end`}
           className="range end-range"
           type="range"
           min="0"
@@ -1099,31 +1098,31 @@ function EditScreen({
         <button
           className="play-main"
           onClick={() => void preview()}
-          aria-label="Preview selection"
+          aria-label={t("preview")}
         >
           {playing ? "Ⅱ" : "▶"}
         </button>
       </div>
       <div className="edit-tools">
         <button className="selected">
-          ✂<span>TRIM</span>
+          <UiIcon name="trim" /><span>{t("trim")}</span>
         </button>
         <button
           disabled
           title="Split is prepared for a later non-destructive editor"
         >
-          ＋
+          <UiIcon name="split" />
           <span>
-            SPLIT
+            {t("split")}
             <br />
-            <small>SOON</small>
+            <small>{t("soon")}</small>
           </span>
         </button>
         <button
           className={draft.loop ? "selected" : ""}
           onClick={() => update({ loop: !draft.loop })}
         >
-          ↻<span>LOOP</span>
+          <UiIcon name="loop" /><span>{t("loop")}</span>
         </button>
         <button
           className={draft.fadeIn || draft.fadeOut ? "selected" : ""}
@@ -1134,11 +1133,11 @@ function EditScreen({
             })
           }
         >
-          ⌁<span>FADE</span>
+          <UiIcon name="fade" /><span>{t("fade")}</span>
         </button>
       </div>
       <button className="primary-button" onClick={next}>
-        CONTINUE →
+        {t("continue")}
       </button>
     </Shell>
   );
@@ -1376,7 +1375,7 @@ export function FxScreen({
       {draft.effect === "pitch" && (
         <label className="parameter-control">
           <span>
-            <strong>PITCH</strong>
+            <strong>{t("pitch")}</strong>
             <small>−12 ↔ +12 SEMITONES</small>
           </span>
           <input
@@ -1434,7 +1433,7 @@ export function FxScreen({
         </label>
       )}
       <label className="mix-control">
-        <strong>MIX</strong>
+        <strong>{t("mix")}</strong>
         <input
           type="range"
           min="0"
@@ -1461,7 +1460,7 @@ export function FxScreen({
         </output>
       </label>
       <div className="fx-preview-controls">
-        <button onClick={() => void preview({}, true)}>ORIGINAL</button>
+        <button onClick={() => void preview({}, true)}>{t("original")}</button>
         <button
           onClick={() => {
             if (previewPlaying) {
@@ -2198,7 +2197,7 @@ export function ReadyScreen({
           disabled={!file || fileBusy}
           onClick={() => void fileAction("export")}
         >
-          ⇧<span>EXPORT WAV</span>
+          ⇧<span>{t("exportWav")}</span>
         </button>
         <button
           disabled={!file || fileBusy}
@@ -2207,7 +2206,7 @@ export function ReadyScreen({
           ↗<span>{t("shareWav")}</span>
         </button>
         <button onClick={fresh}>
-          ＋<span>NEW</span>
+          ＋<span>{t("newSound")}</span>
         </button>
       </div>
       {restrictedDestination && (
@@ -2450,7 +2449,7 @@ export function Library({
     }
   };
   return (
-    <Shell title="LIBRARY" back={back}>
+    <Shell title={t("library")} back={back}>
       {!isNativeApp() && (
         <LibrarySyncControl records={records} login={() => go("settings")} />
       )}
@@ -2461,7 +2460,7 @@ export function Library({
             onClick={() => setFilter(v)}
             key={v}
           >
-            {v === "favorites" ? "FAV" : v.toUpperCase()}
+            {t(v)}
           </button>
         ))}
       </div>
@@ -2476,10 +2475,10 @@ export function Library({
       <div className="sound-list">
         {shown.length === 0 ? (
           <div className="empty-state">
-            <strong>NO SOUNDS YET</strong>
-            <p>Your next strange sound belongs here.</p>
+            <strong>{t("noSounds")}</strong>
+            <p>{t("nextSound")}</p>
             <button className="secondary-button" onClick={() => go("record")}>
-              RECORD NOW
+              {t("recordNow")}
             </button>
           </div>
         ) : (
@@ -2496,7 +2495,7 @@ export function Library({
               <button
                 className="row-play"
                 onClick={() => play(r)}
-                aria-label={playingId === r.id ? "Stop sound" : "Play sound"}
+                aria-label={playingId === r.id ? t("stop") : t("play")}
               >
                 {playingId === r.id ? "■" : "▶"}
               </button>
@@ -2549,7 +2548,7 @@ export function Library({
               <button
                 className={r.favorite ? "favorite active" : "favorite"}
                 onClick={() => void favorite(r)}
-                aria-label="Favorite"
+                aria-label={t(r.favorite ? "unfavorite" : "favorite")}
               >
                 ♡
               </button>
@@ -2706,9 +2705,9 @@ export function Library({
             className="rename-modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Rename sound"
+            aria-label={t("rename")}
           >
-            <strong>RENAME SOUND</strong>
+            <strong>{t("rename")}</strong>
             <input
               className="text-input"
               maxLength={40}
@@ -2717,8 +2716,8 @@ export function Library({
               onChange={(e) => setRenameValue(e.target.value)}
             />
             <div>
-              <button onClick={() => setRenaming(undefined)}>CANCEL</button>
-              <button onClick={() => void saveRename()}>SAVE</button>
+              <button onClick={() => setRenaming(undefined)}>{t("cancel")}</button>
+              <button onClick={() => void saveRename()}>{t("save")}</button>
             </div>
           </div>
         </div>

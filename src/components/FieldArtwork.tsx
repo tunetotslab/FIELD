@@ -6,6 +6,7 @@ import { feature } from "topojson-client";
 import world from "world-atlas/land-110m.json";
 import type { FeatureCollection } from "geojson";
 import type { GeometryCollection, Topology } from "topojson-specification";
+import { UiIcon } from "./UiIcon";
 
 const effects = import.meta.glob("../assets/effects/*.{webp,png}", {
   eager: true,
@@ -64,6 +65,14 @@ export function FieldGlobe({
   const [zoom, setZoom] = useState(1);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+  const pendingRotation = useRef<[number, number] | null>(null);
+  const rotationFrame = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (rotationFrame.current) cancelAnimationFrame(rotationFrame.current);
+    },
+    [],
+  );
   useEffect(() => {
     if (focus) setRotation([-focus.lng, -focus.lat]);
   }, [focus]);
@@ -115,10 +124,15 @@ export function FieldGlobe({
     if (!drag.current) return;
     const dx = event.clientX - drag.current.x,
       dy = event.clientY - drag.current.y;
-    setRotation([
+    pendingRotation.current = [
       drag.current.rotation[0] + dx * 0.32,
       Math.max(-80, Math.min(80, drag.current.rotation[1] - dy * 0.32)),
-    ]);
+    ];
+    if (!rotationFrame.current)
+      rotationFrame.current = requestAnimationFrame(() => {
+        rotationFrame.current = null;
+        if (pendingRotation.current) setRotation(pendingRotation.current);
+      });
   };
   return (
     <div className="globe-stage">
@@ -257,14 +271,14 @@ export function FieldGlobe({
           onClick={() => setZoom((value) => Math.min(2.35, value * 1.2))}
           aria-label="Zoom in"
         >
-          +
+          <UiIcon name="plus" />
         </button>
         <button
           type="button"
           onClick={() => setZoom((value) => Math.max(0.72, value / 1.2))}
           aria-label="Zoom out"
         >
-          −
+          <UiIcon name="minus" />
         </button>
       </div>
     </div>

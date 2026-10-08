@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "node scripts/dsp.test.mjs && node scripts/recorder.test.mjs && node scripts/tasks.test.mjs && node scripts/compatibility.test.mjs && node scripts/cities.test.mjs && node scripts/uploads.test.mjs && node scripts/server.test.mjs && node scripts/world.test.mjs && node scripts/files.test.mjs && node scripts/native-auth.test.mjs && node scripts/browser-auth.test.mjs && node scripts/library.test.mjs",
+    "test": "node scripts/dsp.test.mjs && node scripts/recorder.test.mjs && node scripts/tasks.test.mjs && node scripts/compatibility.test.mjs && node scripts/cities.test.mjs && node scripts/uploads.test.mjs && node scripts/server.test.mjs && node scripts/world.test.mjs && node scripts/files.test.mjs && node scripts/native-auth.test.mjs && node scripts/browser-auth.test.mjs && node scripts/library.test.mjs && node scripts/security.test.mjs && node scripts/release-ui.test.mjs",
+    "test:security": "node scripts/security.test.mjs",
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",

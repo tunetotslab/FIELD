@@ -41,6 +41,8 @@ function telegramFixture(platform) {
     offEvent: (name, fn) => events.get(name)?.delete(fn),
     ready: () => calls.push("ready"),
     expand: () => calls.push("expand"),
+    disableVerticalSwipes: () => calls.push("swipes:disable"),
+    enableVerticalSwipes: () => calls.push("swipes:enable"),
     openTelegramLink: (url) => calls.push(url),
     isVersionAtLeast: () => true,
     shareMessage: (id) => calls.push("share:" + id),
@@ -494,6 +496,13 @@ try {
     .waitFor();
   assert(worldRequests > 0);
   console.log("Shared World loaded");
+  const zoomGeometry = await page.locator(".globe-controls button").evaluateAll(
+    (buttons) => buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { width: box.width, height: box.height, radius: getComputedStyle(button).borderRadius, svg: Boolean(button.querySelector("svg")) };
+    }),
+  );
+  assert(zoomGeometry.every((button) => button.width === button.height && button.width >= 42 && button.radius === "999px" && button.svg));
   // Save actual WAV bytes through the production repository; then close the
   // tab, restore session and verify Library/render/original in a fresh tab.
   await page.evaluate(async (location) => {
@@ -724,6 +733,10 @@ try {
     telegramBaseline ??= box.y;
     assert(Math.abs(box.y - telegramBaseline) < 1);
   }
+  assert(
+    await telegramPage.evaluate(() => window.__qaTelegram.calls.includes("swipes:disable")),
+    "Telegram World disables the native vertical close gesture",
+  );
   await telegramPage.evaluate(() => window.__qaTelegram.viewport(540, false));
   assert.equal(
     await telegramPage.evaluate(() =>
@@ -1027,6 +1040,14 @@ try {
     await recording
       .getByRole("button", { name: "Pause recording", exact: true })
       .waitFor({ state: "visible" });
+    await recording.locator(".bottom-nav").waitFor({ state: "visible" });
+    const recordingControls = await recording.locator(".round-control").evaluateAll(
+      (buttons) => buttons.map((button) => {
+        const box = button.getBoundingClientRect();
+        return { width: box.width, height: box.height, svg: Boolean(button.querySelector("svg")) };
+      }),
+    );
+    assert(recordingControls.every((button) => button.width === 58 && button.height === 58 && button.svg));
     await recording.waitForFunction(
       () => !document.querySelector('[aria-label="Pause recording"]').disabled,
     );
@@ -1051,6 +1072,7 @@ try {
     await recording
       .getByRole("button", { name: "EDIT RECORDING →", exact: true })
       .click();
+    assert.equal(await recording.locator(".edit-tools button").first().locator("svg").count(), 1);
     await recording
       .getByRole("button", { name: "CONTINUE →", exact: true })
       .click();
