@@ -422,15 +422,6 @@ try {
       "rgb(255, 255, 255)",
       "Expanded installation instructions must be white in Dark theme",
     );
-    await page
-      .locator(".bottom-nav")
-      .getByRole("button", { name: "SETTINGS", exact: true })
-      .click();
-    await page.getByRole("button", { name: "Light", exact: true }).click();
-    await page
-      .locator(".bottom-nav")
-      .getByRole("button", { name: "RECORD", exact: true })
-      .click();
   } else {
     await page.evaluate(() => {
       const event = new Event("beforeinstallprompt", { cancelable: true });
