@@ -9,9 +9,6 @@ type InstallEvent = Event & {
   userChoice: Promise<InstallChoice>;
 };
 
-const DISMISSED_KEY = "field-install-prompt-dismissed-v1";
-const DISMISSED_FOR = 7 * 24 * 60 * 60 * 1000;
-
 function isInstalled() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -33,23 +30,6 @@ function isIosDevice() {
   );
 }
 
-function recentlyDismissed() {
-  try {
-    const dismissedAt = Number(localStorage.getItem(DISMISSED_KEY));
-    return dismissedAt > 0 && Date.now() - dismissedAt < DISMISSED_FOR;
-  } catch {
-    return false;
-  }
-}
-
-function rememberDismissal() {
-  try {
-    localStorage.setItem(DISMISSED_KEY, String(Date.now()));
-  } catch {
-    // Installation remains optional when browser storage is unavailable.
-  }
-}
-
 export function InstallPrompt({
   preview,
 }: {
@@ -69,8 +49,7 @@ export function InstallPrompt({
       isNativeApp() ||
       telegram.isTelegram ||
       isInstalled() ||
-      !isMobileDevice() ||
-      recentlyDismissed()
+      !isMobileDevice()
     )
       return;
 
@@ -93,10 +72,7 @@ export function InstallPrompt({
   }, [preview]);
 
   if (!mode) return null;
-  const dismiss = () => {
-    rememberDismissal();
-    setMode(undefined);
-  };
+  const dismiss = () => setMode(undefined);
   const install = async () => {
     if (mode === "ios") {
       setShowInstructions((value) => !value);

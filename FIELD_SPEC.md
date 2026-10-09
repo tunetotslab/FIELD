@@ -2121,6 +2121,8 @@ below the primary recording control. On Chromium it must invoke the real deferre
 installation prompt; it must never pretend installation succeeded. On iOS it explains
 the native Share → Add to Home Screen path. The card is absent inside Telegram, in the
 Capacitor app and in an already installed standalone PWA. Dismissing it suppresses the
-offer for seven days. Copy is localized in all four supported interface languages.
+offer only for the current open session; it returns on the next fresh app opening until
+FIELD is installed. Expanded iOS instructions use readable theme-aware text. Copy is
+localized in all four supported interface languages.
 
 **END OF FIELD_SPEC.md**

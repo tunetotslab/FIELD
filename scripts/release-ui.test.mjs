@@ -8,6 +8,7 @@ const telegram = await readFile("src/telegram/index.ts", "utf8");
 const world = await readFile("src/components/WorldMap.tsx", "utf8");
 const i18n = await readFile("src/i18n/index.tsx", "utf8");
 const install = await readFile("src/components/InstallPrompt.tsx", "utf8");
+const visual = await readFile("src/visual-cleanup.css", "utf8");
 
 assert(!app.includes("✂"), "Editor must use the FIELD SVG scissors, not emoji");
 for (const key of ["trim", "split", "soon", "loop", "fade", "continue"])
@@ -56,8 +57,14 @@ assert(
   install.includes('window.addEventListener("beforeinstallprompt"') &&
     install.includes('window.matchMedia("(display-mode: standalone)")') &&
     install.includes("telegram.isTelegram") &&
-    install.includes("isNativeApp()"),
+    install.includes("isNativeApp()") &&
+    !install.includes("localStorage"),
   "Mobile install card must use the real prompt and stay out of installed/Telegram/native surfaces",
+);
+assert(
+  visual.includes(':root[data-theme="dark"] .install-prompt-copy .install-instructions') &&
+    visual.includes(':root:not([data-theme="dark"]) .install-prompt-copy .install-instructions'),
+  "Expanded install instructions must remain readable in light and dark themes",
 );
 console.log(
   "PASS release UI gate: persistent navigation, single Save action, responsive World, localized real PWA install offer, SVG controls, four-locale editor copy and Telegram swipe protection",
