@@ -2114,4 +2114,13 @@ World drag uses a responsive low-cost projection in Telegram, marker selection g
 yellow without a rectangular tap flash, and header navigation uses a plain back arrow
 without a circular pressed background.
 
+## Mobile PWA installation prompt — October 10, 2026
+
+The ordinary mobile web Home screen offers a compact FIELD-branded installation card
+below the primary recording control. On Chromium it must invoke the real deferred PWA
+installation prompt; it must never pretend installation succeeded. On iOS it explains
+the native Share → Add to Home Screen path. The card is absent inside Telegram, in the
+Capacitor app and in an already installed standalone PWA. Dismissing it suppresses the
+offer for seven days. Copy is localized in all four supported interface languages.
+
 **END OF FIELD_SPEC.md**

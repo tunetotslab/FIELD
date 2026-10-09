@@ -4,6 +4,7 @@ import { TelegramLink } from "./components/TelegramLink";
 import { isAuthenticated, currentUserId } from "./auth/session";
 import { NativeAccount } from "./components/NativeAccount";
 import { UiIcon } from "./components/UiIcon";
+import { InstallPrompt } from "./components/InstallPrompt";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   EffectId,
@@ -805,6 +806,7 @@ function Home({ go }: { go: (s: Screen) => void }) {
         </button>
         <strong>{t("record")}</strong>
       </div>
+      <InstallPrompt />
     </Shell>
   );
 }

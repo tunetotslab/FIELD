@@ -7,6 +7,7 @@ const artwork = await readFile("src/components/FieldArtwork.tsx", "utf8");
 const telegram = await readFile("src/telegram/index.ts", "utf8");
 const world = await readFile("src/components/WorldMap.tsx", "utf8");
 const i18n = await readFile("src/i18n/index.tsx", "utf8");
+const install = await readFile("src/components/InstallPrompt.tsx", "utf8");
 
 assert(!app.includes("✂"), "Editor must use the FIELD SVG scissors, not emoji");
 for (const key of ["trim", "split", "soon", "loop", "fade", "continue"])
@@ -38,6 +39,26 @@ assert(
   artwork.includes("dx * 0.55") && artwork.includes("precision(0.8)"),
   "World drag responsiveness regression",
 );
+for (const key of [
+  "installTitle",
+  "installCopy",
+  "installAction",
+  "installIosAction",
+  "installIosSteps",
+  "dismissInstall",
+])
+  assert.equal(
+    (i18n.match(new RegExp(`\\b${key}:`, "g")) || []).length,
+    4,
+    `${key} must exist in all four locales`,
+  );
+assert(
+  install.includes('window.addEventListener("beforeinstallprompt"') &&
+    install.includes('window.matchMedia("(display-mode: standalone)")') &&
+    install.includes("telegram.isTelegram") &&
+    install.includes("isNativeApp()"),
+  "Mobile install card must use the real prompt and stay out of installed/Telegram/native surfaces",
+);
 console.log(
-  "PASS release UI gate: persistent navigation, single Save action, responsive World, SVG controls, four-locale editor copy and Telegram swipe protection",
+  "PASS release UI gate: persistent navigation, single Save action, responsive World, localized real PWA install offer, SVG controls, four-locale editor copy and Telegram swipe protection",
 );

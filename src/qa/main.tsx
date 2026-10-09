@@ -7,7 +7,8 @@ import App, {
   Library,
   ReadyScreen,
 } from "../App";
-import { AppNavigationProvider } from "../components/Shell";
+import { AppNavigationProvider, Shell } from "../components/Shell";
+import { InstallPrompt } from "../components/InstallPrompt";
 import { I18nProvider, useI18n } from "../i18n";
 import type { Locale } from "../i18n";
 import { makeFixture } from "./fixture";
@@ -75,6 +76,14 @@ function QA() {
   const [lines, setLines] = useState<string[]>([]);
   const [samples, setSamples] = useState<{ name: string; url: string }[]>([]);
   const [running, setRunning] = useState(false);
+  if (mode === "install")
+    return (
+      <div className="viewport">
+        <Shell variant="home">
+          <InstallPrompt preview="ios" />
+        </Shell>
+      </div>
+    );
   if (mode === "responsive")
     return (
       <main>

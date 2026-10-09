@@ -76,6 +76,66 @@
   font-size: 12px;
   letter-spacing: 0.045em;
 }
+.install-prompt {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #f5a8d3;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff8fc 0%, #ffe0f2 100%);
+  box-shadow: 0 10px 24px #9f15551a;
+}
+.install-prompt > img {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 5px 13px #a3135b24;
+}
+.install-prompt-copy {
+  min-width: 0;
+}
+.install-prompt-copy strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.025em;
+}
+.install-prompt-copy p {
+  margin: 4px 0 8px;
+  color: #5f5259;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.install-prompt-copy .install-instructions {
+  color: var(--color-ink);
+  font-weight: 750;
+}
+.install-prompt-action {
+  min-height: 34px;
+  padding: 7px 13px;
+  border-radius: var(--radius-pill);
+  background: var(--color-pink);
+  color: white;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.025em;
+}
+.install-prompt-close {
+  align-self: start;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #6f5d66;
+  font-size: 22px;
+  line-height: 1;
+}
 .home-credit {
   margin: 0;
   text-align: center;

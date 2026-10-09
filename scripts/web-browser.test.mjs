@@ -393,6 +393,30 @@ try {
     { timeout: 15000 },
   );
   console.log("PWA opened with active service worker");
+  if (engine === "webkit") {
+    await page
+      .getByRole("button", { name: "HOW TO INSTALL", exact: true })
+      .click();
+    await page
+      .getByText('Tap Share, then “Add to Home Screen”.', { exact: true })
+      .waitFor();
+  } else {
+    await page.evaluate(() => {
+      const event = new Event("beforeinstallprompt", { cancelable: true });
+      Object.assign(event, {
+        prompt: async () => {
+          window.__qaInstallPrompted = true;
+        },
+        userChoice: Promise.resolve({ outcome: "accepted" }),
+      });
+      window.dispatchEvent(event);
+    });
+    await page
+      .getByRole("button", { name: "INSTALL FIELD", exact: true })
+      .click();
+    assert(await page.evaluate(() => window.__qaInstallPrompted));
+    await page.locator(".install-prompt").waitFor({ state: "detached" });
+  }
   const manifestResponse = await context.request.get(
     base + "manifest.webmanifest",
   );
@@ -642,6 +666,11 @@ try {
   telegramPage.setDefaultTimeout(15000);
   telegramPage.on("pageerror", (error) => errors.push(error.message));
   await telegramPage.goto(base);
+  assert.equal(
+    await telegramPage.locator(".install-prompt").count(),
+    0,
+    "Telegram must not show the browser installation offer",
+  );
   await telegramPage.waitForFunction(
     () => document.documentElement.dataset.theme === "light",
   );
@@ -838,6 +867,11 @@ try {
   installedPage.on("pageerror", (error) => errors.push(error.message));
   await installedPage.goto(base);
   assert(await installedPage.evaluate(() => navigator.standalone));
+  assert.equal(
+    await installedPage.locator(".install-prompt").count(),
+    0,
+    "An installed standalone PWA must not ask to be installed again",
+  );
   await installedPage
     .locator(".bottom-nav")
     .getByRole("button", { name: "SETTINGS", exact: true })
