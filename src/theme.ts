@@ -1,10 +1,10 @@
 export type ThemePreference = "light" | "dark";
+const THEME_CHOICE_KEY = "field-theme-choice-v2";
 let preference: ThemePreference | undefined;
 export function getThemePreference(): ThemePreference {
   if (preference) return preference;
   try {
-    const saved = localStorage.getItem("field-theme");
-    return saved === "dark" || saved === "system" ? "dark" : "light";
+    return localStorage.getItem(THEME_CHOICE_KEY) === "dark" ? "dark" : "light";
   } catch {
     return "light";
   }
@@ -25,7 +25,8 @@ export function applyTheme() {
 export function setThemePreference(value: ThemePreference) {
   preference = value;
   try {
-    localStorage.setItem("field-theme", value);
+    localStorage.setItem(THEME_CHOICE_KEY, value);
+    localStorage.removeItem("field-theme");
   } catch {
     /* Session only. */
   }

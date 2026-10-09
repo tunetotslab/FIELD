@@ -115,11 +115,22 @@
   color: var(--color-ink);
   font-weight: 750;
 }
-:root[data-theme="dark"] .install-prompt-copy .install-instructions {
-  color: #faf0f7;
-}
 :root:not([data-theme="dark"]) .install-prompt-copy .install-instructions {
   color: #171217;
+}
+:root[data-theme="dark"] .install-prompt {
+  border-color: #8f5275;
+  background: linear-gradient(135deg, #35252f 0%, #4b293d 100%);
+  color: #faf0f7;
+}
+:root[data-theme="dark"] .install-prompt-copy p {
+  color: #dacbd5;
+}
+:root[data-theme="dark"] .install-prompt-copy .install-instructions {
+  color: #ffffff;
+}
+:root[data-theme="dark"] .install-prompt-close {
+  color: #faf0f7;
 }
 .install-prompt-action {
   min-height: 34px;

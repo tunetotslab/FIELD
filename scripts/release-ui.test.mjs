@@ -9,6 +9,7 @@ const world = await readFile("src/components/WorldMap.tsx", "utf8");
 const i18n = await readFile("src/i18n/index.tsx", "utf8");
 const install = await readFile("src/components/InstallPrompt.tsx", "utf8");
 const visual = await readFile("src/visual-cleanup.css", "utf8");
+const theme = await readFile("src/theme.ts", "utf8");
 
 assert(!app.includes("✂"), "Editor must use the FIELD SVG scissors, not emoji");
 for (const key of ["trim", "split", "soon", "loop", "fade", "continue"])
@@ -65,6 +66,12 @@ assert(
   visual.includes(':root[data-theme="dark"] .install-prompt-copy .install-instructions') &&
     visual.includes(':root:not([data-theme="dark"]) .install-prompt-copy .install-instructions'),
   "Expanded install instructions must remain readable in light and dark themes",
+);
+assert(
+  theme.includes('const THEME_CHOICE_KEY = "field-theme-choice-v2"') &&
+    !theme.includes('saved === "system"') &&
+    !theme.includes("matchMedia"),
+  "FIELD must default to Light independently of the device and remember only an explicit theme choice",
 );
 console.log(
   "PASS release UI gate: persistent navigation, single Save action, responsive World, localized real PWA install offer, SVG controls, four-locale editor copy and Telegram swipe protection",

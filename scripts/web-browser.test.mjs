@@ -197,6 +197,7 @@ try {
     ...mobileProfile,
     viewport: { width: 375, height: 640 },
     locale: "en-US",
+    colorScheme: "dark",
   };
   if (engine === "chromium") {
     await mkdir("work", { recursive: true });
@@ -387,6 +388,11 @@ try {
   });
   await page.goto(base);
   await page.locator(".bottom-nav").waitFor();
+  assert.equal(
+    await page.evaluate(() => document.documentElement.dataset.theme),
+    "light",
+    "A dark device must still open ordinary FIELD Web in the default Light theme",
+  );
   await page.waitForFunction(
     () => !!navigator.serviceWorker.controller,
     undefined,
@@ -395,11 +401,36 @@ try {
   console.log("PWA opened with active service worker");
   if (engine === "webkit") {
     await page
-      .getByRole("button", { name: "HOW TO INSTALL", exact: true })
+      .locator(".bottom-nav")
+      .getByRole("button", { name: "SETTINGS", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await page
+      .locator(".bottom-nav")
+      .getByRole("button", { name: "RECORD", exact: true })
       .click();
     await page
-      .getByText('Tap Share, then “Add to Home Screen”.', { exact: true })
-      .waitFor();
+      .getByRole("button", { name: "HOW TO INSTALL", exact: true })
+      .click();
+    const instructions = page.getByText(
+      'Tap Share, then “Add to Home Screen”.',
+      { exact: true },
+    );
+    await instructions.waitFor();
+    assert.equal(
+      await instructions.evaluate((element) => getComputedStyle(element).color),
+      "rgb(255, 255, 255)",
+      "Expanded installation instructions must be white in Dark theme",
+    );
+    await page
+      .locator(".bottom-nav")
+      .getByRole("button", { name: "SETTINGS", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Light", exact: true }).click();
+    await page
+      .locator(".bottom-nav")
+      .getByRole("button", { name: "RECORD", exact: true })
+      .click();
   } else {
     await page.evaluate(() => {
       const event = new Event("beforeinstallprompt", { cancelable: true });

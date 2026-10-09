@@ -2125,4 +2125,10 @@ offer only for the current open session; it returns on the next fresh app openin
 FIELD is installed. Expanded iOS instructions use readable theme-aware text. Copy is
 localized in all four supported interface languages.
 
+Across ordinary Web, installed PWA, Telegram and native shells, a user without an
+explicit saved appearance choice always starts in Light theme, regardless of the
+device or browser color scheme. Dark theme is enabled and remembered only after the
+user selects it in FIELD Settings. Legacy automatic/system theme values are ignored.
+The installation card owns explicit contrasting surfaces and text colors in both themes.
+
 **END OF FIELD_SPEC.md**
