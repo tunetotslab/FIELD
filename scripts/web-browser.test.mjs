@@ -407,7 +407,7 @@ try {
     await page.getByRole("button", { name: "Dark", exact: true }).click();
     await page
       .locator(".bottom-nav")
-      .getByRole("button", { name: "RECORD", exact: true })
+      .getByRole("button", { name: "REC", exact: true })
       .click();
     await page
       .getByRole("button", { name: "HOW TO INSTALL", exact: true })
