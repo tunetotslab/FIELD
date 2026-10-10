@@ -27,6 +27,7 @@ export function allowedOrigin(request, env) {
   const origin = request.headers.get("Origin");
   return (
     origin === env.APP_ORIGIN ||
+    origin === env.LEGACY_APP_ORIGIN ||
     (env.NATIVE_AUTH_ENABLED === "true" && origin === "capacitor://localhost")
   );
 }

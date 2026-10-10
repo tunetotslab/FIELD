@@ -9,10 +9,11 @@ official Telegram Web App SDK, expands the viewport, follows Telegram theme
 colors, supports native haptics and the native Back button, and keeps the PWA
 fallback for normal browsers.
 
-The repository includes a GitHub Pages workflow. After enabling Pages with
-GitHub Actions in repository settings, the production URL is
-`https://tunetotslab.github.io/FIELD/`. Configure that URL in BotFather as the
-bot's Main Mini App or as a `web_app` button. Audio saves first in local IndexedDB.
+The public frontend is built from `main` by the Cloudflare Pages project
+`field-by-tune-tots` and served at `https://field-by-tune-tots.pages.dev/`.
+The GitHub repository is the only source of truth; Cloudflare hosts only the built
+public assets. Configure that URL in BotFather as the bot's Main Mini App or as a
+`web_app` button. Audio saves first in local IndexedDB.
 Signed-in private Library sync, authenticated World and Tune Tots Group publication
 use the existing Cloudflare Worker, D1 and private R2 bucket.
 Ready and Library prepare real WAV bytes independently of publication. In Telegram,
@@ -44,6 +45,7 @@ npm run typecheck
 npm test
 npm run lint
 npm run build
+npm run build:cloudflare
 ```
 
 Microphone access requires HTTPS or localhost. Audio saves locally in IndexedDB;

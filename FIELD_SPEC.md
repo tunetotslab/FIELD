@@ -6,6 +6,11 @@
 **Status:** Active Development
 **Document role:** Single Source of Truth
 
+**Deployment:** the private GitHub repository is the only source of truth. The
+public web/PWA bundle is built from `main` by Cloudflare Pages project
+`field-by-tune-tots`; API/auth/payments/moderation remain in Cloudflare Worker
+`field-api` with private D1/R2 bindings and Worker secrets.
+
 ---
 
 # 1. PRODUCT DEFINITION

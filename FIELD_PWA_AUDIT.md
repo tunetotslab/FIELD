@@ -38,7 +38,7 @@ change is required. Current backend remains private Library Worker
 
 ## Installation
 
-Open https://tunetotslab.github.io/FIELD/ in an ordinary browser, not inside the
+Open https://field-by-tune-tots.pages.dev/ in an ordinary browser, not inside the
 Telegram Mini App.
 
 - **Android Chrome:** browser menu ⋮ → Install app / Add to Home screen (the exact

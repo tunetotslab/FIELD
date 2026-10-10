@@ -7,6 +7,10 @@ export default defineConfig(({ mode }) => {
     env.VITE_FIELD_API_URL || "https://field-api.nikolachenmusic.workers.dev",
   ).origin;
   return {
+    build: {
+      // Browser bundles are public by design, but production source maps are not.
+      sourcemap: false,
+    },
     plugins: [
       react(),
       {

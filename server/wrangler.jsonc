@@ -4,8 +4,9 @@
 	"compatibility_date": "2026-09-01",
 	"triggers": { "crons": ["*/5 * * * *"] },
 	"vars": {
-		"APP_ORIGIN": "https://tunetotslab.github.io",
-		"APP_URL": "https://tunetotslab.github.io/FIELD/",
+		"APP_ORIGIN": "https://field-by-tune-tots.pages.dev",
+		"LEGACY_APP_ORIGIN": "https://tunetotslab.github.io",
+		"APP_URL": "https://field-by-tune-tots.pages.dev/",
 		"ADMIN_TELEGRAM_ID": "5232786567",
 		"GROUPS_ENABLED": "true",
 		"STANDALONE_AUTH_ENABLED": "true",

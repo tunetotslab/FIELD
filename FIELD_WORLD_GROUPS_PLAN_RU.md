@@ -18,7 +18,7 @@
 - проверка подписи Telegram Mini App;
 - черновой FIELD World API: upload, список, city-level геокодинг, R2 playback;
 - интерактивный глобус и группировка маркеров по городу;
-- GitHub Pages deployment из `main`;
+- Cloudflare Pages deployment из `main` приватного GitHub-репозитория;
 - Telegram Stars и приватная статистика владельца.
 
 ## Статус Stage 5 — 2 октября 2026

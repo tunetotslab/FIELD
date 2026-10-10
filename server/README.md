@@ -1,7 +1,8 @@
 # FIELD API — GitHub / Cloudflare
 
-This Worker belongs to the FIELD GitHub repository. GitHub Pages remains the
-frontend. No OpenAI hosting or storage is used.
+This Worker belongs to the FIELD GitHub repository. Cloudflare Pages project
+`field-by-tune-tots` builds the frontend from `main`; the Worker remains
+`field-api` on `workers.dev`. No OpenAI hosting or storage is used.
 
 ## Cloudflare setup
 
@@ -22,8 +23,8 @@ frontend. No OpenAI hosting or storage is used.
    duplicate delivery, bad payload, wrong user/amount, and `/paysupport`.
    Receipts in D1 (`charge_id`) are the authoritative record. To refund use
    `refundStarPayment` with that charge ID and the corresponding user ID.
-8. Add repository Actions variable `FIELD_API_URL` with the Worker HTTPS URL,
-   then rebuild Pages. Donations stay disabled without this variable.
+8. Set the public Cloudflare Pages build variable `VITE_FIELD_API_URL` to the
+   Worker HTTPS URL, then rebuild Pages. Donations stay disabled without it.
 
 ## Tune Tots Groups
 

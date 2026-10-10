@@ -4,7 +4,8 @@
 
 - Исходный код: GitHub, `tunetotslab/FIELD`.
 - OpenAI/GPT-хранилище и GPT-серверы не используем.
-- Публикация frontend: GitHub Pages → Telegram Mini App / PWA.
+- Публикация frontend: private GitHub source → Cloudflare Pages
+  (`field-by-tune-tots.pages.dev`) → Telegram Mini App / PWA.
 - Максимальная длина одной записи: 60 секунд.
 - Локальная запись должна работать offline.
 - Аудио: Cloudflare R2.

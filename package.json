@@ -10,6 +10,7 @@
     "typecheck": "tsc -b --pretty false",
     "lint": "tsc -b --pretty false",
     "build": "tsc -b && vite build --config vite.config.ts",
+    "build:cloudflare": "npm run build -- --base=/",
     "build:city-search": "node scripts/build-city-search-index.mjs public/geo/v1",
     "preview": "vite preview --config vite.config.ts --host 0.0.0.0",
     "test:web": "node scripts/web-browser.test.mjs",

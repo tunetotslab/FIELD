@@ -1,4 +1,4 @@
-name: Deploy FIELD to GitHub Pages
+name: Verify Cloudflare Pages build
 
 on:
   push:
@@ -7,11 +7,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: github-pages
+  group: cloudflare-pages-verification
   cancel-in-progress: true
 
 jobs:
@@ -34,19 +32,6 @@ jobs:
           VITE_FIELD_API_URL: ${{ vars.FIELD_API_URL }}
           VITE_FIELD_WORLD_ENABLED: ${{ vars.FIELD_WORLD_ENABLED }}
           VITE_FIELD_GROUPS_ENABLED: ${{ vars.FIELD_GROUPS_ENABLED }}
-        run: npm run build -- --base=/FIELD/
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        run: npm run build:cloudflare
+      - name: Reject production source maps
+        run: test -z "$(find dist -type f -name '*.map' -print -quit)"
